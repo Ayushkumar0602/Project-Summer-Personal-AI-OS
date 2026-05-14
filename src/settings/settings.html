@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Summer — Settings & Permissions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+    <div class="settings-container">
+        <!-- Header -->
+        <div class="settings-header">
+            <div class="header-icon">⚙️</div>
+            <div class="header-text">
+                <h1>Settings & Permissions</h1>
+                <p>Manage Summer's access to your system</p>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-bar">
+            <button class="tab active" data-tab="permissions">🔒 Permissions</button>
+            <button class="tab" data-tab="system-access">🖥️ System Access</button>
+            <button class="tab" data-tab="wake-word">🎤 Wake Word</button>
+            <button class="tab" data-tab="integrations">🔗 Integrations</button>
+            <button class="tab" data-tab="audit-log">📋 Audit Log</button>
+        </div>
+
+        <!-- PERMISSIONS TAB -->
+        <div class="tab-content active" id="tab-permissions">
+            <div class="section-header">
+                <h2>Granted Permissions</h2>
+                <p>Actions below have been permanently approved. Summer will execute them without asking again.</p>
+            </div>
+
+            <div id="permissionsList" class="permissions-list">
+                <div class="empty-state">Loading...</div>
+            </div>
+
+            <div class="actions-bar">
+                <button class="btn btn-danger" id="revokeAllBtn">🚫 Revoke All Permissions</button>
+            </div>
+        </div>
+
+        <!-- SYSTEM ACCESS TAB -->
+        <div class="tab-content" id="tab-system-access">
+            <div class="section-header">
+                <h2>macOS System Access</h2>
+                <p>Grant these permissions in <strong>System Settings → Privacy & Security</strong> to unlock Summer's full potential.</p>
+            </div>
+
+            <div class="access-cards">
+                <div class="access-card essential">
+                    <div class="card-badge">ESSENTIAL</div>
+                    <div class="card-icon">🎤</div>
+                    <h3>Microphone</h3>
+                    <p>Required for voice interaction. Without this, Summer can't hear you.</p>
+                    <div class="card-path">Privacy & Security → Microphone → Summer ✅</div>
+                </div>
+
+                <div class="access-card essential">
+                    <div class="card-badge">ESSENTIAL</div>
+                    <div class="card-icon">♿</div>
+                    <h3>Accessibility</h3>
+                    <p>Enables app control, system automation, and keyboard/mouse simulation. Needed for opening/quitting apps, volume control via AppleScript.</p>
+                    <div class="card-path">Privacy & Security → Accessibility → Summer</div>
+                </div>
+
+                <div class="access-card recommended">
+                    <div class="card-badge">RECOMMENDED</div>
+                    <div class="card-icon">🔔</div>
+                    <h3>Notifications</h3>
+                    <p>Allows Summer to show timer alerts, reminders, and proactive notifications on your Mac.</p>
+                    <div class="card-path">Notifications → Summer → Allow</div>
+                </div>
+
+                <div class="access-card recommended">
+                    <div class="card-badge">RECOMMENDED</div>
+                    <div class="card-icon">⚡</div>
+                    <h3>Automation (AppleScript)</h3>
+                    <p>Allows Summer to control other apps (Finder, Spotify, System Events). macOS will prompt you automatically the first time.</p>
+                    <div class="card-path">Privacy & Security → Automation → Summer</div>
+                </div>
+
+                <div class="access-card recommended">
+                    <div class="card-badge">RECOMMENDED</div>
+                    <div class="card-icon">📸</div>
+                    <h3>Screen Recording</h3>
+                    <p>Required for taking screenshots. Without this, <code>os_take_screenshot</code> will produce blank images.</p>
+                    <div class="card-path">Privacy & Security → Screen Recording → Summer</div>
+                </div>
+
+                <div class="access-card optional">
+                    <div class="card-badge">OPTIONAL</div>
+                    <div class="card-icon">📁</div>
+                    <h3>Full Disk Access</h3>
+                    <p>Lets Summer open any file/folder on your system. Only needed if you want her to access files outside standard directories.</p>
+                    <div class="card-path">Privacy & Security → Full Disk Access → Summer</div>
+                </div>
+
+                <div class="access-card optional">
+                    <div class="card-badge">OPTIONAL</div>
+                    <div class="card-icon">📍</div>
+                    <h3>Location Services</h3>
+                    <p>Currently using IP-based location. Grant this for more precise GPS-level location if needed in future.</p>
+                    <div class="card-path">Privacy & Security → Location Services → Summer</div>
+                </div>
+            </div>
+
+            <div class="actions-bar">
+                <button class="btn btn-primary" id="openSystemPrefsBtn">Open System Settings</button>
+            </div>
+        </div>
+
+        <!-- WAKE WORD TAB -->
+        <div class="tab-content" id="tab-wake-word">
+            <div class="section-header">
+                <h2>Wake Word Detection</h2>
+                <p>Say <strong>"Hey Summer"</strong> or <strong>"Sama"</strong> to activate Summer hands-free, even when the app is in the background.</p>
+            </div>
+
+            <div class="access-cards">
+                <div class="access-card essential">
+                    <div class="card-icon">🎤</div>
+                    <h3>Always-On Listening</h3>
+                    <p>When enabled, Summer continuously listens for the wake word using a lightweight on-device model. No audio is sent to any server until the wake word is detected.</p>
+                    <div style="margin-top: 16px; display: flex; align-items: center; gap: 14px;">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="wakeWordToggle" checked />
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span id="wakeWordStatusLabel" style="color: #22c55e; font-size: 13px; font-weight: 500;">Active — Listening</span>
+                    </div>
+                </div>
+
+                <div class="access-card recommended">
+                    <div class="card-icon">📊</div>
+                    <h3>Detection Sensitivity</h3>
+                    <p>Lower values = more sensitive (may cause false activations). Higher = stricter (may miss soft speech). Default: 0.5</p>
+                    <div style="margin-top: 16px;">
+                        <input type="range" id="wakeWordThreshold" min="0.1" max="0.9" step="0.05" value="0.5" style="width: 100%; accent-color: #06b6d4;" />
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 4px;">
+                            <span>More Sensitive</span>
+                            <span id="thresholdValue" style="color: #06b6d4; font-weight: 600;">0.50</span>
+                            <span>More Strict</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="access-card optional">
+                    <div class="card-icon">ℹ️</div>
+                    <h3>Engine Status</h3>
+                    <p>Current state of the on-device OpenWakeWord inference pipeline.</p>
+                    <div id="wakeWordEngineStatus" style="margin-top: 12px; font-family: 'Inter', sans-serif; font-size: 12px; color: #94a3b8; line-height: 1.8;">
+                        Loading...
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <button class="btn btn-primary" id="refreshWakeStatusBtn">Refresh Status</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INTEGRATIONS TAB -->
+        <div class="tab-content" id="tab-integrations">
+            <div class="section-header">
+                <h2>Account Integrations</h2>
+                <p>Connect third-party services to give Summer access to your digital life.</p>
+            </div>
+
+            <div class="access-cards">
+                <div class="access-card essential">
+                    <div class="card-icon" style="font-size:24px;">G</div>
+                    <h3>Google Workspace</h3>
+                    <p>Connect your Google Account to let Summer read your calendar, fetch your tasks, and manage emails securely via OAuth 2.0.</p>
+                    <div style="margin-top: 12px;" id="googleAuthStatus">
+                        <span style="color:#94a3b8; font-size:12px;">Status: Checking...</span>
+                    </div>
+                    <div style="margin-top: 12px; display:flex; gap:10px;">
+                        <button class="btn btn-primary" id="btnConnectGoogle">Connect Google</button>
+                        <button class="btn btn-danger" id="btnDisconnectGoogle" style="display:none;">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AUDIT LOG TAB -->
+        <div class="tab-content" id="tab-audit-log">
+            <div class="section-header">
+                <h2>Audit Log</h2>
+                <p>Every OS action Summer performs is recorded here for transparency and security.</p>
+            </div>
+
+            <div id="auditLogContent" class="audit-log">
+                <div class="empty-state">Loading logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="settings-renderer.js"></script>
+</body>
+</html>

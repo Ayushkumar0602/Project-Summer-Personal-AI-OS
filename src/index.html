@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Summer - AI Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+  </head>
+  <body>
+    <!-- Wake Word Always-On Indicator -->
+    <div id="wakeWordIndicator" class="wake-word-indicator" title="Wake Word: Listening"></div>
+
+
+
+    <!-- ===== FULL SCREEN IMMERSIVE LAYOUT ===== -->
+    <div class="app-layout browser-hidden" id="appLayout">
+      <!-- Neural Lines Overlay -->
+      <svg id="neural-lines" class="neural-svg"></svg>
+
+      <!-- LEFT: Agent Panel -->
+      <div class="agent-panel">
+        <!-- Top Action Buttons -->
+        <div class="top-action-buttons">
+          <button class="action-btn settings-btn" id="settingsBtn" title="Settings & Permissions">⚙️</button>
+          <button class="action-btn memory-btn" id="memoryBtn" title="Open Memory Graph">🧠</button>
+          <button class="action-btn" id="sessionsBtn" title="Past Sessions" style="font-size: 1.1rem;">🕒</button>
+        </div>
+        
+        <div class="agent-header">
+          <span class="agent-name">SUMMER</span>
+          <span class="agent-tagline">Advanced AI Assistant</span>
+        </div>
+
+        <div class="orb-container" id="orbContainer">
+          <div id="orb" class="state-idle">
+            <!-- WebGL Core will be injected here -->
+            <canvas id="jarvis-core"></canvas>
+          </div>
+        </div>
+        
+        <div class="status-text" id="statusText">Click to Activate</div>
+
+        <div class="subtitle-container">
+          <div id="userText" class="user-subtitle"></div>
+          <div id="subtitleText" class="subtitle"></div>
+        </div>
+      </div>
+
+      <!-- Floating Tool Status UI -->
+      <div id="floatingToolStatus" class="floating-tool-status" style="display: none;"></div>
+
+      <!-- HUD: Spatially Distributed Holographic Zones -->
+      <div id="hud-left-wing" class="hud-zone left-wing"></div>
+      <div id="hud-right-wing" class="hud-zone right-wing"></div>
+      <div id="hud-top" class="hud-zone top-center"></div>
+      <div id="hud-bottom-dock" class="hud-zone bottom-dock"></div>
+      
+      <!-- Persistent Fixed Zones -->
+      <div id="hud-fixed-weather" class="hud-zone fixed-top-right"></div>
+      <div id="hud-fixed-schedule" class="hud-zone fixed-bottom-left"></div>
+
+      <!-- RIGHT: Mini Browser Panel -->
+      <div class="browser-panel">
+        <div class="browser-header">
+          <div class="browser-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <div class="browser-url-bar">
+            <span class="browser-url-icon">🌐</span>
+            <input type="text" id="browserUrlInput" class="browser-url-input" placeholder="Enter URL or let Summer navigate..." />
+            <button id="browserGoBtn" class="browser-go-btn">Go</button>
+          </div>
+          <div class="browser-actions">
+            <button class="browser-nav-btn" id="browserBackBtn" title="Back">&#8592;</button>
+            <button class="browser-nav-btn" id="browserReloadBtn" title="Reload">&#8635;</button>
+          </div>
+        </div>
+        
+        <div class="browser-tabs-bar" id="browserTabsBar">
+          <div class="browser-tab active" data-tab-id="tab-1">
+            <span class="tab-title">Main</span>
+            <span class="tab-close">×</span>
+          </div>
+        </div>
+
+        <div class="browser-viewport" id="browserViewport">
+          <webview id="miniBrowser" src="about:blank" class="mini-browser-webview"></webview>
+          <div class="browser-overlay" id="browserOverlay">
+            <div class="browser-idle-icon">🌐</div>
+            <div class="browser-idle-text">Summer's Browser</div>
+            <div class="browser-idle-sub">Summer will navigate here automatically during research,<br>or you can type a URL above.</div>
+          </div>
+        </div>
+
+        <div class="browser-status-bar">
+          <span id="browserStatus" class="browser-status-text">Ready</span>
+        </div>
+      </div>
+
+    </div><!-- end .app-layout -->
+
+    <!-- Command Palette Overlay -->
+    <div id="cmdPaletteOverlay" class="cmd-palette-overlay" style="display:none">
+      <div class="cmd-palette-box">
+        <div class="cmd-palette-header">
+          <span>SUMMER COMMAND</span>
+          <span class="cmd-shortcut">ESC to close</span>
+        </div>
+        <input type="text" id="cmdInput" class="cmd-input" placeholder="Type a command for Summer... (e.g. 'open Spotify')" autocomplete="off" />
+      </div>
+    </div>
+
+    <!-- Past Sessions Modal -->
+    <div id="sessionsModal" class="cmd-palette-overlay" style="display:none; padding-top: 10vh;">
+      <div class="cmd-palette-box" style="height: 60vh; max-height: 600px; display: flex; flex-direction: column;">
+        <div class="cmd-palette-header">
+          <span>PAST SESSIONS</span>
+          <span class="cmd-shortcut" style="cursor:pointer;" onclick="closeSessionsModal()">ESC or ✕ to close</span>
+        </div>
+        <div id="sessionsList" style="flex:1; overflow-y:auto; padding:16px; color:#e2e8f0;"></div>
+      </div>
+    </div>
+
+    <!-- Image Fullscreen Overlay -->
+    <div id="imgFullscreenOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:5000; align-items:center; justify-content:center; cursor:pointer;" onclick="this.style.display='none'">
+      <img id="imgFullscreenEl" src="" style="max-width:90vw; max-height:90vh; border-radius:12px; box-shadow:0 0 80px rgba(6,182,212,0.3); border:1px solid rgba(6,182,212,0.4);" />
+    </div>
+
+    <script src="visualizer.js"></script>
+    <script src="renderer.js"></script>
+  </body>
+</html>

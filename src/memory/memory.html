@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Memory — Knowledge Graph</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- vis-network for graph visualization -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <link rel="stylesheet" href="memory.css" />
+</head>
+<body>
+    <div class="app">
+
+        <!-- LEFT PANEL: Upload & Stats -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🧠 Memory</div>
+                <div class="subtitle">AI Knowledge Graph</div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-panel">
+                <div class="stat">
+                    <div class="stat-value" id="nodeCount">0</div>
+                    <div class="stat-label">Entities</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="edgeCount">0</div>
+                    <div class="stat-label">Relations</div>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input id="searchInput" class="search-input" type="text" placeholder="Search memory..." autocomplete="off" />
+                <button id="searchClear" class="search-clear" onclick="clearSearch()" style="display:none">✕</button>
+            </div>
+            <div id="searchCount" class="search-count"></div>
+
+            <!-- Tag Filter Bar -->
+            <div class="section-title" style="margin-top:4px">Filter by Tag</div>
+            <div id="tagFilterBar" class="tag-filter-bar">
+                <button class="tag-filter-pill active" onclick="setTagFilter(null)">All</button>
+            </div>
+
+            <!-- Upload Area -->
+            <div class="section-title" style="margin-top:16px">Add Knowledge</div>
+            <div id="dropZone" class="drop-zone">
+                <div class="drop-icon">📂</div>
+                <div class="drop-text">Drop files here</div>
+                <div class="drop-sub">Text, PDF, or drop a photo to add to visual memory 📸</div>
+                <input type="file" id="fileInput" multiple style="display:none" />
+                <button class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+            </div>
+
+            <!-- Progress -->
+            <div id="progressArea" class="progress-area" style="display:none">
+                <div class="progress-label" id="progressLabel">Processing...</div>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+
+            <!-- Legend -->
+            <div class="section-title" style="margin-top:16px">Legend</div>
+            <div class="legend">
+                <div class="legend-item"><span class="dot person"></span> Person</div>
+                <div class="legend-item"><span class="dot project"></span> Project</div>
+                <div class="legend-item"><span class="dot skill"></span> Skill / Technology</div>
+                <div class="legend-item"><span class="dot organization"></span> Organization</div>
+                <div class="legend-item"><span class="dot concept"></span> Concept / Topic</div>
+                <div class="legend-item"><span class="dot document"></span> Document / Chapter</div>
+                <div class="legend-item"><span class="dot formula"></span> Formula / Definition</div>
+                <div class="legend-item"><span class="dot" style="background:#7c2d69; border-color:#a855f7;"></span> 📸 Image Memory</div>
+                <div class="legend-item"><span class="dot other"></span> Other</div>
+                <div class="legend-item"><span class="dot agent"></span> Added by Agent</div>
+            </div>
+
+            <!-- Action buttons -->
+            <button class="diary-btn" onclick="openDiaryTab()">📓 Session Diary</button>
+            <button class="diary-btn" style="background:#0284c7; color:white; border-color:#0369a1; margin-top:8px;" onclick="openMemoryCommandPalette()">💬 AI Graph Command</button>
+            <button class="diary-btn" style="background:#7c3aed; color:white; border-color:#6d28d9; margin-top:8px;" onclick="autoConnectIslands()" id="btnAutoConnect">✨ AI Connect Islands</button>
+            <button class="diary-btn" style="display:none; background:transparent; color:#ef4444; border-color:#ef4444; margin-top:8px;" onclick="revertGraph()" id="btnRevertGraph">↩ Revert Connect</button>
+            
+            <div style="margin-top: 16px; border-top: 1px solid rgba(6,182,212,0.15); padding-top: 16px;">
+                <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">🌐 Web Knowledge Ingestion</div>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="urlIngestInput" placeholder="Paste article/wiki URL..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid #334155; padding:8px; color:white; border-radius:6px; font-size:12px; outline:none;">
+                    <button onclick="ingestWebUrl()" style="background:#0ea5e9; color:white; border:none; padding:0 12px; border-radius:6px; cursor:pointer; font-size:12px;">Ingest</button>
+                </div>
+                <div id="urlIngestStatus" style="font-size: 10px; color: #a855f7; margin-top: 6px; display: none;"></div>
+            </div>
+            
+            <div style="margin-top: 16px; border-top: 1px solid rgba(6,182,212,0.15); padding-top: 16px;">
+                <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">📝 Direct Text Knowledge</div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <textarea id="textIngestInput" placeholder="Type or paste direct text, facts, or notes..." style="background:rgba(0,0,0,0.3); border:1px solid #334155; padding:8px; color:white; border-radius:6px; font-size:12px; outline:none; min-height:60px; resize:vertical; font-family: 'Inter', sans-serif;"></textarea>
+                    <button onclick="ingestDirectText()" style="background:#0ea5e9; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:12px;">Add Text to Memory</button>
+                </div>
+            </div>
+            
+            <div style="margin-top: 16px; border-top: 1px solid rgba(6,182,212,0.15); padding-top: 16px; display: flex; gap: 8px;">
+                <button onclick="exportMemory()" style="flex:1; background:transparent; color:#38bdf8; border:1px solid #0369a1; padding:8px; border-radius:6px; cursor:pointer; font-size:12px;">📤 Export</button>
+                <button onclick="importMemory()" style="flex:1; background:transparent; color:#4ade80; border:1px solid #166534; padding:8px; border-radius:6px; cursor:pointer; font-size:12px;">📥 Import</button>
+            </div>
+            
+            <button class="clear-btn" onclick="clearGraph()" style="margin-top:8px;">🗑 Clear Memory</button>
+        </div>
+
+        <!-- RIGHT PANEL: Graph Visualization -->
+        <div class="graph-area">
+            <div id="graphCanvas"></div>
+            <div id="emptyState" class="empty-state">
+                <div class="empty-icon">🧩</div>
+                <div class="empty-title">No knowledge yet</div>
+                <div class="empty-sub">Upload files to build your AI's memory</div>
+            </div>
+        </div>
+
+        <!-- Node Detail Popup (Rich) -->
+        <div id="nodeDetail" class="node-detail" style="display:none">
+            <button class="nd-close" onclick="document.getElementById('nodeDetail').style.display='none'; editingNodeId=null;">✕</button>
+            
+            <div id="nodeDetailLabel" class="nd-label"></div>
+            <div class="nd-meta-row">
+                <div id="nodeDetailType" class="nd-type"></div>
+                <span id="nodeSourceBadge" class="nd-source-badge" style="display:none"></span>
+            </div>
+            <div id="nodeDetailId" class="nd-node-id"></div>
+            <div id="nodeDetailAge" class="nd-age" style="display:none"></div>
+
+            <!-- Tags -->
+            <div class="nd-section" style="margin-top:10px">🏷 Tags</div>
+            <div id="nodeTagsContainer" class="nd-tags-container"></div>
+
+            <!-- Image Preview (only shown for ImageMemory nodes) -->
+            <div id="nodeImagePreview" style="display:none; margin-top:12px; text-align:center;">
+                <img id="nodeImageEl" src="" alt="" style="max-width:100%; max-height:200px; border-radius:10px; border:1px solid rgba(168,85,247,0.4); cursor:pointer; object-fit:cover;" onclick="expandNodeImage()" />
+                <div id="nodeImageCaption" style="font-size:10px; color:#94a3b8; margin-top:4px;"></div>
+            </div>
+
+            <!-- Description Section -->
+            <div class="nd-section" style="margin-top:10px">📖 Description</div>
+            <div id="nodeDetailDesc" class="nd-description" style="display:none"></div>
+
+            <!-- Connections Section -->
+            <div class="nd-section" style="margin-top:12px">🔗 Connections</div>
+            <div id="nodeDetailEdges" class="nd-edges"></div>
+
+            <!-- Add Connection Form -->
+            <div class="nd-add-edge-form" style="margin-top: 10px; display: flex; flex-direction: column; gap: 5px;">
+                <select id="edgeTargetSelect" class="nd-edit-input" style="padding: 6px; font-size: 12px; border: 1px solid #334155;">
+                    <option value="">Select node to connect...</option>
+                </select>
+                <input id="edgeLabelInput" class="nd-edit-input" type="text" placeholder="Relationship (e.g. parent, part_of)" style="padding: 6px; font-size: 12px;" />
+                <button class="nd-btn-save" onclick="addCustomEdge()" style="width: 100%; font-size: 12px;">+ Add Connection</button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="nd-actions">
+                <button class="nd-btn-edit" onclick="startEditNode()">✏️ Edit</button>
+                <button id="pinNodeBtn" class="nd-btn-pin" onclick="togglePin()">📌 Pin</button>
+                <button class="nd-btn-delete" onclick="deleteNode()">🗑 Delete</button>
+            </div>
+
+            <!-- Importance Slider -->
+            <div class="nd-section" style="margin-top:10px">⭐ Importance (affects context priority)</div>
+            <div class="nd-importance-row">
+                <input id="importanceSlider" type="range" min="0" max="1" step="0.05" value="0.5" class="importance-slider" />
+                <span id="importanceValue" class="importance-value">2.5/5</span>
+            </div>
+
+            <!-- Inline Edit Form (hidden by default) -->
+            <div id="nodeEditForm" class="nd-edit-form" style="display:none">
+                <div class="nd-section">✏️ Edit Node</div>
+                <label class="nd-edit-label">Label (Name)</label>
+                <input id="editLabel" class="nd-edit-input" type="text" placeholder="Node label..." />
+                <label class="nd-edit-label" style="margin-top:8px">Description</label>
+                <textarea id="editDescription" class="nd-edit-textarea" placeholder="Describe this entity in 1-3 sentences..."></textarea>
+                <label class="nd-edit-label" style="margin-top:8px">Tags <span style="color:#475569;font-weight:400">(comma-separated)</span></label>
+                <input id="editTags" class="nd-edit-input" type="text" placeholder="work, study, personal" />
+                <div class="nd-edit-actions">
+                    <button class="nd-btn-save" onclick="saveNodeEdit()">💾 Save</button>
+                    <button class="nd-btn-cancel" onclick="document.getElementById('nodeEditForm').style.display='none'">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diary Panel Overlay -->
+    <div id="diaryPanel" class="diary-panel" style="display:none">
+        <div class="diary-header">
+            <div class="diary-title">📓 Session Diary</div>
+            <div class="diary-subtitle">AI-summarized notes from each conversation</div>
+            <button class="diary-close" onclick="closeDiaryPanel()">✕</button>
+        </div>
+        <div id="diaryList" class="diary-list"></div>
+    </div>
+
+    <!-- AI Memory Command Palette -->
+    <div id="aiCommandOverlay" class="diary-panel" style="display:none; justify-content:center; align-items:flex-start; padding-top:100px; background:rgba(0,0,0,0.8);">
+        <div style="background:#0f172a; width:600px; border:1px solid #7c3aed; border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:10px;">
+            <div style="color:#a78bfa; font-family:'Orbitron', sans-serif; font-size:12px; letter-spacing:2px;">✨ AI GRAPH COMMAND (Press ESC to close)</div>
+            <input type="text" id="aiCommandInput" placeholder="e.g. Delete all nodes related to math, or Connect X to Y" 
+                   style="width:100%; padding:15px; background:transparent; border:none; color:white; font-size:16px; outline:none; border-bottom:1px solid #334155;"/>
+            <div id="aiCommandStatus" style="color:#94a3b8; font-size:12px; height:18px;">Type command and press Enter...</div>
+        </div>
+    </div>
+
+    <!-- Memory Conflict Overlay -->
+    <div id="conflictOverlay" class="diary-panel" style="display:none; justify-content:center; align-items:flex-start; padding-top:100px; background:rgba(0,0,0,0.8); z-index: 1000;">
+        <div style="background:#0f172a; width:600px; border:1px solid #ef4444; border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:10px;">
+            <div style="color:#f87171; font-family:'Orbitron', sans-serif; font-size:12px; letter-spacing:2px; display:flex; justify-content:space-between;">
+                <span>⚠️ MEMORY CONTRADICTION DETECTED</span>
+                <span style="cursor:pointer;" onclick="closeConflictModal()">✕</span>
+            </div>
+            <p style="color:#94a3b8; font-size:13px; margin-bottom:12px;">The AI found conflicting information in the new text. Please resolve.</p>
+            <div id="conflictList" style="max-height: 400px; overflow-y: auto; display:flex; flex-direction:column; gap:12px;"></div>
+        </div>
+    </div>
+
+    <script src="memory.js"></script>
+</body>
+</html>
