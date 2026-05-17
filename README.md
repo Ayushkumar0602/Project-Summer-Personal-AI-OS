@@ -34,6 +34,23 @@ Summer is designed to be a "living" presence in your workspace:
 
 ---
 
+## 🤖 Agentic Orchestration (Two-Tier Architecture)
+
+Summer has evolved from a single assistant into a **multi-agent orchestration platform**. She uses a "Socket & Plug" modular ecosystem to execute complex tasks in the background while maintaining a conversational frontend.
+
+- **Tier 1 (The Hub)**: Intent routing, immediate conversational responses, and memory management.
+- **Tier 2 (The Orchestrator)**: The internal Chief of Staff. It decomposes tasks, reads Agent Skill Documents (`skill.json`), resolves data dependencies, and supervises Domain Agents.
+- **Human-in-the-Loop Safety**: Consequential actions require explicit user approval. Summer will ask for clarification or permission before proceeding.
+- **Tool Gateway & Verifier**: Centralized tool execution with strict permission policies, followed by a Verifier agent to ensure the task meets your goals.
+
+### 🔌 Domain Agents
+Summer delegates specialized work to isolated worker threads:
+- **PPT Editor Agent**: A 5-stage pipeline (planner, writer, asset handler, layout engine, builder) that generates complete `.pptx` presentations based on topic and audience.
+- **Deep Research Agent**: Leverages Google Gemini's native Deep Research API for recursive web research, collaborative planning (asking for your approval on the research plan), and auto-generating reports with charts.
+- *(More agents planned: Email, Calendar, OS Diagnostics, etc.)*
+
+---
+
 ## 🛠️ Capabilities & Integration
 
 ### 🖥️ OS & Deep App Control
@@ -62,38 +79,38 @@ Deep, authenticated access to your Google ecosystem:
 
 ```mermaid
 graph TD
-    subgraph "Main Process (Electron)"
+    subgraph "Tier 1: Front-Line Brain"
         Main[src/index.js]
-        Memory[Memory Engine]
-        Tools[Tool Executor]
-        Skills[Skill Loader]
-    end
-
-    subgraph "Renderer Process (UI)"
         HUD[Jarvis HUD]
-        Viz[WebGL Visualizer]
-        Voice[Gemini Live WS]
-        Browser[Mini-Browser Webview]
+        Intent[Intent Router]
     end
 
-    Main <-->|IPC| HUD
-    Main <-->|IPC| Memory
-    Main <-->|IPC| Tools
-    
-    Memory -->|Store| JSON[(Knowledge Graph)]
-    Memory -->|Vision| GeminiVision[Gemini Image Analyzer]
-    
-    Tools -->|Execute| OS[macOS System APIs]
-    Tools -->|Automate| Playwright[Playwright/Puppeteer]
-    
-    Voice <-->|WebSocket| Gemini[Google Gemini 3 Flash]
-    
-    Skills -->|Extend| Tools
+    subgraph "Tier 2: Orchestration"
+        Orchestrator[Chief of Staff Agent]
+        Gateway[Tool Gateway]
+        Verifier[Verifier Agent]
+    end
+
+    subgraph "Domain Agents (Sockets)"
+        PPT[PPT Editor]
+        Research[Deep Research Analyst]
+        Other[Other Plugins...]
+    end
+
+    Main <--> HUD
+    Main --> Intent
+    Intent -->|Complex Task| Orchestrator
+    Orchestrator -->|Loads skill.json| PPT
+    Orchestrator -->|Loads skill.json| Research
+    PPT --> Gateway
+    Research --> Gateway
+    Orchestrator --> Verifier
 ```
 
 - **Main Process**: Handles window lifecycles, security permissions, IPC routing, and tool execution logic.
+- **Orchestration Layer**: Manages task ledgers, dependency resolution, and agent sandboxing via Node.js `worker_threads`.
 - **Memory Engine**: Manages the D3-compatible graph structure, semantic extraction, and diary summarization.
-- **Skill System**: A modular directory (`src/skills/`) that allows adding new capabilities (e.g., WhatsApp, AirDrop) without modifying the core engine.
+- **Skill System**: A modular directory (`plugins/`) that allows dropping in new capabilities without modifying the core engine.
 - **Visualizer**: Uses `Three.js` and Web Audio API for reactive holographic effects.
 
 ---
@@ -105,20 +122,24 @@ graph TD
 │   ├── index.js             # Entry point: Main Electron process
 │   ├── renderer.js          # Core UI logic & Voice interaction
 │   ├── visualizer.js        # Three.js holographic visualizer logic
+│   ├── orchestration/       # Tier 2 Orchestration Layer
+│   │   ├── orchestrator.js
+│   │   ├── agent-socket.js
+│   │   └── intent-matcher.js
 │   ├── knowledge/           # Advanced Memory Tier
 │   │   ├── graph-store.js   # JSON persistence & node management
 │   │   ├── graph-extractor.js # AI-powered knowledge extraction
 │   │   ├── image-analyzer.js # Gemini Vision image memory pipeline
 │   │   └── session-diary.js # Daily summary & continuity logic
 │   ├── skills/              # Modular capability system
-│   │   ├── whatsapp-skill.js
-│   │   ├── music-skill.js
 │   │   └── skill-loader.js  # Dynamic skill discovery
 │   ├── tools/               # LLM Tool definitions & OS execution
-│   │   ├── os-tools.js      # macOS deep integration
-│   │   └── web-tools.js     # Search & Scraping
-│   ├── services/            # API integrations (Google, Maps, etc.)
 │   └── settings/            # Permissions & User configuration UI
+├── plugins/                 # Domain Agent Plugs
+│   ├── ppt_editor/          # PPT Generation Agent
+│   └── research_analyst/    # Deep Research Agent
+├── packages/                # Shared SDKs
+│   └── agent-sdk/
 ├── forge.config.js          # Electron Forge configuration
 └── package.json             # Core dependencies & scripts
 ```
