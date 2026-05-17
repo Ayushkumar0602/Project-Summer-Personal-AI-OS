@@ -1,0 +1,13 @@
+{
+  "name": "academic-simple",
+  "colors": {
+    "background": "ffffff",
+    "accent": "8b0000",
+    "text": "222222",
+    "muted": "666666"
+  },
+  "fonts": {
+    "title": "Georgia",
+    "body": "Arial"
+  }
+}

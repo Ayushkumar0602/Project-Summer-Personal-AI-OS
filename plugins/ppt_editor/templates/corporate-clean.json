@@ -1,0 +1,13 @@
+{
+  "name": "corporate-clean",
+  "colors": {
+    "background": "f5f7fa",
+    "accent": "1e3a5f",
+    "text": "1a1a1a",
+    "muted": "5c6b7a"
+  },
+  "fonts": {
+    "title": "Arial",
+    "body": "Arial"
+  }
+}

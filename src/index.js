@@ -22,6 +22,7 @@ const { executeAppControlTool, isAppControlTool } = require('./tools/app-control
 const { appControlDeclarations } = require('./tools/app-control-declarations');
 const { loadPermissions, revokePermission, revokeAllPermissions } = require('./settings/permissions-store');
 const { enhanceToolResponse, getSkillSummaries } = require('./skills/skill-loader');
+const orchestrator = require('./orchestration/orchestrator');
 const googleTools = require('./tools/google-tools');
 const uiTools = require('./tools/ui-tools');
 const { WakeWordEngine } = require('./wake-word/wake-word-engine');
@@ -160,9 +161,54 @@ const agentTools = [{
     // ── Google Workspace Tools ──
     ...googleTools.declarations,
     // ── UI / HUD Tools ──
-    ...uiTools.declarations
+    ...uiTools.declarations,
+    // ── Tier 2: Domain Agent Delegation ──
+    {
+      name: "delegate_domain_agent",
+      description: "Delegate a complex background task to a specialized domain agent plug-in (e.g. PPT generation). Use when the user asks to create a PowerPoint/presentation/deck. Do NOT invent slide content yourself — delegate here. If status is 'gathering', ask the user for missing fields and call again with gathered_attributes.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          agent_id: { type: "STRING", description: "Plug-in ID, e.g. ppt_editor_v1" },
+          user_request: { type: "STRING", description: "The user's full request in natural language" },
+          gathered_attributes: {
+            type: "OBJECT",
+            description: "Partially filled attributes from prior turns (topic, slide_count, target_audience, etc.)"
+          }
+        },
+        required: ["agent_id", "user_request"]
+      }
+    }
   ]
 }];
+
+function emitAgentEvent(event, payload) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send(event, payload);
+  if (event === 'agent-progress') {
+    mainWindow.webContents.send('show-hud-widget', {
+      type: 'agent_progress',
+      data: payload
+    });
+  } else if (event === 'agent-complete') {
+    const filePath = payload.result?.file_path;
+    mainWindow.webContents.send('show-hud-widget', {
+      type: 'agent_progress',
+      data: {
+        ...payload,
+        percent: 100,
+        message: filePath ? `Saved: ${filePath}` : 'Complete',
+        done: true,
+        file_path: filePath
+      }
+    });
+  } else if (event === 'agent-fail' || event === 'agent-killed') {
+    mainWindow.webContents.send('show-hud-widget', {
+      type: 'agent_progress',
+      data: { ...payload, percent: 0, message: payload.error?.error || payload.reason || 'Stopped', failed: true }
+    });
+  }
+}
 
 const pendingBrowserCalls = new Map();
 
@@ -637,6 +683,11 @@ ipcMain.handle('get-google-context', async () => {
     return await googleService.getDailyBriefingContext();
 });
 
+ipcMain.handle('cancel-agents', () => {
+    const canceledCount = orchestrator.cancelActiveAgents('user_cancel_hud');
+    return { success: true, count: canceledCount };
+});
+
 // ── Pin / Importance IPC ──
 ipcMain.handle('pin-node', (event, nodeId, pinned) => {
   const graph = loadGraph();
@@ -825,6 +876,8 @@ ipcMain.handle('ingest-url', async (event, url) => {
 // ── Gemini Live WebSocket Backend ──
 let ws = null;
 let sessionTranscript = [];
+let activeConversationTimestamp = null;
+let activeConversationSummary = null;
 let latestShadowContext = null;
 let currentSessionContextPayload = null;
 // Shadow image retrieval cooldown — prevents spam-showing the same images on every turn
@@ -833,10 +886,25 @@ let lastShadowImageIds = new Set();
 
 ipcMain.on('start-session', (event, contextPayload) => {
   if (ws) ws.close();
-  sessionTranscript = []; // Reset transcript
+  
+  currentSessionContextPayload = contextPayload || {};
+  
+  if (currentSessionContextPayload.isAutoReconnect) {
+      console.log("Auto-reconnecting. Preserving session transcript and conversation ID.");
+  } else {
+      console.log("New manual session started. Resetting transcript.");
+      sessionTranscript = []; // Reset transcript only on new manual session
+      if (currentSessionContextPayload.continueDiary) {
+          activeConversationTimestamp = currentSessionContextPayload.continueDiary.timestamp;
+          activeConversationSummary = currentSessionContextPayload.continueDiary.entry;
+      } else {
+          activeConversationTimestamp = Date.now();
+          activeConversationSummary = null;
+      }
+  }
+  
   lastShadowImagePushTime = 0; // Reset image cooldown
   lastShadowImageIds = new Set();
-  currentSessionContextPayload = contextPayload || {};
 
   // Pause wake word during active session to avoid dual-mic conflicts
   if (wakeWordEngine) wakeWordEngine.pause();
@@ -850,11 +918,18 @@ ipcMain.on('start-session', (event, contextPayload) => {
   let systemInstruction = buildSystemInstruction('', currentSessionContextPayload);
   // Inject available skill summaries (modular app-specific instructions)
   systemInstruction += getSkillSummaries();
+  systemInstruction += orchestrator.getPluginsPromptSection();
   if (contextPayload && contextPayload.weatherContext) {
       systemInstruction += `\n\nCURRENT CONTEXT:\n${contextPayload.weatherContext}`;
   }
   if (contextPayload && contextPayload.googleContext) {
       systemInstruction += contextPayload.googleContext;
+  }
+  
+  // Inject short-term memory if reconnecting
+  if (currentSessionContextPayload.isAutoReconnect && sessionTranscript.length > 0) {
+      const recentHistory = sessionTranscript.slice(-15).map(t => `${t.role}: ${t.text}`).join('\n');
+      systemInstruction += `\n\n[SYSTEM NOTE: The connection was momentarily interrupted. Here is the recent conversation history so you don't lose context. Continue naturally:]\n${recentHistory}`;
   }
 
   console.log("System instruction built. Node count:", loadGraph().nodes.length);
@@ -1006,6 +1081,13 @@ ipcMain.on('start-session', (event, contextPayload) => {
                         : 'No personal photos found in visual memory. Ask the user to upload photos via the Memory window (🧠 button).'
                     };
                   }
+                } else if (name === 'delegate_domain_agent') {
+                  const agentEmit = (ev, payload) => emitAgentEvent(ev, payload);
+                  result = await orchestrator.handleDelegateRequest({
+                    agent_id: args.agent_id,
+                    user_request: args.user_request || '',
+                    gathered_attributes: args.gathered_attributes || {}
+                  }, agentEmit);
                 } else if (name.startsWith('browser_') || name === 'toggle_browser') {
                   const res = await callBrowser(name, args);
                   if (res.error) throw new Error(res.error);
@@ -1066,11 +1148,31 @@ ipcMain.on('start-session', (event, contextPayload) => {
 
           // ── PHASE 2: Shadow Retrieval (Auto-RAG) ──
           // Silently inject relevant memory context if the user's sentence is meaningful
+          if (orchestrator.cancelIfUserSaysStop(userText)) {
+            latestShadowContext = '[SYSTEM: Active background agents were cancelled per user request.]';
+            console.log('\n🛑 User cancelled domain agent(s).');
+          } else if (orchestrator.matchAgentIntent(userText)) {
+            const agentId = orchestrator.matchAgentIntent(userText);
+            const agentEmit = (ev, payload) => emitAgentEvent(ev, payload);
+            orchestrator.handleDelegateRequest({
+              agent_id: agentId,
+              user_request: userText
+            }, agentEmit).then(hint => {
+              if (hint.status === 'gathering') {
+                latestShadowContext = `[DOMAIN AGENT ${agentId}: ${hint.message} Call delegate_domain_agent with gathered_attributes when the user answers.]`;
+              } else if (hint.status === 'running') {
+                latestShadowContext = `[DOMAIN AGENT ${agentId} running in background: ${hint.message}]`;
+              }
+              console.log(`\n🔌 Tier 2 routed to ${agentId}: ${hint.status}`);
+            }).catch(err => console.error('[Orchestrator]', err.message));
+          }
+
           if (userText.length > 15) {
             const searchResult = searchMemory(userText, 3, null); // Top 3 relevant facts
             if (searchResult.nodes.length > 0) {
               const shadowFacts = searchResult.nodes.map(n => `Fact [${n.label}]: ${n.description}`).join(' | ');
-              latestShadowContext = `[SYSTEM BACKGROUND CONTEXT: ${shadowFacts}]`;
+              const prefix = latestShadowContext ? latestShadowContext + ' ' : '';
+              latestShadowContext = `${prefix}[SYSTEM BACKGROUND CONTEXT: ${shadowFacts}]`;
               console.log(`\n🕵️‍♂️ Shadow Retrieval: Staged ${searchResult.nodes.length} nodes for next turn based on: "${userText.slice(0, 30)}..."`);
             }
 
@@ -1158,13 +1260,14 @@ ipcMain.on('start-session', (event, contextPayload) => {
         // Run diary summarization and graph extraction IN PARALLEL
         const [diaryResult] = await Promise.allSettled([
             (async () => {
-                const existingSummary = currentSessionContextPayload && currentSessionContextPayload.continueDiary ? currentSessionContextPayload.continueDiary.entry : null;
-                const timestampToReplace = currentSessionContextPayload && currentSessionContextPayload.continueDiary ? currentSessionContextPayload.continueDiary.timestamp : null;
+                const existingSummary = activeConversationSummary;
+                const timestampToReplace = activeConversationTimestamp;
                 
                 const entry = await summariseSession(transcriptText, apiKey, existingSummary);
                 
                 if (!entry.includes('No significant facts learned')) {
                     appendDiaryEntry(entry, timestampToReplace);
+                    activeConversationSummary = entry; // Update for next segment
                     console.log(`📓 Diary: "${entry.slice(0, 80)}..."`); 
                 } else if (existingSummary && timestampToReplace) {
                     // if nothing new, just update the timestamp
@@ -1248,6 +1351,15 @@ ipcMain.on('turn-complete', () => {
 });
 
 ipcMain.on('send-text-command', (event, text) => {
+  if (orchestrator.cancelIfUserSaysStop(text)) {
+    emitAgentEvent('agent-killed', { reason: 'user_cancel' });
+  } else if (orchestrator.matchAgentIntent(text)) {
+    const agentId = orchestrator.matchAgentIntent(text);
+    const agentEmit = (ev, payload) => emitAgentEvent(ev, payload);
+    orchestrator.handleDelegateRequest({ agent_id: agentId, user_request: text }, agentEmit)
+      .then(hint => console.log(`[Orchestrator] text command → ${agentId}: ${hint.status}`))
+      .catch(err => console.error('[Orchestrator]', err.message));
+  }
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   ws.send(JSON.stringify({
     clientContent: {

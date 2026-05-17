@@ -113,7 +113,7 @@ function searchMemory(query, maxResults = 10, filterTag = null) {
 
     // ── Build text summary for the AI ──
     const summaryLines = [];
-    for (const node of topNodes) {
+    for (const node of allRelevantNodes) {
         const age = node.lastAccessedAt
             ? `last accessed ${Math.round((Date.now() - node.lastAccessedAt) / 86400000)}d ago`
             : node.createdAt
@@ -123,12 +123,11 @@ function searchMemory(query, maxResults = 10, filterTag = null) {
         summaryLines.push(`## ${node.label} (${node.type})${tagStr}${age ? ' — ' + age : ''}`);
         if (node.description) summaryLines.push(`  Description: ${node.description}`);
 
-        const nodeEdges = relatedEdges.filter(e => e.from === node.id || e.to === node.id);
+        const nodeEdges = relatedEdges.filter(e => e.from === node.id);
         for (const edge of nodeEdges) {
-            const fromNode = allRelevantNodes.find(n => n.id === edge.from);
-            const toNode   = allRelevantNodes.find(n => n.id === edge.to);
-            if (fromNode && toNode) {
-                summaryLines.push(`  - [${fromNode.label}] --${edge.label}--> [${toNode.label}]`);
+            const toNode = allRelevantNodes.find(n => n.id === edge.to);
+            if (toNode) {
+                summaryLines.push(`  - [${node.label}] --${edge.label}--> [${toNode.label}]`);
             }
         }
     }

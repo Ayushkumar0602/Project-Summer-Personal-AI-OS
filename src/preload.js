@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('liveAPI', {
     onToolComplete: (callback) => ipcRenderer.on('agent-tool-complete', (event, payload) => callback(payload)),
     onBrowserControl: (callback) => ipcRenderer.on('browser-control', (event, payload) => callback(payload)),
     onShowHudWidget: (callback) => ipcRenderer.on('show-hud-widget', (event, payload) => callback(payload)),
+    onAgentProgress: (callback) => ipcRenderer.on('agent-progress', (event, payload) => callback(payload)),
+    onAgentComplete: (callback) => ipcRenderer.on('agent-complete', (event, payload) => callback(payload)),
+    onAgentFail: (callback) => ipcRenderer.on('agent-fail', (event, payload) => callback(payload)),
+    onAgentGathering: (callback) => ipcRenderer.on('agent-gathering', (event, payload) => callback(payload)),
     sendBrowserReply: (payload) => ipcRenderer.send('browser-reply', payload),
     openMemoryWindow: () => ipcRenderer.send('open-memory-window'),
     openSettingsWindow: () => ipcRenderer.send('open-settings-window'),
@@ -35,6 +39,7 @@ contextBridge.exposeInMainWorld('liveAPI', {
     logoutGoogle: () => ipcRenderer.invoke('logout-google'),
     checkGoogleAuth: () => ipcRenderer.invoke('check-google-auth'),
     readLocalImage: (filename) => ipcRenderer.invoke('read-local-image', filename),
+    cancelAgents: () => ipcRenderer.invoke('cancel-agents'),
 
     // Wake Word
     onWakeWordDetected: (callback) => ipcRenderer.on('wake-word-detected', (event, payload) => callback(payload)),

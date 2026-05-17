@@ -76,9 +76,11 @@ const handlers = {
     show_hologram_widget: async (args) => {
         try {
             const windows = BrowserWindow.getAllWindows();
-            if (windows.length > 0) {
+            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
+
+            if (targetWin) {
                 // Send IPC to renderer
-                windows[0].webContents.send('show-hud-widget', {
+                targetWin.webContents.send('show-hud-widget', {
                     type: args.type,
                     data: args.data || [],
                     append: args.append || false,
@@ -95,10 +97,13 @@ const handlers = {
     clear_hologram_widget: async () => {
         try {
             const windows = BrowserWindow.getAllWindows();
-            if (windows.length > 0) {
-                windows[0].webContents.send('show-hud-widget', { type: 'clear' });
+            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
+
+            if (targetWin) {
+                targetWin.webContents.send('show-hud-widget', { type: 'clear' });
                 return "Successfully cleared the HUD screen.";
             }
+            return "No active window found.";
         } catch (e) {
             return `Failed to clear widget: ${e.message}`;
         }
@@ -106,10 +111,11 @@ const handlers = {
     ui_control_window: async (args) => {
         try {
             const windows = BrowserWindow.getAllWindows();
-            if (windows.length > 0) {
-                const win = windows[0];
-                win.setSize(args.width, args.height);
-                win.center();
+            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
+
+            if (targetWin) {
+                targetWin.setSize(args.width, args.height);
+                targetWin.center();
                 return `Successfully resized window to ${args.width}x${args.height}.`;
             }
             return "No active window found.";
@@ -120,20 +126,24 @@ const handlers = {
     ui_control_layout: async (args) => {
         try {
             const windows = BrowserWindow.getAllWindows();
-            if (windows.length > 0) {
-                const win = windows[0];
+            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
+
+            if (targetWin) {
                 let script = "";
                 if (args.agentPanelWidth) {
-                    script += `document.querySelector('.agent-panel').style.flex = '0 0 ${args.agentPanelWidth}px';\n`;
+                    script += `const panel = document.querySelector('.agent-panel'); if (panel) panel.style.flex = '0 0 ${args.agentPanelWidth}px';\n`;
                 }
                 if (args.showBrowser !== undefined) {
-                    if (args.showBrowser) {
-                        script += `document.getElementById('appLayout').classList.remove('browser-hidden');\n`;
-                    } else {
-                        script += `document.getElementById('appLayout').classList.add('browser-hidden');\n`;
+                    const layout = document.getElementById('appLayout');
+                    if (layout) {
+                        if (args.showBrowser) {
+                            script += `document.getElementById('appLayout').classList.remove('browser-hidden');\n`;
+                        } else {
+                            script += `document.getElementById('appLayout').classList.add('browser-hidden');\n`;
+                        }
                     }
                 }
-                if (script) win.webContents.executeJavaScript(script);
+                if (script) targetWin.webContents.executeJavaScript(script).catch(err => console.error('[UITools] executeJavaScript error:', err));
                 return `Successfully updated UI layout.`;
             }
             return "No active window found.";

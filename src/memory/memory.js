@@ -167,7 +167,7 @@ function showNodeDetail(nodeId) {
     if (!node) return;
     editingNodeId = nodeId;
 
-    document.getElementById('nodeDetailLabel').textContent = node.label;
+    document.getElementById('nodeDetailLabel').textContent = node.label || 'Unknown';
     document.getElementById('nodeDetailType').textContent = node.type || 'Unknown';
     document.getElementById('nodeDetailId').textContent = `ID: ${node.id}`;
 
@@ -222,11 +222,11 @@ function showNodeDetail(nodeId) {
             if (e.from === nodeId) {
                 const target = currentGraph.nodes.find(n => n.id === e.to);
                 const conf = e.confidence ? ` <span style="color:#475569;font-size:10px;">(${Math.round(e.confidence * 100)}%)</span>` : '';
-                return `<div class="nd-edge" onclick="showNodeDetail('${e.to}')"><span class="nd-node">${node.label}</span> <span class="nd-rel">${e.label.replace(/_/g, ' ')}</span> <span class="nd-node">${target ? target.label : e.to}</span>${conf}</div>`;
+                return `<div class="nd-edge" onclick="showNodeDetail('${e.to}')"><span class="nd-node">${node.label || 'Unknown'}</span> <span class="nd-rel">${(e.label || '').replace(/_/g, ' ')}</span> <span class="nd-node">${target ? target.label || 'Unknown' : e.to}</span>${conf}</div>`;
             } else {
                 const source = currentGraph.nodes.find(n => n.id === e.from);
                 const conf = e.confidence ? ` <span style="color:#475569;font-size:10px;">(${Math.round(e.confidence * 100)}%)</span>` : '';
-                return `<div class="nd-edge" onclick="showNodeDetail('${e.from}')"><span class="nd-node">${source ? source.label : e.from}</span> <span class="nd-rel">${e.label.replace(/_/g, ' ')}</span> <span class="nd-node">${node.label}</span>${conf}</div>`;
+                return `<div class="nd-edge" onclick="showNodeDetail('${e.from}')"><span class="nd-node">${source ? source.label || 'Unknown' : e.from}</span> <span class="nd-rel">${(e.label || '').replace(/_/g, ' ')}</span> <span class="nd-node">${node.label || 'Unknown'}</span>${conf}</div>`;
             }
         });
 
@@ -238,12 +238,12 @@ function showNodeDetail(nodeId) {
     const select = document.getElementById('edgeTargetSelect');
     if (select) {
         select.innerHTML = '<option value="">Select node to connect...</option>';
-        const sortedNodes = [...currentGraph.nodes].sort((a, b) => a.label.localeCompare(b.label));
+        const sortedNodes = [...currentGraph.nodes].sort((a, b) => (a.label || '').localeCompare(b.label || ''));
         sortedNodes.forEach(n => {
             if (n.id !== nodeId) {
                 const opt = document.createElement('option');
                 opt.value = n.id;
-                opt.textContent = `${n.label} (${n.type})`;
+                opt.textContent = `${n.label || 'Unknown'} (${n.type || 'Unknown'})`;
                 select.appendChild(opt);
             }
         });

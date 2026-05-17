@@ -1,0 +1,21 @@
+{
+  "agent_id": "research_analyst_v2",
+  "version": "1.0.0",
+  "display_name": "Deep Research Analyst",
+  "description": "Performs recursive, deep web research using Gemini's native Interactions API and creates cited documents.",
+  "socket_type": "background_worker",
+  "entry_point": "index.js",
+  "runtime": "node",
+  "uses_graph_memory": false,
+  "mandatory_attributes": [
+    { "key": "topic", "type": "string", "description": "The exact subject or question to research." },
+    { "key": "report_depth", "type": "string", "description": "The desired depth of the report (e.g., 'brief overview', 'comprehensive deep dive', 'executive summary')." }
+  ],
+  "optional_attributes": [
+    { "key": "visualizations", "type": "boolean", "default": true, "description": "Whether to auto-generate charts and graphs." },
+    { "key": "target_audience", "type": "string", "description": "Who the report is written for (e.g., 'college students', 'board members', 'general public')." }
+  ],
+  "output_schema": { "type": "file_path", "description": "Path to the generated structured .pdf report containing charts." },
+  "resource_limits": { "max_memory_mb": 512, "max_execution_time_seconds": 1800, "requires_network": true },
+  "permissions": ["fs.write.scoped", "network.http"]
+}

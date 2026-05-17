@@ -1,0 +1,25 @@
+{
+  "$schema": "https://summer.ai/skill-schema/v1",
+  "agent_id": "ppt_editor_v1",
+  "version": "1.0.0",
+  "display_name": "PPT Editor",
+  "description": "Generates PowerPoint presentations from topic, audience, and content data.",
+  "socket_type": "background_worker",
+  "entry_point": "index.js",
+  "runtime": "node",
+  "mandatory_attributes": [
+    { "key": "topic", "type": "string", "description": "Main subject of the presentation." },
+    { "key": "slide_count", "type": "number", "description": "Target number of slides." },
+    { "key": "target_audience", "type": "string", "description": "Who the presentation is for." }
+  ],
+  "optional_attributes": [
+    { "key": "color_theme", "type": "string", "default": "modern-dark" },
+    { "key": "tone", "type": "string", "default": "professional" },
+    { "key": "language", "type": "string", "default": "English (US)" },
+    { "key": "web_search", "type": "boolean", "default": false },
+    { "key": "context_data", "type": "string", "description": "All relevant background info gathered from graph memory." }
+  ],
+  "output_schema": { "type": "file_path", "description": "Path to the generated .pptx file." },
+  "resource_limits": { "max_memory_mb": 512, "max_execution_time_seconds": 300, "requires_network": true },
+  "permissions": ["fs.write.scoped", "network.http"]
+}

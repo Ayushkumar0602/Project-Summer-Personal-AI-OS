@@ -1,0 +1,7 @@
+{
+  "name": "@summer/agent-sdk",
+  "version": "1.0.0",
+  "description": "IPC bridge for Summer domain agent plugs",
+  "main": "index.js",
+  "private": true
+}

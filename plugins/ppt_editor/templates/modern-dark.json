@@ -1,0 +1,13 @@
+{
+  "name": "modern-dark",
+  "colors": {
+    "background": "1a1a2e",
+    "accent": "00d4ff",
+    "text": "ffffff",
+    "muted": "8892b0"
+  },
+  "fonts": {
+    "title": "Arial",
+    "body": "Arial"
+  }
+}

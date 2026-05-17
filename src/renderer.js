@@ -482,7 +482,8 @@ window.liveAPI.onSessionEnded(() => {
         stopRecording();
         audioQueue.clear();
         autoReconnectTimer = setTimeout(() => {
-            window.liveAPI.startSession(lastContextPayload);
+            const reconnectPayload = lastContextPayload ? { ...lastContextPayload, isAutoReconnect: true } : { isAutoReconnect: true };
+            window.liveAPI.startSession(reconnectPayload);
         }, 1500);
     }
 });
@@ -1042,6 +1043,23 @@ class WidgetManager {
         });
     }
 
+    _buildAgentLogs(recentLogs, barColor) {
+        let html = '';
+        recentLogs.forEach((l, i) => {
+            const isLast = i === recentLogs.length - 1;
+            const opacity = isLast ? 1 : (0.3 + (i / recentLogs.length) * 0.4);
+            const color = isLast ? '#ffffff' : '#94a3b8';
+            const bullet = isLast ? `<span style="color:${barColor}; text-shadow: 0 0 8px ${barColor};">●</span>` : '○';
+            html += `
+                <div style="font-size: 13px; color: ${color}; opacity: ${opacity}; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; font-family: 'Inter', sans-serif; transition: all 0.3s ease;">
+                    <div style="margin-top: 2px; font-size: 10px;">${bullet}</div>
+                    <div style="line-height: 1.4; flex: 1;">${l.replace(/"/g, '&quot;')}</div>
+                </div>
+            `;
+        });
+        return html;
+    }
+
     showWidget(type, data, append, width, height) {
         // Determine the spatial zone based on the widget type
         let zoneKey = 'right';
@@ -1050,7 +1068,7 @@ class WidgetManager {
         else if (type === 'calendar') zoneKey = 'schedule';
         else if (type === 'map' || type === 'sheet-data') zoneKey = 'right';
         else if (type === 'youtube') zoneKey = 'bottom';
-        else if (type === 'mermaid' || type === 'image_gallery') zoneKey = 'top';
+        else if (type === 'mermaid' || type === 'image_gallery' || type === 'agent_progress') zoneKey = 'top';
         else if (type === 'news' || type === 'emails' || type === 'full-email') zoneKey = 'left';
 
         const container = this.zones[zoneKey];
@@ -1299,6 +1317,110 @@ class WidgetManager {
                 });
             }
         }
+        else if (type === 'agent_progress') {
+            const sid = data.sessionId || 'default';
+            if (!this.activeAgentLogs) this.activeAgentLogs = new Map();
+            if (!this.activeAgentLogs.has(sid)) this.activeAgentLogs.set(sid, []);
+            
+            const logArr = this.activeAgentLogs.get(sid);
+            const msg = data.message || 'Working...';
+            if (logArr.length === 0 || logArr[logArr.length - 1] !== msg) {
+                logArr.push(msg);
+            }
+            
+            const recentLogs = logArr.slice(-5);
+            const pct = data.percent ?? 0;
+            const barColor = data.failed ? '#ef4444' : (data.done ? '#10b981' : '#c084fc');
+            const glowColor = data.failed ? 'rgba(239, 68, 68, 0.6)' : (data.done ? 'rgba(16, 185, 129, 0.6)' : 'rgba(192, 132, 252, 0.6)');
+            const isRunning = !data.done && !data.failed;
+
+            // ─── In-place update: find existing widget and patch it ───
+            const existingWidget = container.querySelector('.agent-progress-live');
+            if (existingWidget) {
+                // Update logs
+                const logsEl = existingWidget.querySelector('.ap-logs');
+                if (logsEl) logsEl.innerHTML = this._buildAgentLogs(recentLogs, barColor);
+                // Update bar
+                const barFill = existingWidget.querySelector('.ap-bar-fill');
+                if (barFill) {
+                    barFill.style.width = `${pct}%`;
+                    barFill.style.background = `linear-gradient(90deg, ${barColor}aa, ${barColor})`;
+                    barFill.style.boxShadow = `0 0 12px ${glowColor}, 0 0 4px ${glowColor}`;
+                }
+                // Update percent text
+                const pctEl = existingWidget.querySelector('.ap-pct');
+                if (pctEl) pctEl.textContent = `${pct}%`;
+                // Update status label
+                const statusEl = existingWidget.querySelector('.ap-status');
+                if (statusEl) {
+                    statusEl.textContent = data.failed ? 'TASK FAILED' : (data.done ? 'TASK COMPLETED' : 'PROCESSING...');
+                    statusEl.style.color = barColor;
+                    statusEl.style.textShadow = `0 0 10px ${glowColor}`;
+                }
+                // Update elapsed time
+                if (!this._agentStartTime) this._agentStartTime = Date.now();
+                const elapsed = Math.floor((Date.now() - this._agentStartTime) / 1000);
+                const mins = Math.floor(elapsed / 60);
+                const secs = elapsed % 60;
+                const timeEl = existingWidget.querySelector('.ap-elapsed');
+                if (timeEl) timeEl.textContent = `${mins}m ${secs}s`;
+                // Show/hide abort button
+                const abortBtn = existingWidget.querySelector('.ap-abort-btn');
+                if (abortBtn) abortBtn.style.display = isRunning ? 'block' : 'none';
+                return; // Skip the full widget rebuild below
+            }
+
+            // ─── First render: create the widget ───
+            this._agentStartTime = Date.now();
+            headerText = "⚡ " + (data.display_name || "Domain Agent");
+
+            html += `
+                <div class="agent-progress-live" style="min-width: 360px; max-width: 450px; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(192, 132, 252, 0.2); padding: 18px; border-radius: 12px; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255,255,255,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div>
+                            <span class="ap-status" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: ${barColor}; text-shadow: 0 0 10px ${glowColor};">
+                                PROCESSING...
+                            </span>
+                            <span class="ap-elapsed" style="font-size: 10px; color: #64748b; margin-left: 10px; font-family: 'Inter', monospace;">0m 0s</span>
+                        </div>
+                        <button class="ap-abort-btn" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; padding: 6px 14px; border-radius: 6px; font-size: 11px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; display: ${isRunning ? 'block' : 'none'};"
+                            onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'; this.style.boxShadow='0 0 12px rgba(239, 68, 68, 0.5)';"
+                            onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.boxShadow='none';">
+                            ✕ Abort
+                        </button>
+                    </div>
+                    
+                    <div class="ap-logs" style="margin-bottom: 16px; min-height: 60px;">
+                        ${this._buildAgentLogs(recentLogs, barColor)}
+                    </div>
+                    
+                    <div style="display: flex; justify-content: flex-end; align-items: flex-end; margin-bottom: 8px;">
+                        <div class="ap-pct" style="font-size: 16px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                            ${pct}%
+                        </div>
+                    </div>
+                    
+                    <div style="height: 6px; background: rgba(0,0,0,0.6); border-radius: 6px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); position: relative;">
+                        <div class="ap-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: ${pct}%; background: linear-gradient(90deg, ${barColor}aa, ${barColor}); border-radius: 6px; transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: 0 0 12px ${glowColor}, 0 0 4px ${glowColor};"></div>
+                    </div>
+                </div>`;
+
+            // Attach abort click listener after DOM insertion
+            setTimeout(() => {
+                const abortBtn = container.querySelector('.ap-abort-btn');
+                if (abortBtn && !abortBtn._bound) {
+                    abortBtn._bound = true;
+                    abortBtn.addEventListener('click', async () => {
+                        abortBtn.textContent = '⏳ Killing...';
+                        abortBtn.style.opacity = '0.5';
+                        abortBtn.style.pointerEvents = 'none';
+                        if (window.liveAPI && window.liveAPI.cancelAgents) {
+                            await window.liveAPI.cancelAgents();
+                        }
+                    });
+                }
+            }, 100);
+        }
         else if (type === 'full-email') {
             headerText = "✉️ Email Content";
             if (!data) {
@@ -1358,6 +1480,7 @@ class WidgetManager {
         let timeoutDuration = 25000;
         if (type === 'youtube') timeoutDuration = 180000;
         else if (type === 'mermaid') timeoutDuration = 300000; // 5 mins
+        else if (type === 'agent_progress') timeoutDuration = data?.done || data?.failed ? 12000 : 600000;
         
         const timeout = setTimeout(() => {
             if(document.getElementById(widgetId)) {

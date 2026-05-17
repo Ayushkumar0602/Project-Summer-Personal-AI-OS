@@ -275,8 +275,10 @@ const handlers = {
             const html = await mailService.getEmailHtml(args.messageId);
             const { BrowserWindow } = require('electron');
             const windows = BrowserWindow.getAllWindows();
-            if (windows.length > 0) {
-                windows[0].webContents.send('show-hud-widget', {
+            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
+
+            if (targetWin) {
+                targetWin.webContents.send('show-hud-widget', {
                     type: 'full-email',
                     data: html
                 });
@@ -309,8 +311,10 @@ const handlers = {
             // Render on HUD
             const { BrowserWindow } = require('electron');
             const windows = BrowserWindow.getAllWindows();
-            if (windows.length > 0) {
-                windows[0].webContents.send('show-hud-widget', {
+            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
+
+            if (targetWin) {
+                targetWin.webContents.send('show-hud-widget', {
                     type: 'sheet-data',
                     data: {
                         title: `Sheet Data: ${args.range}`,
@@ -349,14 +353,18 @@ const handlers = {
 
             const { BrowserWindow } = require('electron');
             const windows = BrowserWindow.getAllWindows();
-            if (windows.length > 0) {
-                // The standard solution: Open it in the built-in mini browser
-                windows[0].webContents.executeJavaScript(`
-                    document.getElementById('appLayout').classList.remove('browser-hidden');
-                    if (typeof navigateBrowser === 'function') {
-                        navigateBrowser("https://www.youtube.com/watch?v=${videoId}");
+            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
+
+            if (targetWin) {
+                targetWin.webContents.executeJavaScript(`
+                    const layout = document.getElementById('appLayout');
+                    if (layout) {
+                        layout.classList.remove('browser-hidden');
+                        if (typeof navigateBrowser === 'function') {
+                            navigateBrowser("https://www.youtube.com/watch?v=${videoId}");
+                        }
                     }
-                `);
+                `).catch(err => console.error('[GoogleTools] YouTube executeJavaScript error:', err));
                 return `Successfully opened YouTube video in the built-in browser panel. Summary: ${textSummary}`;
             }
             return "Failed to find active window.";
@@ -371,14 +379,18 @@ const handlers = {
 
             const { BrowserWindow } = require('electron');
             const windows = BrowserWindow.getAllWindows();
-            if (windows.length > 0) {
-                // The standard solution: Open it in the built-in mini browser
-                windows[0].webContents.executeJavaScript(`
-                    document.getElementById('appLayout').classList.remove('browser-hidden');
-                    if (typeof navigateBrowser === 'function') {
-                        navigateBrowser("${result.mapUrl}");
+            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
+
+            if (targetWin) {
+                targetWin.webContents.executeJavaScript(`
+                    const layout = document.getElementById('appLayout');
+                    if (layout) {
+                        layout.classList.remove('browser-hidden');
+                        if (typeof navigateBrowser === 'function') {
+                            navigateBrowser("${result.mapUrl}");
+                        }
                     }
-                `);
+                `).catch(err => console.error('[GoogleTools] Maps executeJavaScript error:', err));
                 return `Successfully opened interactive map in the built-in browser panel.\n\nDetails:\n${result.textSummary}`;
             }
             return "Failed to find active window.";
