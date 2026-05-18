@@ -61,11 +61,11 @@ function sendToRenderer(channel, payload) {
 
 /**
  * Execute JavaScript in the renderer (for browser nav, layout changes).
- * In daemon mode: sends as a special 'execute_script' client action.
+ * In daemon mode: sends as a dedicated 'execute_script' message to the Electron client.
  */
 function executeInRenderer(script) {
     if (_registry) {
-        _registry.broadcast(encode('client_action', { action: 'executeScript', args: { script } }));
+        _registry.broadcast(encode('execute_script', { args: { script } }));
         return;
     }
     try {

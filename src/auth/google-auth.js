@@ -52,16 +52,43 @@ function getClient(port) {
 
 /**
  * Checks if the user is authenticated.
+ * Handles both safeStorage-encrypted tokens (Electron) and plaintext tokens (daemon).
  */
 async function isAuthenticated() {
     try {
         if (!fs.existsSync(TOKEN_PATH)) return false;
-        const encryptedToken = fs.readFileSync(TOKEN_PATH);
+        const rawBuffer = fs.readFileSync(TOKEN_PATH);
+
+        let token = null;
+
+        // Strategy 1: Try safeStorage decryption (Electron context)
         const safeStorage = getSafeStorage();
-        const decryptedStr = safeStorage
-            ? safeStorage.decryptString(encryptedToken)
-            : encryptedToken.toString('utf-8');
-        const token = JSON.parse(decryptedStr);
+        if (safeStorage && safeStorage.isEncryptionAvailable()) {
+            try {
+                const decrypted = safeStorage.decryptString(rawBuffer);
+                token = JSON.parse(decrypted);
+            } catch {
+                // safeStorage failed — try plaintext below
+            }
+        }
+
+        // Strategy 2: Try plaintext JSON (daemon context or unencrypted re-auth)
+        if (!token) {
+            try {
+                token = JSON.parse(rawBuffer.toString('utf-8'));
+            } catch {
+                // File is encrypted but we're in daemon mode with no safeStorage
+                console.error(
+                    '[GoogleAuth] ⚠️  Google token is encrypted (saved by Electron) but safeStorage ' +
+                    'is unavailable in daemon mode. Please re-authenticate:\n' +
+                    '  → Open Summer → Settings → Integrations → Disconnect Google → Connect Google'
+                );
+                // Delete the unreadable token so future attempts don't loop
+                try { fs.unlinkSync(TOKEN_PATH); } catch {}
+                return false;
+            }
+        }
+
         getClient().setCredentials(token);
         return true;
     } catch (e) {
@@ -104,16 +131,12 @@ async function authenticate() {
                     const { tokens } = await client.getToken(code);
                     client.setCredentials(tokens);
 
-                    // 4. Securely store the token using OS Keychain (safeStorage) or plaintext fallback
-                    const safeStorage = getSafeStorage();
-                    if (safeStorage && safeStorage.isEncryptionAvailable()) {
-                        const encrypted = safeStorage.encryptString(JSON.stringify(tokens));
-                        fs.writeFileSync(TOKEN_PATH, encrypted);
-                        console.log('[GoogleAuth] Token encrypted and saved successfully.');
-                    } else {
-                        fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
-                        console.log('[GoogleAuth] Token saved as plaintext (safeStorage unavailable).');
-                    }
+                    // 4. Save token as plaintext JSON
+                    // NOTE: We intentionally skip safeStorage encryption so the daemon
+                    // process (which has no Electron context) can also read the token.
+                    // The file is protected by macOS filesystem permissions.
+                    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
+                    console.log('[GoogleAuth] ✅ Token saved. Google Workspace is now active.');
                     resolve({ success: true });
                 }
             } catch (err) {

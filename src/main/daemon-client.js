@@ -146,9 +146,12 @@ class DaemonClient {
 
             // ── HUD ────────────────────────────────────────────────────────────
             case MSG.HUD_UPDATE:
-                // renderer-bridge sets: { widget: type, state: { data, append, ... } }
-                // Reconstruct the exact shape tools sent: { type, data, append, ... }
-                fwd('show-hud-widget', { type: msg.widget, ...(msg.state || {}) });
+                if (msg.widget === 'wake_word' && msg.state?.detected) {
+                    // wake-word-ui.js listens on 'wake-word-detected' — NOT show-hud-widget
+                    fwd('wake-word-detected', { score: msg.state.score || 0 });
+                } else {
+                    fwd('show-hud-widget', { type: msg.widget, ...(msg.state || {}) });
+                }
                 break;
             case MSG.HUD_CLEAR:
                 fwd('show-hud-widget', { type: 'clear' });
