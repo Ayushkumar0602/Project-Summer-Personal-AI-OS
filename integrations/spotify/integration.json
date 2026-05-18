@@ -1,0 +1,11 @@
+{
+  "id": "spotify",
+  "version": "0.1.0",
+  "display_name": "Spotify",
+  "description": "Control Spotify playback and search (requires Spotify credentials in .env).",
+  "activation": {
+    "always_on": false,
+    "keywords": ["spotify", "playlist", "song", "track", "album"]
+  },
+  "permissions": ["network.http"]
+}

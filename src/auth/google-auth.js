@@ -28,11 +28,13 @@ function getClient() {
         throw new Error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env");
     }
 
+    const port = process.env.OAUTH_PORT || 3000;
+
     if (!oauth2Client) {
         oauth2Client = new OAuth2Client(
             clientId,
             clientSecret,
-            'http://localhost:3000/oauth2callback'
+            `http://localhost:${port}/oauth2callback`
         );
     }
     return oauth2Client;
@@ -66,6 +68,7 @@ async function isAuthenticated() {
 async function authenticate() {
     return new Promise((resolve, reject) => {
         const client = getClient();
+        const port = process.env.OAUTH_PORT || 3000;
         
         // 1. Generate Auth URL
         const authorizeUrl = client.generateAuthUrl({
@@ -78,7 +81,7 @@ async function authenticate() {
         const server = http.createServer(async (req, res) => {
             try {
                 if (req.url.startsWith('/oauth2callback')) {
-                    const qs = new url.URL(req.url, 'http://localhost:3000').searchParams;
+                    const qs = new url.URL(req.url, `http://localhost:${port}`).searchParams;
                     const code = qs.get('code');
                     
                     res.end('Authentication successful! You can close this tab and return to Summer.');
@@ -106,7 +109,18 @@ async function authenticate() {
                 server.close();
                 reject(err);
             }
-        }).listen(3000, () => {
+        });
+
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`[GoogleAuth] Port ${port} is already in use. OAuth callback server could not start.`);
+                reject(new Error(`Port ${port} is already in use. Please stop the conflicting service or configure OAUTH_PORT in .env.`));
+            } else {
+                reject(err);
+            }
+        });
+
+        server.listen(port, () => {
             // 5. Open the browser
             shell.openExternal(authorizeUrl);
         });

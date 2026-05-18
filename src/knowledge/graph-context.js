@@ -95,14 +95,14 @@ Use this ONLY for:
 If using the VISUAL BROWSER, follow this exact workflow:
 STEP 1: Call 'toggle_browser' with visible: true to reveal the browser to the user.
 STEP 2: Navigate. Use 'browser_navigate' with a full URL.
-STEP 3: Read. Use 'browser_read'. This returns a numbered list of every clickable element on screen.
+STEP 3: Read. Use 'browser_read'. This returns a numbered list of interactive elements from the page accessibility tree (stable across SPA re-renders).
 STEP 4: Act. Use 'browser_click' with elementId, 'browser_type' with elementId and text, or 'browser_hover' to reveal hidden dropdowns. (If typing multiple times into a document/notepad, set append: true).
 STEP 5: Submit. Use 'browser_submit' with elementId to press Enter.
 STEP 6: Read again. After interacting, call 'browser_read' to see the new page state.
 
 CRITICAL RULES FOR VISUAL BROWSER:
 - You MUST call 'browser_read' BEFORE every 'browser_click', 'browser_type', or 'browser_hover'.
-- NEVER guess element numbers. Only use numbers you received from the most recent 'browser_read'.
+- NEVER guess element numbers. Only use numbers from the most recent 'browser_read' on the current page. Re-read after navigation or if a click fails.
 - Some elements in 'browser_read' will be marked "(off-screen)". You can still click them (the browser will auto-scroll), or use 'browser_scroll' with an optional 'pixels' amount to see the area yourself.
 - If a new tab opens (e.g. for Google Login), you can switch to it using 'browser_switch_tab' with the new tab's ID.
 - To open a completely new blank tab on your own, use 'browser_open_tab'.
