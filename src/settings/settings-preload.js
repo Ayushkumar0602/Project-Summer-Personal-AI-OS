@@ -13,4 +13,8 @@ contextBridge.exposeInMainWorld('settingsAPI', {
     getWakeWordStatus: () => ipcRenderer.invoke('get-wake-word-status'),
     setWakeWordEnabled: (enabled) => ipcRenderer.send('set-wake-word-enabled', enabled),
     setWakeWordThreshold: (threshold) => ipcRenderer.send('set-wake-word-threshold', threshold),
+
+    // Daemon / Devices
+    getDaemonStatus: () => ipcRenderer.invoke('get-daemon-status'),
+    getPairingToken: () => ipcRenderer.invoke('get-pairing-token'),
 });

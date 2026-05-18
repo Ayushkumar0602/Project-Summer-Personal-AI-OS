@@ -28,10 +28,11 @@ const windows                    = require('./main/windows');
 // ── IPC modules (Electron-specific, no AI logic) ─────────────────────────────
 const { createBrowserBridge, registerBrowserIpc } = require('./main/browser/browser-bridge');
 const { registerMemoryIpc }      = require('./main/ipc/memory-ipc');
-const { registerSettingsIpc }    = require('./main/ipc/settings-ipc');
+const { registerSettingsIpc, setDaemonStatusCallback } = require('./main/ipc/settings-ipc');
 const { registerGoogleIpc }      = require('./main/ipc/google-ipc');
 const { registerWakeWordIpc }    = require('./main/ipc/wake-word-ipc');
 const { registerIntegrationsIpc } = require('./main/ipc/integrations-ipc');
+const clientRegistry             = require('./core/transport/client-registry');
 
 if (require('electron-squirrel-startup')) app.quit();
 app.commandLine.appendSwitch('remote-debugging-port', '9222');
@@ -125,6 +126,13 @@ app.whenReady().then(async () => {
 
     // Settings / permissions — local Electron native dialogs
     registerSettingsIpc(ipcMain);
+
+    // Wire daemon status callback for Settings → Devices tab
+    setDaemonStatusCallback(() => ({
+        status:  daemonClient?._ws?.readyState === 1 ? 'connected' : 'connecting',
+        port:    DAEMON_PORT,
+        clients: clientRegistry.getAll ? clientRegistry.getAll() : [],
+    }));
 
     // Google OAuth — local token management + browser redirect
     registerGoogleIpc(ipcMain);

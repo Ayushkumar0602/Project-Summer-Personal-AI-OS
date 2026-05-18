@@ -2,10 +2,16 @@
  * Settings and permissions IPC handlers.
  */
 
-const { app, shell } = require('electron');
+const { shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const Paths = require('../../core/utils/paths');
 const { loadPermissions, revokePermission, revokeAllPermissions } = require('../../settings/permissions-store');
+
+// We read the pairing token to show in the Devices tab
+let _daemonStatusCallback = null;
+
+function setDaemonStatusCallback(cb) { _daemonStatusCallback = cb; }
 
 function registerSettingsIpc(ipcMain) {
     ipcMain.handle('get-permissions', () => loadPermissions());
@@ -25,7 +31,7 @@ function registerSettingsIpc(ipcMain) {
     });
 
     ipcMain.handle('get-audit-logs', () => {
-        const LOG_DIR = path.join(app.getPath('userData'), 'os-audit-logs');
+        const LOG_DIR = Paths.auditLogs();
         try {
             if (!fs.existsSync(LOG_DIR)) return [];
             const files = fs.readdirSync(LOG_DIR).filter(f => f.endsWith('.jsonl')).sort().reverse();
@@ -40,6 +46,22 @@ function registerSettingsIpc(ipcMain) {
             return [];
         }
     });
+
+    // ── Daemon / Devices tab ──────────────────────────────────────────────────
+    ipcMain.handle('get-daemon-status', () => {
+        if (_daemonStatusCallback) return _daemonStatusCallback();
+        return { status: 'unknown', clients: [] };
+    });
+
+    ipcMain.handle('get-pairing-token', () => {
+        try {
+            const tokenPath = Paths.pairingToken();
+            if (fs.existsSync(tokenPath)) {
+                return { token: fs.readFileSync(tokenPath, 'utf8').trim() };
+            }
+        } catch (e) { /* ignore */ }
+        return { token: null };
+    });
 }
 
-module.exports = { registerSettingsIpc };
+module.exports = { registerSettingsIpc, setDaemonStatusCallback };

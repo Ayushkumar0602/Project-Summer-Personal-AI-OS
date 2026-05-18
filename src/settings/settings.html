@@ -23,6 +23,7 @@
         <div class="tab-bar">
             <button class="tab active" data-tab="permissions">🔒 Permissions</button>
             <button class="tab" data-tab="system-access">🖥️ System Access</button>
+            <button class="tab" data-tab="devices">📱 Devices</button>
             <button class="tab" data-tab="wake-word">🎤 Wake Word</button>
             <button class="tab" data-tab="integrations">🔗 Integrations</button>
             <button class="tab" data-tab="audit-log">📋 Audit Log</button>
@@ -114,6 +115,70 @@
             </div>
         </div>
 
+        <!-- DEVICES TAB -->
+        <div class="tab-content" id="tab-devices">
+            <div class="section-header">
+                <h2>Connected Devices</h2>
+                <p>Summer's Core Daemon runs on this Mac and accepts connections from any device on your local network.</p>
+            </div>
+
+            <!-- Daemon Status -->
+            <div class="access-card essential" style="margin-bottom: 16px;">
+                <div class="card-icon">🧠</div>
+                <h3>Core Daemon</h3>
+                <div id="daemonStatus" style="margin-top: 10px;">
+                    <span style="color:#94a3b8; font-size:13px;">Checking...</span>
+                </div>
+            </div>
+
+            <!-- Connected Clients -->
+            <div class="access-card recommended" style="margin-bottom: 16px;">
+                <div class="card-icon">📡</div>
+                <h3>Active Connections</h3>
+                <div id="connectedClients" style="margin-top: 10px;">
+                    <span style="color:#94a3b8; font-size:13px;">Loading...</span>
+                </div>
+                <div style="margin-top: 12px;">
+                    <button class="btn btn-primary" id="refreshDevicesBtn" style="font-size:12px; padding:6px 14px;">↻ Refresh</button>
+                </div>
+            </div>
+
+            <!-- iPhone Pairing -->
+            <div class="access-card optional">
+                <div class="card-icon">📱</div>
+                <h3>Pair iPhone / iPad</h3>
+                <p style="font-size:13px; color:#94a3b8; margin-bottom:14px;">
+                    Make sure your iPhone is on the <strong>same Wi-Fi</strong> as this Mac, then scan the QR code in the Summer iOS app.
+                </p>
+
+                <!-- QR Code -->
+                <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
+                    <div id="qrCodeContainer" style="background:#fff; padding:12px; border-radius:12px; display:inline-block; min-width:140px; min-height:140px; display:flex; align-items:center; justify-content:center;">
+                        <span style="color:#64748b; font-size:12px;">Loading QR…</span>
+                    </div>
+                    <div style="flex:1; min-width:200px;">
+                        <div style="font-size:12px; color:#64748b; margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Connection Details</div>
+                        <div id="pairingDetails" style="font-family: 'SF Mono', 'Fira Code', monospace; font-size:11px; color:#94a3b8; line-height:2;">
+                            Loading...
+                        </div>
+                        <div style="margin-top:12px;">
+                            <button class="btn btn-primary" id="copyTokenBtn" style="font-size:12px; padding:6px 14px;">📋 Copy Token</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:16px; padding:12px; background:rgba(6,182,212,0.07); border-radius:8px; border:1px solid rgba(6,182,212,0.15);">
+                    <div style="font-size:12px; color:#06b6d4; font-weight:600; margin-bottom:6px;">📋 iPhone Setup Steps</div>
+                    <ol style="font-size:12px; color:#94a3b8; padding-left:18px; margin:0; line-height:2;">
+                        <li>Install the <strong style="color:#e2e8f0;">Summer iOS app</strong> on your iPhone</li>
+                        <li>Open Summer → Tap <strong style="color:#e2e8f0;">"Connect to Mac"</strong></li>
+                        <li>Scan the QR code shown above</li>
+                        <li>Summer will appear on your iPhone instantly ✓</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
         <!-- WAKE WORD TAB -->
         <div class="tab-content" id="tab-wake-word">
             <div class="section-header">
@@ -199,6 +264,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="settings-renderer.js"></script>
 </body>
 </html>

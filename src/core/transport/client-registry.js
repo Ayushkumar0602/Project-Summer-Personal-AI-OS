@@ -203,6 +203,19 @@ class ClientRegistry {
     isClientActive(clientId) {
         return this._activeClientId === clientId;
     }
+
+    /** Alias for settings IPC — returns safe serializable list */
+    getAll() {
+        return Array.from(this._clients.values()).map(r => ({
+            id:          r.id,
+            platform:    r.platform,
+            deviceName:  r.deviceName,
+            hasMic:      r.hasMic,
+            hasScreen:   r.hasScreen,
+            connectedAt: r.connectedAt,
+            isActive:    r.id === this._activeClientId,
+        }));
+    }
 }
 
 module.exports = new ClientRegistry(); // Singleton

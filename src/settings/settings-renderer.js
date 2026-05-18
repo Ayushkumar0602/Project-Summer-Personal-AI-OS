@@ -245,3 +245,130 @@ refreshWakeStatusBtn?.addEventListener('click', loadWakeWordStatus);
 
 // Load on init
 loadWakeWordStatus();
+
+// ── Devices Tab ─────────────────────────────────────────────────
+const PLATFORM_ICONS = {
+    electron: '🖥️', ios: '📱', android: '📱', web: '🌐', cli: '⌨️', unknown: '❓', 'test-client': '🧪'
+};
+
+async function loadDevicesTab() {
+    await Promise.all([loadDaemonStatus(), loadConnectedClients(), loadPairingQR()]);
+}
+
+async function loadDaemonStatus() {
+    const el = document.getElementById('daemonStatus');
+    try {
+        const s = await window.settingsAPI.getDaemonStatus();
+        const dot   = s.status === 'connected' ? '🟢' : '🟡';
+        const color = s.status === 'connected' ? '#22c55e' : '#eab308';
+        el.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px; font-size:13px;">
+                <span>${dot}</span>
+                <span style="color:${color}; font-weight:600;">${s.status === 'connected' ? 'Running' : 'Connecting…'}</span>
+                <span style="color:#475569;">ws://localhost:${s.port}</span>
+            </div>
+            <div style="font-size:12px; color:#475569; margin-top:6px;">${s.clients?.length || 0} device(s) connected</div>
+        `;
+    } catch (e) {
+        el.innerHTML = `<span style="color:#f87171; font-size:13px;">⚠️ Cannot reach daemon: ${e.message}</span>`;
+    }
+}
+
+async function loadConnectedClients() {
+    const el = document.getElementById('connectedClients');
+    try {
+        const s = await window.settingsAPI.getDaemonStatus();
+        const clients = s.clients || [];
+        if (clients.length === 0) {
+            el.innerHTML = `<span style="color:#475569; font-size:13px;">No devices connected yet.</span>`;
+            return;
+        }
+        el.innerHTML = clients.map(c => {
+            const icon    = PLATFORM_ICONS[c.platform] || '❓';
+            const elapsed = Math.round((Date.now() - c.connectedAt) / 1000);
+            const time    = elapsed < 60 ? `${elapsed}s ago` : `${Math.round(elapsed/60)}m ago`;
+            const badge   = c.isActive ? '<span style="background:#0ea5e9;color:#fff;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700;">ACTIVE</span>' : '';
+            return `
+                <div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <span style="font-size:20px;">${icon}</span>
+                    <div style="flex:1;">
+                        <div style="font-size:13px; font-weight:600; color:#e2e8f0;">${c.deviceName} ${badge}</div>
+                        <div style="font-size:11px; color:#475569;">${c.platform} · connected ${time}</div>
+                    </div>
+                    <div style="text-align:right; font-size:11px; color:#334155;">
+                        ${c.hasMic ? '🎤' : ''} ${c.hasScreen ? '🖥️' : ''}
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (e) {
+        el.innerHTML = `<span style="color:#f87171; font-size:12px;">Error: ${e.message}</span>`;
+    }
+}
+
+async function loadPairingQR() {
+    const qrEl      = document.getElementById('qrCodeContainer');
+    const detailsEl = document.getElementById('pairingDetails');
+    try {
+        const { token } = await window.settingsAPI.getPairingToken();
+        if (!token) {
+            qrEl.innerHTML = `<span style="color:#f87171;font-size:11px;">Token unavailable</span>`;
+            return;
+        }
+
+        // Get local IP via RTCPeerConnection trick (works in renderer)
+        let localIP = '(your Mac IP)';
+        try {
+            const pc = new RTCPeerConnection({ iceServers: [] });
+            pc.createDataChannel('');
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            await new Promise(r => setTimeout(r, 500));
+            const sdp = pc.localDescription?.sdp || '';
+            const ipMatch = sdp.match(/c=IN IP4 (\d+\.\d+\.\d+\.\d+)/);
+            if (ipMatch && !ipMatch[1].startsWith('0.')) localIP = ipMatch[1];
+            pc.close();
+        } catch (_) {}
+
+        const pairingPayload = JSON.stringify({
+            host:  localIP,
+            port:  8765,
+            token: token
+        });
+
+        // Generate QR
+        qrEl.innerHTML = '';
+        const canvas = document.createElement('canvas');
+        qrEl.appendChild(canvas);
+        if (window.QRCode) {
+            QRCode.toCanvas(canvas, pairingPayload, {
+                width: 140, margin: 1,
+                color: { dark: '#0f172a', light: '#ffffff' }
+            });
+        } else {
+            qrEl.innerHTML = `<span style="font-size:10px;color:#f87171;">QRCode lib not loaded</span>`;
+        }
+
+        detailsEl.innerHTML = `
+            <div>Host: <strong style="color:#e2e8f0;">${localIP}</strong></div>
+            <div>Port: <strong style="color:#e2e8f0;">8765</strong></div>
+            <div>Token: <strong style="color:#06b6d4; word-break:break-all;">${token.slice(0,16)}…</strong></div>
+        `;
+
+        document.getElementById('copyTokenBtn')?.addEventListener('click', () => {
+            navigator.clipboard.writeText(pairingPayload);
+            const btn = document.getElementById('copyTokenBtn');
+            btn.textContent = '✅ Copied!';
+            setTimeout(() => { btn.textContent = '📋 Copy Token'; }, 2000);
+        });
+
+    } catch (e) {
+        qrEl.innerHTML = `<span style="color:#f87171;font-size:11px;">Error: ${e.message}</span>`;
+    }
+}
+
+// Activate devices tab on click
+document.querySelector('[data-tab="devices"]')?.addEventListener('click', loadDevicesTab);
+document.getElementById('refreshDevicesBtn')?.addEventListener('click', () => {
+    loadDaemonStatus();
+    loadConnectedClients();
+});
