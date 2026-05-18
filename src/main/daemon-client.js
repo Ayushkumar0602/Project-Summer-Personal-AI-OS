@@ -146,10 +146,12 @@ class DaemonClient {
 
             // ── HUD ────────────────────────────────────────────────────────────
             case MSG.HUD_UPDATE:
-                fwd('show-hud-widget', { type: msg.widget, data: msg.state });
+                // renderer-bridge sets: { widget: type, state: { data, append, ... } }
+                // Reconstruct the exact shape tools sent: { type, data, append, ... }
+                fwd('show-hud-widget', { type: msg.widget, ...(msg.state || {}) });
                 break;
             case MSG.HUD_CLEAR:
-                fwd('hide-hud-widget', {});
+                fwd('show-hud-widget', { type: 'clear' });
                 break;
 
             // ── Memory ────────────────────────────────────────────────────────
@@ -176,6 +178,18 @@ class DaemonClient {
                 this._handleClientAction(msg);
                 break;
 
+            // ── Browser control (daemon routes browser tools to renderer) ──────
+            case 'browser_control':
+                this._handleBrowserControl(msg);
+                break;
+
+            // ── Execute script in renderer (for layout/navigation) ────────────
+            case 'execute_script':
+                if (win && !win.isDestroyed() && msg.args?.script) {
+                    win.webContents.executeJavaScript(msg.args.script).catch(() => {});
+                }
+                break;
+
             // ── Notification ──────────────────────────────────────────────────
             case MSG.NOTIFICATION:
                 this._showNotification(msg.title, msg.body);
@@ -198,6 +212,19 @@ class DaemonClient {
                 if (msg.type) fwd(msg.type, msg);
                 break;
         }
+    }
+
+    // ── Browser control (daemon-originated browser tool requests) ─────────────
+
+    _handleBrowserControl(msg) {
+        const win = this._getMainWindow();
+        if (!win || win.isDestroyed()) {
+            // No window: send empty reply so daemon doesn't time out
+            this.send(encode('browser_reply', { id: msg.id, error: 'No window' }));
+            return;
+        }
+        // Forward to renderer — it handles the actual browser automation
+        win.webContents.send('browser-control', { id: msg.id, action: msg.action, args: msg.args });
     }
 
     // ── Client actions (requires_client results from platform adapter) ────────

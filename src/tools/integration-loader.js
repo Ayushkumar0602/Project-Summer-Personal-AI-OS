@@ -21,6 +21,7 @@ const { loadGraph } = require('../knowledge/graph-store');
 const { searchMemory } = require('../knowledge/graph-search');
 const { findMatchingImageNodes, extractKeywordsFromText } = require('../knowledge/image-analyzer');
 const orchestrator = require('../orchestration/orchestrator');
+const { sendToRenderer } = require('../core/utils/renderer-bridge');
 
 const INTEGRATIONS_DIR = path.join(__dirname, '..', '..', 'integrations');
 
@@ -77,7 +78,7 @@ async function executeQueryMemory(args) {
     };
 }
 
-async function executeShowVisualMemory(args, mainWindow) {
+async function executeShowVisualMemory(args) {
     const graph = loadGraph();
     const searchQ = (args.query || 'photo').toLowerCase();
     const personalKeywords = ['me', 'my', 'mine', 'ayush', 'myself', 'personal', 'i', 'photo', 'profile'];
@@ -96,8 +97,8 @@ async function executeShowVisualMemory(args, mainWindow) {
             .slice(0, args.count || 4);
     }
 
-    if (matches.length > 0 && mainWindow) {
-        mainWindow.webContents.send('show-hud-widget', {
+    if (matches.length > 0) {
+        sendToRenderer('show-hud-widget', {
             type: 'image_gallery',
             data: {
                 title: '📸 Your Photos',
@@ -120,10 +121,10 @@ async function executeShowVisualMemory(args, mainWindow) {
     };
 }
 
-async function executeSearchImages(args, mainWindow) {
+async function executeSearchImages(args) {
     const imgResult = await searchImages(args.query, args.count || 4);
-    if (imgResult.images?.length > 0 && mainWindow) {
-        mainWindow.webContents.send('show-hud-widget', {
+    if (imgResult.images?.length > 0) {
+        sendToRenderer('show-hud-widget', {
             type: 'image_gallery',
             data: {
                 title: `🔍 ${args.query}`,
@@ -140,12 +141,12 @@ function buildBuiltinPacks() {
         search_web: (args) => searchWeb(args.query),
         scrape_webpage: (args) => scrapeWebpage(args.url),
         get_news: (args) => getNews(args.topic || ''),
-        search_images: (args, ctx) => executeSearchImages(args, ctx.mainWindow),
+        search_images: (args) => executeSearchImages(args),
     };
 
     const memoryHandlers = {
         query_memory: (args) => executeQueryMemory(args),
-        show_visual_memory: (args, ctx) => executeShowVisualMemory(args, ctx.mainWindow),
+        show_visual_memory: (args) => executeShowVisualMemory(args),
     };
 
     const browserHandlers = {};

@@ -365,10 +365,15 @@ async function emptyTrash() {
 async function readClipboard() {
     auditLog('read_clipboard', {}, 'executing');
     try {
+        // Try Electron clipboard first (when running in Electron renderer context)
         const { clipboard } = _electron();
-        if (!clipboard) return { status: 'requires_client', action: 'readClipboard', args: {} };
-        const text = clipboard.readText();
-        return { status: 'success', text: text.substring(0, 5000) };
+        if (clipboard) {
+            const text = clipboard.readText();
+            return { status: 'success', text: text.substring(0, 5000) };
+        }
+        // macOS fallback: pbpaste (works in daemon/headless mode)
+        const text = await runShell('pbpaste').catch(() => '');
+        return { status: 'success', text: (text || '').substring(0, 5000) };
     } catch (e) {
         return { error: e.message };
     }
@@ -378,9 +383,18 @@ async function writeClipboard(args) {
     const text = args.text || '';
     auditLog('write_clipboard', { length: text.length }, 'executing');
     try {
+        // Try Electron clipboard first
         const { clipboard } = _electron();
-        if (!clipboard) return { status: 'requires_client', action: 'writeClipboard', args };
-        clipboard.writeText(text);
+        if (clipboard) {
+            clipboard.writeText(text);
+            return { status: 'success', message: `Copied ${text.length} characters to clipboard.` };
+        }
+        // macOS fallback: pipe text to pbcopy
+        const { exec } = require('child_process');
+        await new Promise((resolve, reject) => {
+            const proc = exec('pbcopy', (err) => { if (err) reject(err); else resolve(); });
+            proc.stdin.end(text, 'utf8');
+        });
         return { status: 'success', message: `Copied ${text.length} characters to clipboard.` };
     } catch (e) {
         return { error: e.message };
@@ -394,9 +408,16 @@ async function showNotification(args) {
     const body = (args.body || '').substring(0, 500);
     auditLog('show_notification', { title }, 'executing');
     try {
+        // Try Electron Notification first
         const { Notification } = _electron();
-        if (!Notification) return { status: 'requires_client', action: 'showNotification', args };
-        new Notification({ title, body }).show();
+        if (Notification) {
+            new Notification({ title, body }).show();
+            return { status: 'success', message: 'Notification shown.' };
+        }
+        // macOS fallback: osascript notification
+        const safeTitle = title.replace(/'/g, "'\''");
+        const safeBody  = body.replace(/'/g, "'\''");
+        await runShell(`osascript -e 'display notification "${safeBody}" with title "${safeTitle}"'`);
         return { status: 'success', message: 'Notification shown.' };
     } catch (e) {
         return { error: e.message };
@@ -411,8 +432,11 @@ async function openFileOrFolder(args) {
     auditLog('open_file_or_folder', { target }, 'executing');
     try {
         const { shell } = _electron();
-        if (!shell) return { status: 'requires_client', action: 'openFileOrFolder', args };
-        await shell.openPath(target);
+        if (shell) {
+            await shell.openPath(target);
+        } else {
+            await runShell(`open "${target.replace(/"/g, '\\"')}"`);
+        }
         return { status: 'success', message: `Opened ${target}.` };
     } catch (e) {
         return { error: e.message };
@@ -427,8 +451,12 @@ async function openUrl(args) {
     auditLog('open_url_in_default_browser', { url }, 'executing');
     try {
         const { shell } = _electron();
-        if (!shell) return { status: 'requires_client', action: 'openUrl', args };
-        await shell.openExternal(url);
+        if (shell) {
+            await shell.openExternal(url);
+        } else {
+            // macOS fallback — works in daemon mode
+            await runShell(`open "${url.replace(/"/g, '\\')}"`);
+        }
         return { status: 'success', message: `Opened ${url} in default browser.` };
     } catch (e) {
         return { error: e.message };

@@ -28,21 +28,23 @@ const SCOPES = [
 
 let oauth2Client = null;
 
-function getClient() {
+/** Build OAuth2 client with the given callback port. */
+function getClient(port) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    
+
     if (!clientId || !clientSecret) {
-        throw new Error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env");
+        throw new Error('Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env');
     }
 
-    const port = process.env.OAUTH_PORT || 3000;
+    const callbackPort = port || parseInt(process.env.OAUTH_PORT || '3000');
 
+    // Re-create if port changes (rare — only first call matters for stored token)
     if (!oauth2Client) {
         oauth2Client = new OAuth2Client(
             clientId,
             clientSecret,
-            `http://localhost:${port}/oauth2callback`
+            `http://localhost:${callbackPort}/oauth2callback`
         );
     }
     return oauth2Client;
@@ -63,53 +65,56 @@ async function isAuthenticated() {
         getClient().setCredentials(token);
         return true;
     } catch (e) {
-        console.error("[GoogleAuth] Auth check failed:", e.message);
+        console.error('[GoogleAuth] Auth check failed:', e.message);
         return false;
     }
 }
 
 /**
- * Authenticates the user by opening a browser window and spinning up a local server.
+ * Authenticates the user by opening a browser and spinning up a local OAuth callback server.
+ * Automatically finds a free port so it never conflicts with other services.
  */
 async function authenticate() {
+    // Find a free port — prefer OAUTH_PORT env var, auto-increment if taken
+    const preferredPort = parseInt(process.env.OAUTH_PORT || '3000');
+    const port = await _findFreePort(preferredPort);
+
+    // Reset so the new port gets baked into the redirect URI
+    oauth2Client = null;
+    const client = getClient(port);
+
     return new Promise((resolve, reject) => {
-        const client = getClient();
-        const port = process.env.OAUTH_PORT || 3000;
-        
         // 1. Generate Auth URL
         const authorizeUrl = client.generateAuthUrl({
-            access_type: 'offline', // Required to get a refresh token
+            access_type: 'offline',
             scope: SCOPES,
-            prompt: 'consent' // Forces consent to ensure we get a refresh token
+            prompt: 'consent',
         });
 
-        // 2. Start a temporary local server to catch the redirect
+        // 2. Start a temporary local server to catch the OAuth redirect
         const server = http.createServer(async (req, res) => {
             try {
                 if (req.url.startsWith('/oauth2callback')) {
                     const qs = new url.URL(req.url, `http://localhost:${port}`).searchParams;
                     const code = qs.get('code');
-                    
                     res.end('Authentication successful! You can close this tab and return to Summer.');
                     server.close();
-                    
+
                     // 3. Exchange code for tokens
                     const { tokens } = await client.getToken(code);
                     client.setCredentials(tokens);
-                    
-                    // 4. Securely store the token using OS Keychain (safeStorage)
+
+                    // 4. Securely store the token using OS Keychain (safeStorage) or plaintext fallback
                     const safeStorage = getSafeStorage();
                     if (safeStorage && safeStorage.isEncryptionAvailable()) {
                         const encrypted = safeStorage.encryptString(JSON.stringify(tokens));
                         fs.writeFileSync(TOKEN_PATH, encrypted);
-                        console.log("[GoogleAuth] Token encrypted and saved successfully.");
-                        resolve({ success: true });
+                        console.log('[GoogleAuth] Token encrypted and saved successfully.');
                     } else {
-                        // Fallback if encryption unavailable
                         fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
-                        console.log("[GoogleAuth] Token saved as plaintext (safeStorage unavailable).");
-                        resolve({ success: true });
+                        console.log('[GoogleAuth] Token saved as plaintext (safeStorage unavailable).');
                     }
+                    resolve({ success: true });
                 }
             } catch (err) {
                 res.end('Authentication failed. Check console.');
@@ -118,24 +123,31 @@ async function authenticate() {
             }
         });
 
-        server.on('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                console.error(`[GoogleAuth] Port ${port} is already in use. OAuth callback server could not start.`);
-                reject(new Error(`Port ${port} is already in use. Please stop the conflicting service or configure OAUTH_PORT in .env.`));
-            } else {
-                reject(err);
-            }
-        });
+        server.on('error', (err) => reject(err));
 
         server.listen(port, () => {
-            // 5. Open the browser
+            console.log(`[GoogleAuth] OAuth callback server on port ${port}`);
+            // 5. Open the browser — Electron shell or macOS `open` command
             const shell = getShell();
             if (shell) {
                 shell.openExternal(authorizeUrl);
             } else {
-                console.log(`[GoogleAuth] Open this URL to authenticate:\n${authorizeUrl}`);
+                require('child_process').exec(`open "${authorizeUrl}"`);
             }
         });
+    });
+}
+
+/** Find a free TCP port starting from `preferred`. */
+function _findFreePort(preferred) {
+    return new Promise((resolve) => {
+        const net = require('net');
+        const tryPort = (p) => {
+            const s = net.createServer();
+            s.listen(p, () => { s.close(); resolve(p); });
+            s.on('error', () => tryPort(p >= 65535 ? 3001 : p + 1));
+        };
+        tryPort(preferred);
     });
 }
 
@@ -143,9 +155,7 @@ function logout() {
     if (fs.existsSync(TOKEN_PATH)) {
         fs.unlinkSync(TOKEN_PATH);
     }
-    if (oauth2Client) {
-        oauth2Client.setCredentials(null);
-    }
+    oauth2Client = null;
     return { success: true };
 }
 
@@ -153,5 +163,5 @@ module.exports = {
     getClient,
     isAuthenticated,
     authenticate,
-    logout
+    logout,
 };

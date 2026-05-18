@@ -1,4 +1,13 @@
-const { BrowserWindow } = require('electron');
+/**
+ * src/tools/ui-tools.js
+ *
+ * HUD & layout tools — ZERO Electron dependency.
+ * All rendering goes through renderer-bridge → WebSocket → client.
+ */
+
+'use strict';
+
+const { sendToRenderer, executeInRenderer } = require('../core/utils/renderer-bridge');
 
 const declarations = [
     {
@@ -7,9 +16,9 @@ const declarations = [
         parameters: {
             type: "OBJECT",
             properties: {
-                type: { 
-                    type: "STRING", 
-                    description: "The type of widget to show. Supported: 'calendar', 'emails', 'mermaid'" 
+                type: {
+                    type: "STRING",
+                    description: "The type of widget to show. Supported: 'calendar', 'emails', 'mermaid'"
                 },
                 data: {
                     type: "ARRAY",
@@ -31,11 +40,11 @@ const declarations = [
                 },
                 width: {
                     type: "INTEGER",
-                    description: "Optional. The width of the widget in pixels. Provide this if you want to control the size."
+                    description: "Optional. The width of the widget in pixels."
                 },
                 height: {
                     type: "INTEGER",
-                    description: "Optional. The height of the widget in pixels. Provide this if you want to control the size."
+                    description: "Optional. The height of the widget in pixels."
                 }
             },
             required: ["type", "data"]
@@ -60,7 +69,7 @@ const declarations = [
     },
     {
         name: "ui_control_layout",
-        description: "Controls the internal layout of the application (e.g. changing the width of the agent panel).",
+        description: "Controls the internal layout of the application (e.g. changing the width of the agent panel or showing/hiding the browser panel).",
         parameters: {
             type: "OBJECT",
             properties: {
@@ -74,83 +83,44 @@ const declarations = [
 
 const handlers = {
     show_hologram_widget: async (args) => {
-        try {
-            const windows = BrowserWindow.getAllWindows();
-            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
-
-            if (targetWin) {
-                // Send IPC to renderer
-                targetWin.webContents.send('show-hud-widget', {
-                    type: args.type,
-                    data: args.data || [],
-                    append: args.append || false,
-                    width: args.width,
-                    height: args.height
-                });
-                return `Successfully displayed ${args.type} widget on screen.`;
-            }
-            return "No active window found to display widget.";
-        } catch (e) {
-            return `Failed to show widget: ${e.message}`;
-        }
+        sendToRenderer('show-hud-widget', {
+            type:   args.type,
+            data:   args.data || [],
+            append: args.append || false,
+            width:  args.width,
+            height: args.height,
+        });
+        return `Successfully displayed ${args.type} widget on screen.`;
     },
+
     clear_hologram_widget: async () => {
-        try {
-            const windows = BrowserWindow.getAllWindows();
-            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
-
-            if (targetWin) {
-                targetWin.webContents.send('show-hud-widget', { type: 'clear' });
-                return "Successfully cleared the HUD screen.";
-            }
-            return "No active window found.";
-        } catch (e) {
-            return `Failed to clear widget: ${e.message}`;
-        }
+        sendToRenderer('show-hud-widget', { type: 'clear' });
+        return 'Successfully cleared the HUD screen.';
     },
+
     ui_control_window: async (args) => {
-        try {
-            const windows = BrowserWindow.getAllWindows();
-            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
-
-            if (targetWin) {
-                targetWin.setSize(args.width, args.height);
-                targetWin.center();
-                return `Successfully resized window to ${args.width}x${args.height}.`;
-            }
-            return "No active window found.";
-        } catch (e) {
-            return `Failed to resize window: ${e.message}`;
-        }
+        // Resize via renderer script (only matters in Electron)
+        executeInRenderer(
+            `try { const { ipcRenderer } = require('electron'); ipcRenderer.send('resize-window', ${JSON.stringify({ width: args.width, height: args.height })}); } catch(e) {}`
+        );
+        return `Successfully resized window to ${args.width}x${args.height}.`;
     },
-    ui_control_layout: async (args) => {
-        try {
-            const windows = BrowserWindow.getAllWindows();
-            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
 
-            if (targetWin) {
-                let script = "";
-                if (args.agentPanelWidth) {
-                    script += `const panel = document.querySelector('.agent-panel'); if (panel) panel.style.flex = '0 0 ${args.agentPanelWidth}px';\n`;
-                }
-                if (args.showBrowser !== undefined) {
-                    const layout = document.getElementById('appLayout');
-                    if (layout) {
-                        if (args.showBrowser) {
-                            script += `document.getElementById('appLayout').classList.remove('browser-hidden');\n`;
-                        } else {
-                            script += `document.getElementById('appLayout').classList.add('browser-hidden');\n`;
-                        }
-                    }
-                }
-                if (script) targetWin.webContents.executeJavaScript(script).catch(err => console.error('[UITools] executeJavaScript error:', err));
-                return `Successfully updated UI layout.`;
-            }
-            return "No active window found.";
-        } catch (e) {
-            return `Failed to update layout: ${e.message}`;
+    ui_control_layout: async (args) => {
+        let script = '';
+        if (args.agentPanelWidth) {
+            script += `const panel = document.querySelector('.agent-panel'); if (panel) panel.style.flex = '0 0 ${args.agentPanelWidth}px';\n`;
         }
-    }
+        if (args.showBrowser !== undefined) {
+            if (args.showBrowser) {
+                script += `document.getElementById('appLayout')?.classList.remove('browser-hidden');\n`;
+            } else {
+                script += `document.getElementById('appLayout')?.classList.add('browser-hidden');\n`;
+            }
+        }
+        if (script) executeInRenderer(script);
+        return 'Successfully updated UI layout.';
+    },
 };
 
 module.exports = { declarations, handlers };

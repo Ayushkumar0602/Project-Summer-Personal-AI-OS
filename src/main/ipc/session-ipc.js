@@ -64,6 +64,11 @@ function registerSessionIpc(ipcMain, getDaemonWs, getMainWindow) {
         sendToDaemon(encode(MSG.CANCEL_AGENTS));
     });
 
+    // Renderer → Daemon: forward browser-reply so daemon can resolve browser tool promises
+    ipcMain.on('browser-reply', (_, payload) => {
+        sendToDaemon(encode('browser_reply', payload));
+    });
+
     log.info('Session IPC handlers registered → bridging to daemon WebSocket');
 }
 

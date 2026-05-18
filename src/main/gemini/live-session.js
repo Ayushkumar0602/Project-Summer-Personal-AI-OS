@@ -13,6 +13,7 @@ const { enhanceToolResponse, getSkillSummaries } = require('../../skills/skill-l
 const orchestrator = require('../../orchestration/orchestrator');
 const { getAgentTools, executeTool, buildToolContext } = require('../../tools/tool-registry');
 const googleAuth = require('../../auth/google-auth');
+const { sendToRenderer } = require('../../core/utils/renderer-bridge');
 
 // Event bus is optional — falls back to no-op if running before bus is initialized
 let _bus = null;
@@ -266,42 +267,22 @@ class LiveSessionManager {
                                             if (matchingImages.length > 0) {
                                                 const newImageIds = matchingImages.map(n => n.id);
                                                 const hasNewImages = newImageIds.some(id => !this.lastShadowImageIds.has(id));
-                                                const mainWindow = this._getMainWindow();
 
                                                 if (hasNewImages) {
-                                                    console.log(`\n📸 Shadow Image Retrieval: ${matchingImages.length} image(s) matched for "${userText.slice(0, 35)}..."`);
-                                                    // Route through event bus → reaches all clients (Electron + iPhone)
-                                                    const bus = _getBus();
-                                                    bus.broadcast(JSON.stringify({
-                                                        type: 'hud_update',
-                                                        widget: 'image_gallery',
-                                                        state: {
-                                                            title: '📸 Visual Memory',
+                                                    console.log(`\n\ud83d\udcf8 Shadow Image Retrieval: ${matchingImages.length} image(s) matched for "${userText.slice(0, 35)}..."`);
+                                                    const imagePayload = {
+                                                        type: 'image_gallery',
+                                                        data: {
+                                                            title: '\ud83d\udcf8 Visual Memory',
                                                             images: matchingImages.map(n => ({
                                                                 filename: n.imagePath,
                                                                 label: n.label,
                                                                 description: n.description,
-                                                                source: 'memory'
+                                                                source: 'memory',
                                                             }))
-                                                        },
-                                                        _ts: Date.now()
-                                                    }));
-                                                    // Also try direct Electron window for backwards compat
-                                                    const mainWindow = this._getMainWindow();
-                                                    if (mainWindow && !mainWindow.isDestroyed()) {
-                                                        mainWindow.webContents.send('show-hud-widget', {
-                                                            type: 'image_gallery',
-                                                            data: {
-                                                                title: '📸 Visual Memory',
-                                                                images: matchingImages.map(n => ({
-                                                                    filename: n.imagePath,
-                                                                    label: n.label,
-                                                                    description: n.description,
-                                                                    source: 'memory'
-                                                                }))
-                                                            }
-                                                        });
-                                                    }
+                                                        }
+                                                    };
+                                                    sendToRenderer('show-hud-widget', imagePayload);
                                                     this.lastShadowImagePushTime = now;
                                                     this.lastShadowImageIds = new Set(newImageIds);
                                                 }

@@ -33,6 +33,7 @@ const { getPlatformAdapter }    = require('./src/core/platform/adapter-factory')
 // These are pure Node.js — no Electron
 const { LiveSessionManager }    = require('./src/main/gemini/live-session');
 const orchestrator               = require('./src/orchestration/orchestrator');
+const rendererBridge             = require('./src/core/utils/renderer-bridge');
 
 const log = createLogger('SummerDaemon');
 
@@ -62,17 +63,20 @@ async function start() {
     wsServer = new WsTransportServer({ port: PORT, skipAuth: SKIP_AUTH });
     wsServer.start();
 
+    // 2b. Inject ClientRegistry into renderer-bridge so tools can send HUD updates via WebSocket
+    const clientRegistry = require('./src/core/transport/client-registry');
+    rendererBridge.injectRegistry(clientRegistry);
+
     // 3. Create the agent event emitter (platform-agnostic replacement for createEmitAgentEvent)
     const emitAgentEvent = createAgentEventEmitter();
 
     // 4. Create the LiveSessionManager with a NULL main window (no Electron)
-    //    We pass null for all window getters — BrainBridge intercepts all event.reply() calls
-    //    before they can call mainWindow.webContents.send()
+    //    callBrowser now routes through renderer-bridge → WebSocket → client
     const liveSessionManager = new LiveSessionManager({
-        getMainWindow:    () => null,  // no Electron window — BrainBridge handles routing
-        getMemoryWindow:  () => null,
-        getWakeWordEngine: () => null, // handled separately below
-        callBrowser:      null,
+        getMainWindow:     () => null,
+        getMemoryWindow:   () => null,
+        getWakeWordEngine: () => null,
+        callBrowser:       _daemonCallBrowser,
         emitAgentEvent,
     });
 
@@ -123,6 +127,49 @@ function _wireOrchestratorEvents(emitAgentEvent) {
         log.info('Orchestrator events wired to event bus.');
     }
 }
+
+// ── Daemon-side browser callBrowser ───────────────────────────────────────────
+// Sends the browser-control request via WebSocket to Electron, waits for reply.
+
+const _pendingBrowserCalls = new Map();
+
+function _daemonCallBrowser(action, args) {
+    const { encode } = require('./src/core/transport/protocol');
+    const registry = require('./src/core/transport/client-registry');
+
+    // toggle_browser: just run the script in the renderer — no reply needed
+    if (action === 'toggle_browser') {
+        const show = args?.visible !== false;
+        rendererBridge.executeInRenderer(
+            show
+                ? `document.getElementById('appLayout')?.classList.remove('browser-hidden');`
+                : `document.getElementById('appLayout')?.classList.add('browser-hidden');`
+        );
+        return Promise.resolve({ result: `Browser ${show ? 'shown' : 'hidden'}.` });
+    }
+
+    return new Promise((resolve) => {
+        const id = Math.random().toString(36).slice(2);
+        _pendingBrowserCalls.set(id, resolve);
+        registry.sendToActive(encode('browser_control', { id, action, args: args || {} }));
+        const timeoutMs = action === 'browser_navigate' ? 20000 : 15000;
+        setTimeout(() => {
+            if (_pendingBrowserCalls.has(id)) {
+                _pendingBrowserCalls.get(id)({ error: 'Browser tool timeout' });
+                _pendingBrowserCalls.delete(id);
+            }
+        }, timeoutMs);
+    });
+}
+
+// Electron client forwards browser-reply to the daemon via WebSocket message type 'browser_reply'
+bus.on('browser_reply', (payload) => {
+    const { id } = payload;
+    if (_pendingBrowserCalls.has(id)) {
+        _pendingBrowserCalls.get(id)(payload);
+        _pendingBrowserCalls.delete(id);
+    }
+});
 
 // ── Client action handling ─────────────────────────────────────────────────────
 // When platform adapter returns { status: 'requires_client', action, args },

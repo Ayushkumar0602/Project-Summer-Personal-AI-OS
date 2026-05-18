@@ -3,6 +3,7 @@ const mailService = require('../services/mail-service');
 const driveService = require('../services/drive-service');
 const youtubeService = require('../services/youtube-service');
 const mapsService = require('../services/maps-service');
+const { sendToRenderer, executeInRenderer } = require('../core/utils/renderer-bridge');
 
 /**
  * Tool definitions for Google Workspace (Calendar, Tasks, Gmail)
@@ -273,18 +274,8 @@ const handlers = {
     google_read_full_email: async (args) => {
         try {
             const html = await mailService.getEmailHtml(args.messageId);
-            const { BrowserWindow } = require('electron');
-            const windows = BrowserWindow.getAllWindows();
-            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
-
-            if (targetWin) {
-                targetWin.webContents.send('show-hud-widget', {
-                    type: 'full-email',
-                    data: html
-                });
-                return "Successfully rendered the full email on the user's screen. You do not need to read the content to them.";
-            }
-            return "Failed to find active window.";
+            sendToRenderer('show-hud-widget', { type: 'full-email', data: html });
+            return "Successfully rendered the full email on the user's screen. You do not need to read the content to them.";
         } catch (e) {
             return `Failed to get full email: ${e.message}`;
         }
@@ -306,22 +297,11 @@ const handlers = {
     google_sheet_read: async (args) => {
         try {
             const result = await driveService.readSheetRange(args.spreadsheetId, args.range);
-            if (typeof result === 'string') return result; // Error or empty
-            
-            // Render on HUD
-            const { BrowserWindow } = require('electron');
-            const windows = BrowserWindow.getAllWindows();
-            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
-
-            if (targetWin) {
-                targetWin.webContents.send('show-hud-widget', {
-                    type: 'sheet-data',
-                    data: {
-                        title: `Sheet Data: ${args.range}`,
-                        rows: result.rawData
-                    }
-                });
-            }
+            if (typeof result === 'string') return result;
+            sendToRenderer('show-hud-widget', {
+                type: 'sheet-data',
+                data: { title: `Sheet Data: ${args.range}`, rows: result.rawData }
+            });
             return `Successfully read sheet and displayed on screen.\n\nRaw Text Summary:\n${result.textSummary}`;
         } catch (e) {
             return `Sheet read failed: ${e.message}`;
@@ -337,37 +317,30 @@ const handlers = {
     google_youtube_play: async (args) => {
         try {
             let videoId = null;
-            let textSummary = "";
-            
+            let textSummary = '';
+
             const urlMatch = args.query.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-            
+
             if (urlMatch && urlMatch[1]) {
                 videoId = urlMatch[1];
                 textSummary = `Direct URL parsed. Video ID: ${videoId}`;
             } else {
                 const result = await youtubeService.searchYouTube(args.query);
-                if (typeof result === 'string') return result; 
+                if (typeof result === 'string') return result;
                 videoId = result.topVideoId;
                 textSummary = result.textSummary;
             }
 
-            const { BrowserWindow } = require('electron');
-            const windows = BrowserWindow.getAllWindows();
-            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
-
-            if (targetWin) {
-                targetWin.webContents.executeJavaScript(`
-                    const layout = document.getElementById('appLayout');
-                    if (layout) {
-                        layout.classList.remove('browser-hidden');
-                        if (typeof navigateBrowser === 'function') {
-                            navigateBrowser("https://www.youtube.com/watch?v=${videoId}");
-                        }
+            executeInRenderer(`
+                const layout = document.getElementById('appLayout');
+                if (layout) {
+                    layout.classList.remove('browser-hidden');
+                    if (typeof navigateBrowser === 'function') {
+                        navigateBrowser('https://www.youtube.com/watch?v=${videoId}');
                     }
-                `).catch(err => console.error('[GoogleTools] YouTube executeJavaScript error:', err));
-                return `Successfully opened YouTube video in the built-in browser panel. Summary: ${textSummary}`;
-            }
-            return "Failed to find active window.";
+                }
+            `);
+            return `Successfully opened YouTube video in the built-in browser panel. Summary: ${textSummary}`;
         } catch (e) {
             return `YouTube play failed: ${e.message}`;
         }
@@ -377,23 +350,16 @@ const handlers = {
             const result = await mapsService.findPlace(args.query);
             if (typeof result === 'string') return result;
 
-            const { BrowserWindow } = require('electron');
-            const windows = BrowserWindow.getAllWindows();
-            const targetWin = windows.find(win => win.getTitle().includes('Summer') && !win.getTitle().includes('Settings') && !win.getTitle().includes('Memory')) || windows[0];
-
-            if (targetWin) {
-                targetWin.webContents.executeJavaScript(`
-                    const layout = document.getElementById('appLayout');
-                    if (layout) {
-                        layout.classList.remove('browser-hidden');
-                        if (typeof navigateBrowser === 'function') {
-                            navigateBrowser("${result.mapUrl}");
-                        }
+            executeInRenderer(`
+                const layout = document.getElementById('appLayout');
+                if (layout) {
+                    layout.classList.remove('browser-hidden');
+                    if (typeof navigateBrowser === 'function') {
+                        navigateBrowser('${result.mapUrl}');
                     }
-                `).catch(err => console.error('[GoogleTools] Maps executeJavaScript error:', err));
-                return `Successfully opened interactive map in the built-in browser panel.\n\nDetails:\n${result.textSummary}`;
-            }
-            return "Failed to find active window.";
+                }
+            `);
+            return `Successfully opened interactive map in the built-in browser panel.\n\nDetails:\n${result.textSummary}`;
         } catch (e) {
             return `Maps API failed: ${e.message}`;
         }
