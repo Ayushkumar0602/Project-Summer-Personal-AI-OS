@@ -14,6 +14,15 @@ const orchestrator = require('../../orchestration/orchestrator');
 const { getAgentTools, executeTool, buildToolContext } = require('../../tools/tool-registry');
 const googleAuth = require('../../auth/google-auth');
 
+// Event bus is optional — falls back to no-op if running before bus is initialized
+let _bus = null;
+function _getBus() {
+    if (!_bus) {
+        try { _bus = require('../../core/event-bus'); } catch { _bus = { EVENTS: {}, dispatch: () => {}, broadcast: () => {} }; }
+    }
+    return _bus;
+}
+
 class LiveSessionManager {
     constructor(deps) {
         this.deps = deps;
@@ -259,11 +268,14 @@ class LiveSessionManager {
                                                 const hasNewImages = newImageIds.some(id => !this.lastShadowImageIds.has(id));
                                                 const mainWindow = this._getMainWindow();
 
-                                                if (hasNewImages && mainWindow) {
+                                                if (hasNewImages) {
                                                     console.log(`\n📸 Shadow Image Retrieval: ${matchingImages.length} image(s) matched for "${userText.slice(0, 35)}..."`);
-                                                    mainWindow.webContents.send('show-hud-widget', {
-                                                        type: 'image_gallery',
-                                                        data: {
+                                                    // Route through event bus → reaches all clients (Electron + iPhone)
+                                                    const bus = _getBus();
+                                                    bus.broadcast(JSON.stringify({
+                                                        type: 'hud_update',
+                                                        widget: 'image_gallery',
+                                                        state: {
                                                             title: '📸 Visual Memory',
                                                             images: matchingImages.map(n => ({
                                                                 filename: n.imagePath,
@@ -271,8 +283,25 @@ class LiveSessionManager {
                                                                 description: n.description,
                                                                 source: 'memory'
                                                             }))
-                                                        }
-                                                    });
+                                                        },
+                                                        _ts: Date.now()
+                                                    }));
+                                                    // Also try direct Electron window for backwards compat
+                                                    const mainWindow = this._getMainWindow();
+                                                    if (mainWindow && !mainWindow.isDestroyed()) {
+                                                        mainWindow.webContents.send('show-hud-widget', {
+                                                            type: 'image_gallery',
+                                                            data: {
+                                                                title: '📸 Visual Memory',
+                                                                images: matchingImages.map(n => ({
+                                                                    filename: n.imagePath,
+                                                                    label: n.label,
+                                                                    description: n.description,
+                                                                    source: 'memory'
+                                                                }))
+                                                            }
+                                                        });
+                                                    }
                                                     this.lastShadowImagePushTime = now;
                                                     this.lastShadowImageIds = new Set(newImageIds);
                                                 }
@@ -346,12 +375,21 @@ class LiveSessionManager {
                         extracted.nodes.forEach(n => n.source = 'agent');
                     }
                     if (extracted.contradictions && extracted.contradictions.length > 0) {
-                        event.sender.send('memory-conflict', extracted.contradictions);
+                        // Route via event.reply (handled by BrainBridge) AND direct window for backwards compat
+                        event.reply('memory-conflict', extracted.contradictions);
                     }
                     if (extracted.nodes.length > 0 || extracted.edges.length > 0) {
                         const finalGraph = mergeGraph(existing, extracted);
                         saveGraph(finalGraph);
                         console.log(`💾 Auto-Memory: Graph updated! Added ${extracted.nodes.length} nodes, ${extracted.edges.length} edges.`);
+                        // Notify via event bus (reaches ALL clients)
+                        const bus = _getBus();
+                        bus.dispatch(bus.EVENTS.MEMORY_UPDATED || 'memory:updated', {
+                            nodeCount: finalGraph.nodes.length,
+                            edgeCount: finalGraph.edges.length,
+                        });
+                        event.reply('extraction-done', finalGraph);
+                        // Also try direct memory window for backwards compat
                         const memoryWindow = this._getMemoryWindow();
                         if (memoryWindow && !memoryWindow.isDestroyed()) {
                             memoryWindow.webContents.send('extraction-done', finalGraph);

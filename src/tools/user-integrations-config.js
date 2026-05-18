@@ -2,11 +2,11 @@
  * User preferences for tool routing (persisted in userData).
  */
 
-const { app } = require('electron');
+const Paths = require('../core/utils/paths');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const CONFIG_PATH = () => path.join(app.getPath('userData'), 'integrations-config.json');
+const CONFIG_PATH = () => path.join(Paths.userData(), 'integrations-config.json');
 
 const DEFAULT_CONFIG = {
     /** balanced = smart Google gating; full = every built-in tool at session start */

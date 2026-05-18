@@ -1,40 +1,48 @@
 /**
- * Summer — Main Electron process bootstrap (v2 — Daemon Architecture).
+ * Summer — Main Electron Process (v2 — Daemon Architecture)
  *
- * This file now has ONE job: spawn the Core Daemon, create the window,
- * and bridge Electron IPC ↔ WebSocket daemon.
+ * This file has ONE job:
+ *   1. Spawn the Core Daemon (summer-daemon.js)
+ *   2. Create the BrowserWindow UI
+ *   3. Use DaemonClient to connect Electron ↔ Daemon
+ *   4. Register native IPC handlers (memory, settings, Google, wake-word)
  *
- * The Brain (Gemini, memory, tools, orchestrator) all live in summer-daemon.js.
- * Electron is now purely the "Mac body" — UI shell + mic capture.
+ * The Brain (Gemini, memory, tools, orchestrator) runs in summer-daemon.js.
+ * Electron is the "Mac Body" — UI shell + native macOS APIs.
  */
+
+'use strict';
 
 const { app, BrowserWindow, ipcMain, systemPreferences, session } = require('electron');
 const path   = require('node:path');
 const { fork } = require('child_process');
-const WebSocket = require('ws');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const windows = require('./main/windows');
+// ── Core modules (Electron-free) ──────────────────────────────────────────────
+const { encode, MSG }            = require('./core/transport/protocol');
+const { DaemonClient }           = require('./main/daemon-client');
+const { registerSessionIpc }     = require('./main/ipc/session-ipc');
+const windows                    = require('./main/windows');
+
+// ── IPC modules (Electron-specific, no AI logic) ─────────────────────────────
 const { createBrowserBridge, registerBrowserIpc } = require('./main/browser/browser-bridge');
-const { registerMemoryIpc }     = require('./main/ipc/memory-ipc');
-const { registerSettingsIpc }   = require('./main/ipc/settings-ipc');
-const { registerGoogleIpc }     = require('./main/ipc/google-ipc');
-const { registerWakeWordIpc }   = require('./main/ipc/wake-word-ipc');
+const { registerMemoryIpc }      = require('./main/ipc/memory-ipc');
+const { registerSettingsIpc }    = require('./main/ipc/settings-ipc');
+const { registerGoogleIpc }      = require('./main/ipc/google-ipc');
+const { registerWakeWordIpc }    = require('./main/ipc/wake-word-ipc');
 const { registerIntegrationsIpc } = require('./main/ipc/integrations-ipc');
-const { MSG, encode, decode }   = require('./core/transport/protocol');
-const Paths = require('./core/utils/paths');
-const fs = require('fs');
-
-const DAEMON_PORT   = parseInt(process.env.DAEMON_PORT || '8765');
-const DAEMON_SCRIPT = path.join(__dirname, '..', 'summer-daemon.js');
-
-let daemonProcess = null;
-let daemonWs      = null;         // WebSocket connection from Electron → Daemon
-let wakeWordEngine = null;        // kept for backwards compat (IPC handlers)
 
 if (require('electron-squirrel-startup')) app.quit();
 app.commandLine.appendSwitch('remote-debugging-port', '9222');
+
+// ── Config ────────────────────────────────────────────────────────────────────
+const DAEMON_PORT   = parseInt(process.env.DAEMON_PORT || '8765');
+const DAEMON_SCRIPT = path.join(__dirname, '..', 'summer-daemon.js');
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let daemonProcess = null;
+let daemonClient  = null;  // DaemonClient instance
 
 // ── 1. Spawn the Core Daemon ──────────────────────────────────────────────────
 
@@ -43,184 +51,40 @@ function spawnDaemon() {
 
     daemonProcess = fork(DAEMON_SCRIPT, ['--skip-auth'], {
         env:   { ...process.env },
-        stdio: 'inherit', // daemon logs appear in same terminal
+        stdio: 'inherit',
+        detached: false,
     });
 
     daemonProcess.on('exit', (code, signal) => {
-        console.warn(`[Electron] Daemon exited (code=${code}, signal=${signal}). Restarting in 2s...`);
-        setTimeout(spawnDaemon, 2000);
+        console.warn(`[Electron] Daemon exited (code=${code}, signal=${signal}).`);
+        if (!app.isQuitting) {
+            console.warn('[Electron] Restarting daemon in 2s...');
+            setTimeout(spawnDaemon, 2000);
+        }
     });
 
     daemonProcess.on('error', (err) => {
         console.error('[Electron] Failed to spawn daemon:', err.message);
     });
-
-    // Connect to daemon WebSocket after giving it time to start
-    setTimeout(connectToDaemon, 1200);
 }
 
-// ── 2. Connect Electron → Daemon WebSocket ────────────────────────────────────
+// ── 2. Connect Electron to daemon via DaemonClient ────────────────────────────
 
-function connectToDaemon(attempts = 0) {
-    const url = `ws://localhost:${DAEMON_PORT}`;
-    console.log(`[Electron] Connecting to daemon at ${url}...`);
-
-    daemonWs = new WebSocket(url);
-
-    daemonWs.on('open', () => {
-        console.log('[Electron] Connected to Summer Core Daemon ✅');
-
-        // Send client_hello — Electron identifies itself as the mac body
-        daemonWs.send(encode(MSG.CLIENT_HELLO, {
-            platform:   'electron',
-            deviceName: `Mac (${require('os').hostname()})`,
-            hasMic:     true,
-            hasScreen:  true,
-            token:      _getPairingToken(), // skip-auth in dev, but send token anyway
-        }));
+function connectToDaemon() {
+    daemonClient = new DaemonClient({
+        port:           DAEMON_PORT,
+        getMainWindow:  () => windows.getMainWindow(),
+        getMemoryWindow:() => windows.getMemoryWindow(),
     });
 
-    daemonWs.on('message', (raw) => {
-        const msg = decode(raw);
-        if (!msg) return;
-        _routeDaemonMessage(msg);
-    });
-
-    daemonWs.on('close', () => {
-        console.warn('[Electron] Lost connection to daemon. Reconnecting in 1s...');
-        setTimeout(() => connectToDaemon(attempts + 1), 1000);
-    });
-
-    daemonWs.on('error', (err) => {
-        if (attempts < 5) {
-            setTimeout(() => connectToDaemon(attempts + 1), 1000);
-        } else {
-            console.error('[Electron] Cannot connect to daemon:', err.message);
-        }
-    });
+    // Give the daemon a moment to bind its port before connecting
+    setTimeout(() => daemonClient.connect(), 1200);
 }
 
-function _getPairingToken() {
-    try {
-        const tokenPath = Paths.pairingToken();
-        if (fs.existsSync(tokenPath)) return fs.readFileSync(tokenPath, 'utf8').trim();
-    } catch (_) {}
-    return '';
-}
-
-// ── 3. Route daemon messages → Electron renderer ──────────────────────────────
-
-function _routeDaemonMessage(msg) {
-    const win = windows.getMainWindow();
-    const memWin = windows.getMemoryWindow();
-
-    const send = (channel, payload) => {
-        if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
-    };
-
-    switch (msg.type) {
-        case MSG.DAEMON_HELLO:
-            console.log('[Electron] Daemon says hello:', msg.message);
-            break;
-        case MSG.SESSION_STARTED:    send('session-started');                      break;
-        case MSG.SESSION_ENDED:      send('session-ended');                        break;
-        case MSG.AUDIO_RESPONSE:     send('agent-audio', msg.data);                break;
-        case MSG.TEXT_RESPONSE:      send('agent-text', msg.text);                 break;
-        case MSG.USER_TRANSCRIPT:    send('user-text', msg.text);                  break;
-        case MSG.TURN_COMPLETE:      send('agent-turn-complete');                   break;
-        case MSG.AGENT_INTERRUPTED:  send('agent-interrupted');                    break;
-        case MSG.TOOL_CALL:          send('agent-tool-call', { name: msg.name, args: msg.args }); break;
-        case MSG.TOOL_COMPLETE:      send('agent-tool-complete', { name: msg.name }); break;
-        case MSG.HUD_UPDATE:         send('show-hud-widget', { type: msg.widget, data: msg.state }); break;
-        case MSG.AGENT_PROGRESS:     send('agent-progress', msg);                  break;
-        case MSG.AGENT_COMPLETE:     send('agent-complete', msg);                  break;
-        case MSG.AGENT_FAIL:         send('agent-fail', msg);                      break;
-        case MSG.MEMORY_UPDATED:
-            send('memory-updated', msg);
-            if (memWin && !memWin.isDestroyed()) memWin.webContents.send('extraction-done');
-            break;
-        case MSG.MEMORY_CONFLICT:    send('memory-conflict', msg.contradictions);  break;
-        case MSG.ERROR:              send('agent-error', msg.message);             break;
-        case MSG.NOTIFICATION:       _showElectronNotification(msg);               break;
-
-        // Client action — daemon wants Electron to execute something natively
-        case 'client_action':        _handleClientAction(msg);                     break;
-
-        default:
-            // Forward any unknown message as-is for backwards compat
-            if (msg.type) send(msg.type, msg);
-            break;
-    }
-}
-
-// ── 4. Handle client_action (platform adapter "requires_client") ───────────────
-
-function _handleClientAction(msg) {
-    const { action, args } = msg;
-    const { clipboard, Notification, shell } = require('electron');
-
-    switch (action) {
-        case 'readClipboard': {
-            const text = clipboard.readText();
-            _sendToDaemon(encode('client_action_result', { action, result: { status: 'success', text } }));
-            break;
-        }
-        case 'writeClipboard':
-            clipboard.writeText(args?.text || '');
-            break;
-        case 'showNotification':
-            new Notification({ title: args?.title || 'Summer', body: args?.body || '' }).show();
-            break;
-        case 'openUrl':
-            if (args?.url) shell.openExternal(args.url);
-            break;
-        case 'openFileOrFolder':
-            if (args?.path) shell.openPath(args.path);
-            break;
-        default:
-            // Forward to renderer for further handling (e.g., UI-specific actions)
-            const win = windows.getMainWindow();
-            if (win && !win.isDestroyed()) win.webContents.send('client-action', msg);
-            break;
-    }
-}
-
-function _showElectronNotification(msg) {
-    try {
-        const { Notification } = require('electron');
-        new Notification({ title: msg.title || 'Summer', body: msg.body || '' }).show();
-    } catch (_) {}
-}
-
-// ── 5. Helper: send to daemon ─────────────────────────────────────────────────
-
-function _sendToDaemon(encoded) {
-    if (daemonWs && daemonWs.readyState === WebSocket.OPEN) {
-        daemonWs.send(encoded);
-    }
-}
-
-// ── 6. Bridge Electron IPC → Daemon WebSocket ─────────────────────────────────
-//    The renderer uses the SAME IPC API as before — zero changes to renderer.js
-
-function registerBridgeIpc() {
-    ipcMain.on('start-session',    (_, ctx)    => _sendToDaemon(encode(MSG.START_SESSION,      { context: ctx || {} })));
-    ipcMain.on('stop-session',     ()          => _sendToDaemon(encode(MSG.STOP_SESSION)));
-    ipcMain.on('realtime-audio',   (_, data)   => _sendToDaemon(encode(MSG.SEND_AUDIO,         { data })));
-    ipcMain.on('turn-complete',    ()          => _sendToDaemon(encode(MSG.SEND_TURN_COMPLETE)));
-    ipcMain.on('send-text-command',(_, text)   => _sendToDaemon(encode(MSG.SEND_TEXT,          { text })));
-    ipcMain.on('cancel-agents',    ()          => _sendToDaemon(encode(MSG.CANCEL_AGENTS)));
-
-    // Wake-word detected in renderer → forward to daemon as session start trigger
-    ipcMain.on('wake-word-detected', (_, payload) => {
-        const win = windows.getMainWindow();
-        if (win && !win.isDestroyed()) win.webContents.send('wake-word-detected', payload);
-    });
-}
-
-// ── 7. Electron app lifecycle ─────────────────────────────────────────────────
+// ── 3. Electron app lifecycle ─────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
+    // Request microphone permission on macOS
     if (process.platform === 'darwin') {
         const status = systemPreferences.getMediaAccessStatus('microphone');
         if (status === 'not-determined') {
@@ -228,6 +92,7 @@ app.whenReady().then(async () => {
         }
     }
 
+    // Allow webviews to load external pages (e.g., Gmail, Calendar)
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
         const newHeaders = Object.fromEntries(
             Object.entries(details.responseHeaders).filter(([key]) => {
@@ -238,24 +103,49 @@ app.whenReady().then(async () => {
         callback({ cancel: false, responseHeaders: newHeaders });
     });
 
-    // Spawn the daemon FIRST, then create UI
+    // ── Spawn brain daemon first ──────────────────────────────────────────────
     spawnDaemon();
+    connectToDaemon();
 
-    // Register the daemon bridge IPC handlers
-    registerBridgeIpc();
+    // ── Register IPC handlers ─────────────────────────────────────────────────
 
-    // Register existing IPC handlers (memory, settings, Google auth — these are still local)
+    // Session: bridges renderer ↔ daemon WebSocket
+    registerSessionIpc(
+        ipcMain,
+        () => daemonClient?.getWs() || null,
+        () => windows.getMainWindow()
+    );
+
+    // Browser (web scraping / browser automation) — still local
     const browserBridge = createBrowserBridge(() => windows.getMainWindow());
     registerBrowserIpc(ipcMain, browserBridge);
+
+    // Memory graph UI — reads graph data locally (graph files are on this machine)
     registerMemoryIpc(ipcMain, { getMainWindow: () => windows.getMainWindow() });
+
+    // Settings / permissions — local Electron native dialogs
     registerSettingsIpc(ipcMain);
+
+    // Google OAuth — local token management + browser redirect
     registerGoogleIpc(ipcMain);
-    registerWakeWordIpc(ipcMain, () => wakeWordEngine);
+
+    // Wake word — local VAD model (desktop-only)
+    registerWakeWordIpc(ipcMain, () => null);
+
+    // Integrations — local config reads/writes
     registerIntegrationsIpc(ipcMain);
 
-    ipcMain.on('open-memory-window', () => windows.createMemoryWindow());
+    // Utility IPC
+    ipcMain.on('open-memory-window',   () => windows.createMemoryWindow());
     ipcMain.on('open-settings-window', () => windows.createSettingsWindow());
 
+    // Wake word detected in renderer → forward as visual feedback
+    ipcMain.on('wake-word-detected', (_, payload) => {
+        const win = windows.getMainWindow();
+        if (win && !win.isDestroyed()) win.webContents.send('wake-word-detected', payload);
+    });
+
+    // ── Create the main UI window ─────────────────────────────────────────────
     windows.createMainWindow();
 
     app.on('activate', () => {
@@ -268,6 +158,8 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
+    app.isQuitting = true;
+    if (daemonClient) daemonClient.stop();
     if (daemonProcess) {
         console.log('[Electron] Stopping daemon...');
         daemonProcess.kill('SIGTERM');

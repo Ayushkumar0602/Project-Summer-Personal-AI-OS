@@ -109,21 +109,29 @@ class WsTransportServer {
                 return;
             }
 
-            // Auth gate — only client_hello and ping pass before auth
-            if (!authenticated) {
-                if (msg.type === MSG.CLIENT_HELLO) {
-                    if (this._skipAuth || msg.token === this._token) {
-                        authenticated = true;
-                        this._onClientHello(ws, clientId, msg);
-                    } else {
-                        log.warn(`Auth failed for ${clientId} — wrong token`);
-                        ws.send(encode(MSG.ERROR, { message: 'Invalid pairing token.' }));
-                        ws.close();
-                    }
-                } else if (msg.type === MSG.PING) {
-                    ws.send(encode(MSG.PONG));
+            // client_hello ALWAYS handled first — registers the client regardless of skipAuth
+            if (msg.type === MSG.CLIENT_HELLO) {
+                if (this._skipAuth || msg.token === this._token) {
+                    authenticated = true;
+                    this._onClientHello(ws, clientId, msg);
+                } else {
+                    log.warn(`Auth failed for ${clientId} — wrong token`);
+                    ws.send(encode(MSG.ERROR, { message: 'Invalid pairing token.' }));
+                    ws.close();
                 }
-                return; // ignore everything else until authenticated
+                return;
+            }
+
+            // Ping is always allowed (keepalive check)
+            if (msg.type === MSG.PING) {
+                ws.send(encode(MSG.PONG));
+                return;
+            }
+
+            // Auth gate — block everything else until authenticated
+            if (!authenticated) {
+                log.warn(`Unauthenticated message from ${clientId}: ${msg.type}`);
+                return;
             }
 
             this._routeClientMessage(clientId, msg);

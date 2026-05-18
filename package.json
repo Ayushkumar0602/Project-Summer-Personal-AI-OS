@@ -13,7 +13,8 @@
     "lint": "echo \"No linting configured\"",
     "daemon": "node summer-daemon.js",
     "daemon:dev": "node summer-daemon.js --skip-auth --no-wake-word",
-    "daemon:verbose": "LOG_LEVEL=DEBUG node summer-daemon.js --skip-auth --no-wake-word"
+    "daemon:verbose": "LOG_LEVEL=DEBUG node summer-daemon.js --skip-auth --no-wake-word",
+    "test:daemon": "node scripts/test-daemon-client.js"
   },
   "keywords": [],
   "author": "ayushjaiswal",
