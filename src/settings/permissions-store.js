@@ -6,11 +6,11 @@
  * Permissions can be revoked from the Settings window.
  */
 
-const { app } = require('electron');
+const Paths = require('../core/utils/paths');
 const path = require('node:path');
 const fs = require('node:fs');
 
-const PERMISSIONS_FILE = path.join(app.getPath('userData'), 'os-permissions.json');
+const PERMISSIONS_FILE = path.join(Paths.userData(), 'os-permissions.json');
 
 /**
  * Load all saved permissions. Returns an object like:

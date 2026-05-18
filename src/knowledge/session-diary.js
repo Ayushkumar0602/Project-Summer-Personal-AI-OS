@@ -1,10 +1,10 @@
 const { GoogleGenAI } = require('@google/genai');
 const path = require('path');
 const fs   = require('fs');
-const { app } = require('electron');
+const Paths = require('../core/utils/paths');
 const { withMemoryApiKey } = require('./memory-api-key');
 
-const DIARY_DIR = path.join(app.getPath('userData'), 'session-diary');
+const DIARY_DIR = path.join(Paths.userData(), 'session-diary');
 
 const DIARY_PROMPT = `You are a personal memory assistant for an AI called Summer.
 A voice conversation just ended. Your job is to write a concise, natural "diary entry" summarizing what was learned or discussed.

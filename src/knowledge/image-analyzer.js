@@ -13,12 +13,12 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
-const { app } = require('electron');
+const Paths = require('../core/utils/paths');
 const { GoogleGenAI } = require('@google/genai');
 const { withMemoryApiKey } = require('./memory-api-key');
 
-// All Summer visual memories live in Summer's own Electron userData directory
-const IMAGE_STORE = path.join(app.getPath('userData'), 'image-store');
+// All Summer visual memories live in Summer's own userData directory
+const IMAGE_STORE = path.join(Paths.userData(), 'image-store');
 
 const IMAGE_MIME_TYPES = new Set([
     'image/jpeg', 'image/jpg', 'image/png',

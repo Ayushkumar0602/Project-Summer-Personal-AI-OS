@@ -10,7 +10,10 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "lint": "echo \"No linting configured\"",
+    "daemon": "node summer-daemon.js",
+    "daemon:dev": "node summer-daemon.js --skip-auth --no-wake-word",
+    "daemon:verbose": "LOG_LEVEL=DEBUG node summer-daemon.js --skip-auth --no-wake-word"
   },
   "keywords": [],
   "author": "ayushjaiswal",

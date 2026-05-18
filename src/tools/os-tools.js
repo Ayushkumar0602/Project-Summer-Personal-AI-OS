@@ -14,15 +14,19 @@
  */
 
 const { exec } = require('child_process');
-const { app, dialog, BrowserWindow, clipboard, Notification, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
+const Paths = require('../core/utils/paths');
 const { isPermissionGranted, grantPermission } = require('../settings/permissions-store');
 
+// Lazy-load Electron APIs — these exist when running inside Electron, not in daemon
+function _electron() {
+    try { return require('electron'); } catch { return {}; }
+}
+
 // ── Audit Log ──────────────────────────────────────────────────────
-const LOG_DIR = path.join(app.getPath('userData'), 'os-audit-logs');
-if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+const LOG_DIR = Paths.auditLogs();
 
 function auditLog(action, args, result, approved = true) {
     const entry = {
@@ -67,8 +71,11 @@ async function confirmDangerousAction(toolName, actionDescription, actionLabel) 
         return true;
     }
 
+    const { BrowserWindow, dialog } = _electron();
+    if (!BrowserWindow || !dialog) return true; // running headless — auto-approve
+
     const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
-    if (!win) return false;
+    if (!win) return true; // no window available — auto-approve in daemon mode
 
     const { response } = await dialog.showMessageBox(win, {
         type: 'warning',
@@ -358,6 +365,8 @@ async function emptyTrash() {
 async function readClipboard() {
     auditLog('read_clipboard', {}, 'executing');
     try {
+        const { clipboard } = _electron();
+        if (!clipboard) return { status: 'requires_client', action: 'readClipboard', args: {} };
         const text = clipboard.readText();
         return { status: 'success', text: text.substring(0, 5000) };
     } catch (e) {
@@ -369,6 +378,8 @@ async function writeClipboard(args) {
     const text = args.text || '';
     auditLog('write_clipboard', { length: text.length }, 'executing');
     try {
+        const { clipboard } = _electron();
+        if (!clipboard) return { status: 'requires_client', action: 'writeClipboard', args };
         clipboard.writeText(text);
         return { status: 'success', message: `Copied ${text.length} characters to clipboard.` };
     } catch (e) {
@@ -383,6 +394,8 @@ async function showNotification(args) {
     const body = (args.body || '').substring(0, 500);
     auditLog('show_notification', { title }, 'executing');
     try {
+        const { Notification } = _electron();
+        if (!Notification) return { status: 'requires_client', action: 'showNotification', args };
         new Notification({ title, body }).show();
         return { status: 'success', message: 'Notification shown.' };
     } catch (e) {
@@ -395,9 +408,10 @@ async function showNotification(args) {
 async function openFileOrFolder(args) {
     const target = sanitize(args.path || '');
     if (!target) return { error: 'Missing path.' };
-
     auditLog('open_file_or_folder', { target }, 'executing');
     try {
+        const { shell } = _electron();
+        if (!shell) return { status: 'requires_client', action: 'openFileOrFolder', args };
         await shell.openPath(target);
         return { status: 'success', message: `Opened ${target}.` };
     } catch (e) {
@@ -412,6 +426,8 @@ async function openUrl(args) {
     }
     auditLog('open_url_in_default_browser', { url }, 'executing');
     try {
+        const { shell } = _electron();
+        if (!shell) return { status: 'requires_client', action: 'openUrl', args };
         await shell.openExternal(url);
         return { status: 'success', message: `Opened ${url} in default browser.` };
     } catch (e) {
@@ -508,7 +524,7 @@ end tell`);
 async function takeScreenshot() {
     auditLog('take_screenshot', {}, 'executing');
     try {
-        const screenshotDir = path.join(app.getPath('desktop'));
+        const screenshotDir = Paths.desktop();
         const filename = `summer-screenshot-${Date.now()}.png`;
         const filepath = path.join(screenshotDir, filename);
         await runShell(`screencapture -x "${filepath}"`);

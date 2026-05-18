@@ -1,9 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
+
+// Use platform-agnostic path resolver (works in daemon AND Electron)
+const Paths = require('../core/utils/paths');
 
 // Store graph in the app's user data directory so it persists across sessions
-const GRAPH_PATH = path.join(app.getPath('userData'), 'knowledge-graph.json');
+const GRAPH_PATH = path.join(Paths.userData(), 'knowledge-graph.json');
+
 
 const EMPTY_GRAPH = { nodes: [], edges: [] };
 

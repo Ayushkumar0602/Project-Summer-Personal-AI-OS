@@ -10,15 +10,23 @@
  */
 
 const { exec } = require('child_process');
-const { app, dialog, BrowserWindow, clipboard } = require('electron');
 const { GoogleGenAI } = require('@google/genai');
 const path = require('node:path');
 const fs = require('node:fs');
+const Paths = require('../core/utils/paths');
 const { isPermissionGranted, grantPermission } = require('../settings/permissions-store');
 
+// Lazy-load Electron APIs
+function _electron() {
+    try { return require('electron'); } catch { return {}; }
+}
+
 // Reuse the audit log infrastructure
-const LOG_DIR = path.join(app.getPath('userData'), 'os-audit-logs');
+const LOG_DIR = Paths.auditLogs();
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+
+const TMP_DIR = path.join(Paths.temp(), 'summer-vision');
+if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
 function auditLog(action, args, result, approved = true) {
     const entry = {
@@ -96,8 +104,10 @@ async function confirmDangerous(toolName, actionDescription, actionLabel) {
         console.log(`[Permissions] ✅ ${toolName} — pre-approved.`);
         return true;
     }
+    const { BrowserWindow, dialog } = _electron();
+    if (!BrowserWindow || !dialog) return true; // headless daemon — auto-approve
     const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
-    if (!win) return false;
+    if (!win) return true; // no window — auto-approve in daemon mode
     const { response } = await dialog.showMessageBox(win, {
         type: 'warning',
         buttons: ['Deny', 'Allow Once', 'Always Allow'],
@@ -110,13 +120,10 @@ async function confirmDangerous(toolName, actionDescription, actionLabel) {
     return response === 1;
 }
 
-
 // ════════════════════════════════════════════════════════════════════
 //  PHASE 1: APP VISION (Screenshot + Gemini Vision)
 // ════════════════════════════════════════════════════════════════════
 
-const TMP_DIR = path.join(app.getPath('temp'), 'summer-vision');
-if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
 /**
  * Capture a screenshot of a specific app window.
@@ -766,6 +773,8 @@ async function terminalRunCommand(args) {
     if (!command) return { error: 'Missing command.' };
 
     // ALWAYS require confirmation — never auto-save
+    const { BrowserWindow, dialog } = _electron();
+    if (!BrowserWindow || !dialog) return { error: 'Terminal commands require a UI client connected.' };
     const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
     if (!win) return { error: 'No window available for confirmation.' };
     const { response } = await dialog.showMessageBox(win, {
@@ -1478,6 +1487,19 @@ const APP_CONTROL_HANDLERS = {
     whatsapp_open_chat:      whatsappOpenChat,
     whatsapp_send_message:   whatsappSendMessage,
     terminal_run_command:    terminalRunCommand,
+
+    // ── Platform adapter aliases (used by MacOSAdapter via adapter-macos.js) ──
+    app_screenshot:          screenshotApp,
+    app_finder_search:       finderSearchFiles,
+    app_read_ui:             readAppUI,
+    app_click_ui:            clickUIElement,
+    app_type:                typeInApp,
+    app_select_menu:         selectMenu,
+    app_keystroke:           sendKeystroke,
+    app_music_play_pause:    musicPlayPause,
+    app_music_next:          musicNext,
+    app_music_previous:      musicPrevious,
+    app_music_now_playing:   musicNowPlaying,
 };
 
 async function executeAppControlTool(name, args = {}) {

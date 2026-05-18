@@ -1,11 +1,19 @@
 const { OAuth2Client } = require('google-auth-library');
-const { app, safeStorage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const url = require('url');
+const Paths = require('../core/utils/paths');
 
-const TOKEN_PATH = path.join(app.getPath('userData'), 'google-token.enc');
+// safeStorage is Electron-only — loaded lazily so daemon can run without it
+function getSafeStorage() {
+    try { return require('electron').safeStorage; } catch { return null; }
+}
+function getShell() {
+    try { return require('electron').shell; } catch { return null; }
+}
+
+const TOKEN_PATH = path.join(Paths.userData(), 'google-token.enc');
 
 // Scopes required for Calendar, Tasks, Gmail, Drive, Sheets, and YouTube
 const SCOPES = [
@@ -46,15 +54,13 @@ function getClient() {
 async function isAuthenticated() {
     try {
         if (!fs.existsSync(TOKEN_PATH)) return false;
-        
         const encryptedToken = fs.readFileSync(TOKEN_PATH);
-        const decryptedStr = safeStorage.decryptString(encryptedToken);
+        const safeStorage = getSafeStorage();
+        const decryptedStr = safeStorage
+            ? safeStorage.decryptString(encryptedToken)
+            : encryptedToken.toString('utf-8');
         const token = JSON.parse(decryptedStr);
-        
         getClient().setCredentials(token);
-        
-        // Check if token is expired, if so let the library auto-refresh it
-        // Or we can proactively verify it. The library handles refresh automatically if refresh_token is present.
         return true;
     } catch (e) {
         console.error("[GoogleAuth] Auth check failed:", e.message);
@@ -92,13 +98,14 @@ async function authenticate() {
                     client.setCredentials(tokens);
                     
                     // 4. Securely store the token using OS Keychain (safeStorage)
-                    if (safeStorage.isEncryptionAvailable()) {
+                    const safeStorage = getSafeStorage();
+                    if (safeStorage && safeStorage.isEncryptionAvailable()) {
                         const encrypted = safeStorage.encryptString(JSON.stringify(tokens));
                         fs.writeFileSync(TOKEN_PATH, encrypted);
                         console.log("[GoogleAuth] Token encrypted and saved successfully.");
                         resolve({ success: true });
                     } else {
-                        // Fallback if encryption unavailable (e.g. some Linux setups)
+                        // Fallback if encryption unavailable
                         fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
                         console.log("[GoogleAuth] Token saved as plaintext (safeStorage unavailable).");
                         resolve({ success: true });
@@ -122,7 +129,12 @@ async function authenticate() {
 
         server.listen(port, () => {
             // 5. Open the browser
-            shell.openExternal(authorizeUrl);
+            const shell = getShell();
+            if (shell) {
+                shell.openExternal(authorizeUrl);
+            } else {
+                console.log(`[GoogleAuth] Open this URL to authenticate:\n${authorizeUrl}`);
+            }
         });
     });
 }

@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
+const Paths = require('../core/utils/paths');
 const { GoogleGenAI, Type } = require('@google/genai');
 const { loadGraph, saveGraph } = require('./graph-store');
 const { getMemoryApiKey } = require('./memory-api-key');
 
-const GRAPH_PATH = path.join(app.getPath('userData'), 'knowledge-graph.json');
-const BACKUP_PATH = path.join(app.getPath('userData'), 'knowledge-graph.bak.json');
+const GRAPH_PATH  = path.join(Paths.userData(), 'knowledge-graph.json');
+const BACKUP_PATH = path.join(Paths.userData(), 'knowledge-graph.bak.json');
 
 /**
  * Finds all nodes connected to a root node (usually 'user_self')
