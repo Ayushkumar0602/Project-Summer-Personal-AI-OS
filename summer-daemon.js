@@ -34,12 +34,14 @@ const { getPlatformAdapter }    = require('./src/core/platform/adapter-factory')
 const { LiveSessionManager }    = require('./src/main/gemini/live-session');
 const orchestrator               = require('./src/orchestration/orchestrator');
 const rendererBridge             = require('./src/core/utils/renderer-bridge');
+const { initGraphStore }         = require('./src/knowledge/graph-store');
+const { initDiaryStore }         = require('./src/knowledge/session-diary');
 
 const log = createLogger('SummerDaemon');
 
 // ── CLI args ─────────────────────────────────────────────────────────────────
 const args        = process.argv.slice(2);
-const PORT        = parseInt(args.find(a => a.startsWith('--port='))?.split('=')[1] || '8765');
+const PORT        = parseInt(args.find(a => a.startsWith('--port='))?.split('=')[1] || process.env.PORT || '8765');
 const SKIP_AUTH   = args.includes('--skip-auth');
 const NO_WAKE     = args.includes('--no-wake-word');
 
@@ -58,6 +60,11 @@ async function start() {
     // 1. Detect platform and log adapter
     const platformAdapter = getPlatformAdapter();
     log.info(`Platform adapter: ${platformAdapter.platformId}`);
+
+    // 2. Initialize Knowledge Bases (Supabase/Local)
+    log.info('Initializing Knowledge Bases...');
+    await initGraphStore();
+    await initDiaryStore();
 
     // 2. Start the WebSocket transport server
     wsServer = new WsTransportServer({ port: PORT, skipAuth: SKIP_AUTH });

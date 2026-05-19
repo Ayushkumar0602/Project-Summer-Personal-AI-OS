@@ -3,8 +3,66 @@ const path = require('path');
 const fs   = require('fs');
 const Paths = require('../core/utils/paths');
 const { withMemoryApiKey } = require('./memory-api-key');
+const { supabase } = require('../services/supabase-client');
 
 const DIARY_DIR = path.join(Paths.userData(), 'session-diary');
+const DIARY_PATH = path.join(DIARY_DIR, 'diary.json');
+const TABLE_DIARY = 'memory_diary';
+
+let memoryDiaryCache = null;
+
+async function initDiaryStore() {
+    if (memoryDiaryCache) return memoryDiaryCache;
+    
+    if (supabase) {
+        try {
+            console.log('[DiaryStore] Fetching diary from Supabase...');
+            const { data } = await supabase.from(TABLE_DIARY).select('*').order('timestamp', { ascending: false }).limit(365);
+            memoryDiaryCache = data || [];
+            
+            if (memoryDiaryCache.length === 0 && fs.existsSync(DIARY_PATH)) {
+                try {
+                    const localData = JSON.parse(fs.readFileSync(DIARY_PATH, 'utf-8'));
+                    if (localData.length > 0) {
+                        console.log('[DiaryStore] Cloud is empty but local has data. Pushing local to cloud...');
+                        memoryDiaryCache = localData;
+                        await supabase.from(TABLE_DIARY).upsert(localData);
+                    }
+                } catch(e) {}
+            }
+            
+            if (!fs.existsSync(DIARY_DIR)) fs.mkdirSync(DIARY_DIR, { recursive: true });
+            fs.writeFileSync(DIARY_PATH, JSON.stringify(memoryDiaryCache, null, 2), 'utf-8');
+            return memoryDiaryCache;
+        } catch (e) {
+            console.error('[DiaryStore] Supabase fetch failed:', e.message);
+        }
+    }
+    
+    try {
+        if (fs.existsSync(DIARY_PATH)) {
+            memoryDiaryCache = JSON.parse(fs.readFileSync(DIARY_PATH, 'utf-8'));
+        } else {
+            memoryDiaryCache = [];
+        }
+    } catch {
+        memoryDiaryCache = [];
+    }
+
+    try {
+        fs.watch(DIARY_PATH, (eventType) => {
+            if (eventType === 'change') {
+                console.log('[DiaryStore] Local diary file changed. Reloading cache...');
+                try {
+                    const raw = fs.readFileSync(DIARY_PATH, 'utf-8');
+                    memoryDiaryCache = JSON.parse(raw);
+                } catch(e) {}
+            }
+        });
+    } catch(e) {}
+
+    return memoryDiaryCache;
+}
 
 const DIARY_PROMPT = `You are a personal memory assistant for an AI called Summer.
 A voice conversation just ended. Your job is to write a concise, natural "diary entry" summarizing what was learned or discussed.
@@ -62,35 +120,34 @@ ${transcriptText.slice(0, 12000)}`;
  */
 function appendDiaryEntry(entry, replaceTimestamp = null) {
     try {
-        if (!fs.existsSync(DIARY_DIR)) fs.mkdirSync(DIARY_DIR, { recursive: true });
-
-        const DIARY_PATH = path.join(DIARY_DIR, 'diary.json');
-        let diary = [];
-
-        if (fs.existsSync(DIARY_PATH)) {
-            try { diary = JSON.parse(fs.readFileSync(DIARY_PATH, 'utf-8')); }
-            catch { diary = []; }
-        }
+        if (!memoryDiaryCache) loadDiary(); // force load from disk if cache is null
 
         if (replaceTimestamp) {
-            diary = diary.filter(d => d.timestamp !== replaceTimestamp);
+            memoryDiaryCache = memoryDiaryCache.filter(d => d.timestamp !== replaceTimestamp);
         }
 
-        diary.push({
+        const newEntry = {
             timestamp: Date.now(),
             date: new Date().toLocaleString(),
             entry,
-            originalTimestamp: replaceTimestamp || undefined
-        });
+            originalTimestamp: replaceTimestamp || null
+        };
 
-        // Sort descending by timestamp
-        diary.sort((a, b) => b.timestamp - a.timestamp);
+        memoryDiaryCache.push(newEntry);
+        memoryDiaryCache.sort((a, b) => b.timestamp - a.timestamp);
+        if (memoryDiaryCache.length > 365) memoryDiaryCache = memoryDiaryCache.slice(0, 365);
 
-        // Keep last 365 entries
-        if (diary.length > 365) diary = diary.slice(0, 365);
-
-        fs.writeFileSync(DIARY_PATH, JSON.stringify(diary, null, 2), 'utf-8');
+        if (!fs.existsSync(DIARY_DIR)) fs.mkdirSync(DIARY_DIR, { recursive: true });
+        fs.writeFileSync(DIARY_PATH, JSON.stringify(memoryDiaryCache, null, 2), 'utf-8');
         console.log(`[Diary] Entry saved (${entry.length} chars).`);
+
+        if (supabase) {
+            supabase.from(TABLE_DIARY).upsert(newEntry).then(() => {
+                if (replaceTimestamp) supabase.from(TABLE_DIARY).delete().eq('timestamp', replaceTimestamp).then();
+                console.log('[DiaryStore] Synced to Supabase.');
+            }).catch(e => console.error('[DiaryStore] Supabase sync failed:', e.message));
+        }
+
         return { success: true, path: DIARY_PATH };
     } catch (e) {
         console.error('[Diary] Failed to save entry:', e.message);
@@ -98,19 +155,19 @@ function appendDiaryEntry(entry, replaceTimestamp = null) {
     }
 }
 
-/**
- * Loads all diary entries.
- * @returns {Array<{timestamp: number, date: string, entry: string}>}
- */
 function loadDiary() {
-    try {
-        const DIARY_PATH = path.join(DIARY_DIR, 'diary.json');
-        if (!fs.existsSync(DIARY_PATH)) return [];
-        const raw = fs.readFileSync(DIARY_PATH, 'utf-8');
-        return JSON.parse(raw);
-    } catch {
-        return [];
+    if (!memoryDiaryCache) {
+        try {
+            if (fs.existsSync(DIARY_PATH)) {
+                memoryDiaryCache = JSON.parse(fs.readFileSync(DIARY_PATH, 'utf-8'));
+            } else {
+                memoryDiaryCache = [];
+            }
+        } catch {
+            memoryDiaryCache = [];
+        }
     }
+    return memoryDiaryCache;
 }
 
-module.exports = { summariseSession, appendDiaryEntry, loadDiary };
+module.exports = { initDiaryStore, summariseSession, appendDiaryEntry, loadDiary };

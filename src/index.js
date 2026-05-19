@@ -48,7 +48,12 @@ let daemonClient  = null;  // DaemonClient instance
 // ── 1. Spawn the Core Daemon ──────────────────────────────────────────────────
 
 function spawnDaemon() {
-    console.log('[Electron] Spawning Summer Core Daemon...');
+    if (process.env.REMOTE_DAEMON_URL) {
+        console.log(`[Electron] REMOTE_DAEMON_URL detected. Skipping local daemon spawn. Connecting to cloud brain at ${process.env.REMOTE_DAEMON_URL}`);
+        return;
+    }
+    
+    console.log('[Electron] Spawning local Summer Core Daemon...');
 
     daemonProcess = fork(DAEMON_SCRIPT, ['--skip-auth'], {
         env:   { ...process.env },
@@ -74,6 +79,7 @@ function spawnDaemon() {
 function connectToDaemon() {
     daemonClient = new DaemonClient({
         port:           DAEMON_PORT,
+        url:            process.env.REMOTE_DAEMON_URL,
         getMainWindow:  () => windows.getMainWindow(),
         getMemoryWindow:() => windows.getMemoryWindow(),
     });

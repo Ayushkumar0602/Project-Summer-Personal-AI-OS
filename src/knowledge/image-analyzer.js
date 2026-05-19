@@ -16,6 +16,7 @@ const { execSync } = require('child_process');
 const Paths = require('../core/utils/paths');
 const { GoogleGenAI } = require('@google/genai');
 const { withMemoryApiKey } = require('./memory-api-key');
+const { supabase } = require('../services/supabase-client');
 
 // All Summer visual memories live in Summer's own userData directory
 const IMAGE_STORE = path.join(Paths.userData(), 'image-store');
@@ -266,7 +267,25 @@ async function analyzeAndStoreImage(file) {
         (ownerConf === 'high') ||
         (ownerConf === 'medium' && (ownerRole === 'sole_subject' || ownerRole === 'group_focal'));
 
-    // 10. Build the complete ImageMemory node
+    // 10. Upload to Supabase Storage (if available)
+    let publicUrl = null;
+    if (supabase) {
+        try {
+            console.log(`[ImageMemory] Uploading to Supabase Storage: ${filename}...`);
+            const { error } = await supabase.storage.from('summer-memories').upload(filename, fs.readFileSync(destPath), {
+                contentType: apiMime,
+                upsert: true
+            });
+            if (error) throw error;
+            const { data } = supabase.storage.from('summer-memories').getPublicUrl(filename);
+            publicUrl = data.publicUrl;
+            console.log(`[ImageMemory] Uploaded successfully: ${publicUrl}`);
+        } catch (e) {
+            console.error('[ImageMemory] Supabase upload failed:', e.message);
+        }
+    }
+
+    // 11. Build the complete ImageMemory node
     const nodeId = `img_${Date.now()}_${hash.slice(0, 8)}`;
     const node = {
         id: nodeId,
@@ -274,6 +293,7 @@ async function analyzeAndStoreImage(file) {
         label: analysis.suggestedLabel || path.basename(file.name || filename, ext),
         description: analysis.summary || '',
         imagePath: filename, // filename only — full path constructed at runtime
+        publicUrl: publicUrl, // Direct cloud URL
         imageHash: hash,
         entities,
         faceIds: analysis.people

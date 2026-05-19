@@ -104,6 +104,7 @@ async function executeShowVisualMemory(args) {
                 title: '📸 Your Photos',
                 images: matches.map(n => ({
                     filename: n.imagePath,
+                    publicUrl: n.publicUrl,
                     label: n.label,
                     description: n.description,
                     source: 'memory',

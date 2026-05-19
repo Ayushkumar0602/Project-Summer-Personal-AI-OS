@@ -256,7 +256,9 @@ class WidgetManager {
                     imgEl.title = img.label || '';
                     imgEl.alt = img.label || '';
 
-                    if (img.source === 'memory' && img.filename) {
+                    if (img.publicUrl) {
+                        imgEl.src = img.publicUrl;
+                    } else if (img.source === 'memory' && img.filename) {
                         try {
                             const dataUrl = await window.liveAPI.readLocalImage(img.filename);
                             if (dataUrl) imgEl.src = dataUrl;

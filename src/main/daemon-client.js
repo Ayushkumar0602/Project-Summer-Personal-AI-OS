@@ -39,6 +39,7 @@ class DaemonClient {
      */
     constructor(opts = {}) {
         this._port           = opts.port || 8765;
+        this._url            = opts.url || null;
         this._getMainWindow  = opts.getMainWindow  || (() => null);
         this._getMemoryWindow= opts.getMemoryWindow || (() => null);
         this._ws             = null;
@@ -51,7 +52,7 @@ class DaemonClient {
 
     connect() {
         if (this._stopping) return;
-        const url = `ws://localhost:${this._port}`;
+        const url = this._url || `ws://localhost:${this._port}`;
         log.info(`Connecting to daemon → ${url}`);
 
         this._ws = new WebSocket(url);

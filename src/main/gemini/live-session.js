@@ -276,6 +276,7 @@ class LiveSessionManager {
                                                             title: '\ud83d\udcf8 Visual Memory',
                                                             images: matchingImages.map(n => ({
                                                                 filename: n.imagePath,
+                                                                publicUrl: n.publicUrl,
                                                                 label: n.label,
                                                                 description: n.description,
                                                                 source: 'memory',
