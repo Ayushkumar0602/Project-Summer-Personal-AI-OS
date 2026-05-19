@@ -44,6 +44,7 @@ const DAEMON_SCRIPT = path.join(__dirname, '..', 'summer-daemon.js');
 // ── State ─────────────────────────────────────────────────────────────────────
 let daemonProcess = null;
 let daemonClient  = null;  // DaemonClient instance
+let wakeWordEngine = null; // Local wake word engine (Mac-only)
 
 // ── 1. Spawn the Core Daemon ──────────────────────────────────────────────────
 
@@ -144,7 +145,7 @@ app.whenReady().then(async () => {
     registerGoogleIpc(ipcMain);
 
     // Wake word — local VAD model (desktop-only)
-    registerWakeWordIpc(ipcMain, () => null);
+    registerWakeWordIpc(ipcMain, () => wakeWordEngine);
 
     // Integrations — local config reads/writes
     registerIntegrationsIpc(ipcMain);
@@ -158,6 +159,22 @@ app.whenReady().then(async () => {
         const win = windows.getMainWindow();
         if (win && !win.isDestroyed()) win.webContents.send('wake-word-detected', payload);
     });
+
+    // ── Start local Wake Word Engine (Mac-only, runs even in cloud mode) ──────
+    try {
+        const { WakeWordEngine } = require('./wake-word/wake-word-engine');
+        wakeWordEngine = new WakeWordEngine();
+        wakeWordEngine.on('detected', (score) => {
+            console.log(`[WakeWord] 🎤 Detected! Score: ${score.toFixed(4)}`);
+            const win = windows.getMainWindow();
+            if (win && !win.isDestroyed()) {
+                win.webContents.send('wake-word-detected', { score });
+            }
+        });
+        wakeWordEngine.start();
+    } catch (e) {
+        console.warn('[WakeWord] Could not start wake word engine:', e.message);
+    }
 
     // ── Create the main UI window ─────────────────────────────────────────────
     windows.createMainWindow();

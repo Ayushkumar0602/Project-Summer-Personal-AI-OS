@@ -4,6 +4,7 @@ const fs = require('fs');
 const http = require('http');
 const url = require('url');
 const Paths = require('../core/utils/paths');
+const { supabase } = require('../services/supabase-client');
 
 // safeStorage is Electron-only — loaded lazily so daemon can run without it
 function getSafeStorage() {
@@ -56,38 +57,56 @@ function getClient(port) {
  */
 async function isAuthenticated() {
     try {
-        if (!fs.existsSync(TOKEN_PATH)) return false;
-        const rawBuffer = fs.readFileSync(TOKEN_PATH);
-
         let token = null;
 
-        // Strategy 1: Try safeStorage decryption (Electron context)
-        const safeStorage = getSafeStorage();
-        if (safeStorage && safeStorage.isEncryptionAvailable()) {
-            try {
-                const decrypted = safeStorage.decryptString(rawBuffer);
-                token = JSON.parse(decrypted);
-            } catch {
-                // safeStorage failed — try plaintext below
+        // Strategy 1: Try local token file
+        if (fs.existsSync(TOKEN_PATH)) {
+            const rawBuffer = fs.readFileSync(TOKEN_PATH);
+
+            // Try safeStorage decryption (Electron context)
+            const safeStorage = getSafeStorage();
+            if (safeStorage && safeStorage.isEncryptionAvailable()) {
+                try {
+                    const decrypted = safeStorage.decryptString(rawBuffer);
+                    token = JSON.parse(decrypted);
+                } catch {
+                    // safeStorage failed — try plaintext below
+                }
+            }
+
+            // Try plaintext JSON (daemon context or unencrypted re-auth)
+            if (!token) {
+                try {
+                    token = JSON.parse(rawBuffer.toString('utf-8'));
+                } catch {
+                    console.error(
+                        '[GoogleAuth] ⚠️  Google token is encrypted (saved by Electron) but safeStorage ' +
+                        'is unavailable in daemon mode. Please re-authenticate.'
+                    );
+                    try { fs.unlinkSync(TOKEN_PATH); } catch {}
+                }
             }
         }
 
-        // Strategy 2: Try plaintext JSON (daemon context or unencrypted re-auth)
-        if (!token) {
+        // Strategy 2: Fallback to Supabase (cloud Brain has no local file)
+        if (!token && supabase) {
             try {
-                token = JSON.parse(rawBuffer.toString('utf-8'));
-            } catch {
-                // File is encrypted but we're in daemon mode with no safeStorage
-                console.error(
-                    '[GoogleAuth] ⚠️  Google token is encrypted (saved by Electron) but safeStorage ' +
-                    'is unavailable in daemon mode. Please re-authenticate:\n' +
-                    '  → Open Summer → Settings → Integrations → Disconnect Google → Connect Google'
-                );
-                // Delete the unreadable token so future attempts don't loop
-                try { fs.unlinkSync(TOKEN_PATH); } catch {}
-                return false;
+                const { data } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'google_oauth_token')
+                    .single();
+                if (data?.value) {
+                    token = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                    console.log('[GoogleAuth] Token loaded from Supabase cloud store.');
+                }
+            } catch (e) {
+                // Table might not exist yet — that's fine
+                console.debug('[GoogleAuth] Supabase token fetch skipped:', e.message);
             }
         }
+
+        if (!token) return false;
 
         getClient().setCredentials(token);
         return true;
@@ -131,12 +150,12 @@ async function authenticate() {
                     const { tokens } = await client.getToken(code);
                     client.setCredentials(tokens);
 
-                    // 4. Save token as plaintext JSON
-                    // NOTE: We intentionally skip safeStorage encryption so the daemon
-                    // process (which has no Electron context) can also read the token.
-                    // The file is protected by macOS filesystem permissions.
+                    // 4. Save token locally as plaintext JSON
                     fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
-                    console.log('[GoogleAuth] ✅ Token saved. Google Workspace is now active.');
+                    console.log('[GoogleAuth] ✅ Token saved locally.');
+
+                    // 5. Sync token to Supabase so the cloud Brain can access it
+                    await _syncTokenToSupabase(tokens);
                     resolve({ success: true });
                 }
             } catch (err) {
@@ -174,9 +193,33 @@ function _findFreePort(preferred) {
     });
 }
 
+/** Sync token to Supabase so the cloud Brain can access it. */
+async function _syncTokenToSupabase(tokens) {
+    if (!supabase) return;
+    try {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({
+                key: 'google_oauth_token',
+                value: JSON.stringify(tokens),
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'key' });
+        if (error) throw error;
+        console.log('[GoogleAuth] ✅ Token synced to Supabase cloud store.');
+    } catch (e) {
+        console.warn('[GoogleAuth] ⚠️  Failed to sync token to Supabase:', e.message);
+    }
+}
+
 function logout() {
     if (fs.existsSync(TOKEN_PATH)) {
         fs.unlinkSync(TOKEN_PATH);
+    }
+    // Also remove from cloud store
+    if (supabase) {
+        supabase.from('app_settings').delete().eq('key', 'google_oauth_token')
+            .then(() => console.log('[GoogleAuth] Cloud token removed.'))
+            .catch(() => {});
     }
     oauth2Client = null;
     return { success: true };

@@ -47,6 +47,17 @@ ALTER TABLE memory_edges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE memory_diary ENABLE ROW LEVEL SECURITY;
 
 -- Create policies to allow all access for authenticated service roles
+-- Create policies to allow all access for authenticated service roles
 CREATE POLICY "Enable all access for service role" ON memory_nodes FOR ALL USING (true);
 CREATE POLICY "Enable all access for service role" ON memory_edges FOR ALL USING (true);
 CREATE POLICY "Enable all access for service role" ON memory_diary FOR ALL USING (true);
+
+-- 5. App Settings (synced config: Google tokens, preferences, etc.)
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable all access for service role" ON app_settings FOR ALL USING (true);
