@@ -26,10 +26,10 @@ class PlatformAdapterBase {
     }
 
     // ── App Control ───────────────────────────────────────────────────────────
-    async openApp(args)          { return this._unsupported('openApp'); }
-    async quitApp(args)          { return this._unsupported('quitApp'); }
-    async focusApp(args)         { return this._unsupported('focusApp'); }
-    async listRunningApps()      { return this._unsupported('listRunningApps'); }
+    async openApp(args)          { return this._requiresClient('openApp', args); }
+    async quitApp(args)          { return this._requiresClient('quitApp', args); }
+    async focusApp(args)         { return this._requiresClient('focusApp', args); }
+    async listRunningApps()      { return this._requiresClient('listRunningApps', {}); }
 
     // ── Volume ────────────────────────────────────────────────────────────────
     async setVolume(args)        { return this._requiresClient('setVolume', args); }
@@ -40,65 +40,55 @@ class PlatformAdapterBase {
     async setBrightness(args)    { return this._requiresClient('setBrightness', args); }
 
     // ── System Info ───────────────────────────────────────────────────────────
-    async getSystemInfo()        { return this._unsupported('getSystemInfo'); }
-    async getTopProcesses()      { return this._unsupported('getTopProcesses'); }
+    async getSystemInfo()        { return this._requiresClient('getSystemInfo', {}); }
+    async getTopProcesses()      { return this._requiresClient('getTopProcesses', {}); }
 
     // ── Power ─────────────────────────────────────────────────────────────────
-    async systemSleep()          { return this._unsupported('systemSleep'); }
-    async lockScreen()           { return this._unsupported('lockScreen'); }
+    async systemSleep()          { return this._requiresClient('systemSleep', {}); }
+    async lockScreen()           { return this._requiresClient('lockScreen', {}); }
 
     // ── Clipboard ─────────────────────────────────────────────────────────────
     async readClipboard()        { return this._requiresClient('readClipboard', {}); }
     async writeClipboard(args)   { return this._requiresClient('writeClipboard', args); }
 
     // ── Screenshot / Vision ───────────────────────────────────────────────────
-    async takeScreenshot()       { return this._unsupported('takeScreenshot'); }
-    async screenshotApp(args)    { return this._unsupported('screenshotApp'); }
+    async takeScreenshot()       { return this._requiresClient('takeScreenshot', {}); }
+    async screenshotApp(args)    { return this._requiresClient('screenshotApp', args); }
 
     // ── File System ───────────────────────────────────────────────────────────
     async readFile(args)         { return this._requiresClient('readFile', args); }
     async openFileOrFolder(args) { return this._requiresClient('openFileOrFolder', args); }
     async openUrl(args)          { return this._requiresClient('openUrl', args); }
-    async searchFiles(args)      { return this._unsupported('searchFiles'); }
+    async searchFiles(args)      { return this._requiresClient('searchFiles', args); }
 
     // ── System Settings ───────────────────────────────────────────────────────
     async toggleDarkMode(args)   { return this._requiresClient('toggleDarkMode', args); }
     async toggleDoNotDisturb(args){ return this._requiresClient('toggleDoNotDisturb', args); }
 
     // ── Notification ──────────────────────────────────────────────────────────
-    /**
-     * Show a native OS notification. Default: ask client to show it.
-     * Desktop adapters override this to show natively.
-     */
-    async showNotification(args) {
-        return this._requiresClient('showNotification', args);
-    }
+    async showNotification(args) { return this._requiresClient('showNotification', args); }
 
     // ── TTS (Text-to-Speech) ──────────────────────────────────────────────────
-    /**
-     * Speak text. Default: delegate to client (mobile uses native TTS).
-     * Desktop adapters override with `say` / SAPI / espeak.
-     */
     async speak(text)            { return this._requiresClient('speak', { text }); }
 
     // ── Trash ─────────────────────────────────────────────────────────────────
-    async emptyTrash()           { return this._unsupported('emptyTrash'); }
+    async emptyTrash()           { return this._requiresClient('emptyTrash', {}); }
 
     // ── Wifi ─────────────────────────────────────────────────────────────────
-    async getWifiStatus()        { return this._unsupported('getWifiStatus'); }
+    async getWifiStatus()        { return this._requiresClient('getWifiStatus', {}); }
 
     // ── App-specific ─────────────────────────────────────────────────────────
-    async musicPlayPause()       { return this._unsupported('musicPlayPause'); }
-    async musicNext()            { return this._unsupported('musicNext'); }
-    async musicPrevious()        { return this._unsupported('musicPrevious'); }
-    async musicNowPlaying()      { return this._unsupported('musicNowPlaying'); }
+    async musicPlayPause()       { return this._requiresClient('musicPlayPause', {}); }
+    async musicNext()            { return this._requiresClient('musicNext', {}); }
+    async musicPrevious()        { return this._requiresClient('musicPrevious', {}); }
+    async musicNowPlaying()      { return this._requiresClient('musicNowPlaying', {}); }
 
     // ── UI interaction ────────────────────────────────────────────────────────
-    async readAppUI(args)        { return this._unsupported('readAppUI'); }
-    async clickUIElement(args)   { return this._unsupported('clickUIElement'); }
-    async typeInApp(args)        { return this._unsupported('typeInApp'); }
-    async selectMenu(args)       { return this._unsupported('selectMenu'); }
-    async sendKeystroke(args)    { return this._unsupported('sendKeystroke'); }
+    async readAppUI(args)        { return this._requiresClient('readAppUI', args); }
+    async clickUIElement(args)   { return this._requiresClient('clickUIElement', args); }
+    async typeInApp(args)        { return this._requiresClient('typeInApp', args); }
+    async selectMenu(args)       { return this._requiresClient('selectMenu', args); }
+    async sendKeystroke(args)    { return this._requiresClient('sendKeystroke', args); }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

@@ -24,6 +24,7 @@ const path       = require('path');
 const { createLogger } = require('../core/utils/logger');
 const { MSG, encode, decode } = require('../core/transport/protocol');
 const Paths      = require('../core/utils/paths');
+const { getPlatformAdapter } = require('../core/platform/adapter-factory');
 
 const log = createLogger('DaemonClient');
 
@@ -262,10 +263,23 @@ class DaemonClient {
                 if (shell && args?.path) shell.openPath(args.path);
                 break;
 
-            default:
-                // Forward to renderer for UI-level handling
-                if (win && !win.isDestroyed()) win.webContents.send('client-action', msg);
+            default: {
+                // Try executing it via the local platform adapter (e.g. MacOSAdapter)
+                const adapter = getPlatformAdapter();
+                if (typeof adapter[action] === 'function') {
+                    adapter[action](args).then(result => {
+                        // Send the result back if needed
+                        this.send(encode('client_action_result', { action, result }));
+                    }).catch(err => {
+                        log.error(`Local adapter failed to execute ${action}`, { err: err.message });
+                        this.send(encode('client_action_result', { action, result: { status: 'error', error: err.message } }));
+                    });
+                } else {
+                    // Forward to renderer for UI-level handling
+                    if (win && !win.isDestroyed()) win.webContents.send('client-action', msg);
+                }
                 break;
+            }
         }
     }
 
