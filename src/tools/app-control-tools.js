@@ -1505,7 +1505,47 @@ const APP_CONTROL_HANDLERS = {
 async function executeAppControlTool(name, args = {}) {
     const handler = APP_CONTROL_HANDLERS[name];
     if (!handler) return null;
-    return await handler(args);
+
+    // If we're on macOS, run directly
+    if (process.platform === 'darwin') {
+        return await handler(args);
+    }
+
+    // Cloud mode: delegate to the connected Mac client
+    try {
+        const bus = require('../core/event-bus');
+        const registry = require('../core/transport/client-registry');
+        const { encode: enc } = require('../core/transport/protocol');
+
+        const requestId = `app_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+        return new Promise((resolve) => {
+            // Set a timeout in case the client doesn't respond
+            const timeout = setTimeout(() => {
+                bus.off?.('client_action_result', onResult);
+                resolve({ error: `App control tool "${name}" timed out — no client responded within 30s.` });
+            }, 30000); // UI reads might take longer (vision inference)
+
+            // Listen for the client's response
+            const onResult = (data) => {
+                if (data?.action === name || data?.requestId === requestId) {
+                    clearTimeout(timeout);
+                    bus.off?.('client_action_result', onResult);
+                    resolve(data.result || { status: 'success', message: `${name} executed on client.` });
+                }
+            };
+            bus.on?.('client_action_result', onResult);
+
+            // Send the tool call to the active client
+            registry.broadcast(enc('client_action', {
+                requestId,
+                action: name,
+                args,
+            }));
+        });
+    } catch (e) {
+        return { error: `Cannot delegate app control "${name}" to client: ${e.message}` };
+    }
 }
 
 function isAppControlTool(name) {
