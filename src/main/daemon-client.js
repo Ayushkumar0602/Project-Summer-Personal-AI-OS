@@ -61,13 +61,15 @@ class DaemonClient {
             this._reconnectDelay = RECONNECT_DELAY_MS;
             log.info('Connected to Summer Core Daemon ✅');
 
+            const tk = this._getPairingToken();
+            log.info('Sending pairing token length: ' + tk.length);
             // Identify ourselves as the Mac Electron body
             this._ws.send(encode(MSG.CLIENT_HELLO, {
                 platform:   'electron',
                 deviceName: `Mac (${os.hostname()})`,
                 hasMic:     true,
                 hasScreen:  true,
-                token:      this._getPairingToken(),
+                token:      tk,
             }));
 
             // Flush any queued callbacks

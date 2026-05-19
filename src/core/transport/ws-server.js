@@ -31,7 +31,8 @@ const PING_INTERVAL_MS = 20_000;
 // ── Auth token ────────────────────────────────────────────────────────────────
 
 function _loadOrCreateToken() {
-    if (process.env.DAEMON_TOKEN) return process.env.DAEMON_TOKEN.replace(/^["']|["']$/g, '');
+    const envToken = process.env.DAEMON_TOKEN || process.env.REMOTE_DAEMON_TOKEN;
+    if (envToken) return envToken.replace(/^["']|["']$/g, '');
     const tokenPath = Paths.pairingToken();
     if (fs.existsSync(tokenPath)) {
         const t = fs.readFileSync(tokenPath, 'utf8').trim();
@@ -111,14 +112,16 @@ class WsTransportServer {
             }
 
             // client_hello ALWAYS handled first — registers the client regardless of skipAuth
+            // client_hello ALWAYS handled first — registers the client regardless of skipAuth
             if (msg.type === MSG.CLIENT_HELLO) {
-                if (this._skipAuth || msg.token === this._token) {
+                if (this._skipAuth || msg.payload?.token === this._token) {
                     authenticated = true;
-                    this._onClientHello(ws, clientId, msg);
+                    this._onClientHello(ws, clientId, msg.payload || {});
                 } else {
-                    log.warn(`Auth failed for ${clientId} — wrong token`);
-                    ws.send(encode(MSG.ERROR, { message: 'Invalid pairing token.' }));
-                    ws.close();
+                    const expectedLen = this._token?.length || 0;
+                    const gotLen = msg.payload?.token?.length || 0;
+                    log.warn(`${clientId} failed to authenticate — closing. Expected len: ${expectedLen}, Got len: ${gotLen}`);
+                    ws.close(1005, 'Invalid pairing token.');
                 }
                 return;
             }
