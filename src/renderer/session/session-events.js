@@ -1,6 +1,8 @@
 __cjsRegister('renderer/session/session-events.js', function (module, exports, require) {
 let lastContextPayload = null;
 let toolDissolveTimeout = null;
+let recentReconnectCount = 0;
+let reconnectResetTimer = null;
 
 function getLastContextPayload() { return lastContextPayload; }
 function setLastContextPayload(val) { lastContextPayload = val; }
@@ -21,11 +23,13 @@ function initSessionEvents(deps) {
         stopRecording,
         hudManager,
         setWakeWordIndicator,
+        setIsConnecting,
     } = deps;
 
-    // --- 4. Incoming IPC from Main (Gemini Voice) ---
     window.liveAPI.onSessionStarted(() => {
         setIsConnected(true);
+        if (setIsConnecting) setIsConnecting(false);
+        if (window.liveAPI.setWakeWordEnabled) window.liveAPI.setWakeWordEnabled(false);
         setOrbState('listening', 'Listening...');
         startRecording();
 
@@ -57,6 +61,8 @@ function initSessionEvents(deps) {
     });
 
     window.liveAPI.onSessionEnded(() => {
+        if (setIsConnecting) setIsConnecting(false);
+        if (window.liveAPI.setWakeWordEnabled) window.liveAPI.setWakeWordEnabled(true);
         if (getUserDisconnected()) {
             setIsConnected(false);
             setOrbState('idle', 'Click Orb to Connect');
@@ -64,7 +70,20 @@ function initSessionEvents(deps) {
             audioQueue.clear();
             setWakeWordIndicator('listening');
         } else {
-            console.log("Session disconnected unexpectedly. Auto-reconnecting...");
+            recentReconnectCount++;
+            if (recentReconnectCount > 3) {
+                console.error("Too many rapid disconnects. Giving up auto-reconnect.");
+                if (deps.setUserDisconnected) deps.setUserDisconnected(true);
+                setIsConnected(false);
+                setOrbState('idle', 'Connection Failed');
+                stopRecording();
+                audioQueue.clear();
+                return;
+            }
+            if (reconnectResetTimer) clearTimeout(reconnectResetTimer);
+            reconnectResetTimer = setTimeout(() => { recentReconnectCount = 0; }, 10000);
+
+            console.log(`Session disconnected unexpectedly. Auto-reconnecting... (Attempt ${recentReconnectCount})`);
             setOrbState('thinking', 'Reconnecting...');
             stopRecording();
             audioQueue.clear();
@@ -99,8 +118,11 @@ function initSessionEvents(deps) {
 
     window.liveAPI.onError((err) => {
         console.error("Agent Error:", err);
+        if (deps.setUserDisconnected) deps.setUserDisconnected(true); // Prevent auto-reconnect on error
         setOrbState('idle', 'Error Connecting');
         setIsConnected(false);
+        if (setIsConnecting) setIsConnecting(false);
+        if (window.liveAPI.setWakeWordEnabled) window.liveAPI.setWakeWordEnabled(true);
         stopRecording();
     });
 

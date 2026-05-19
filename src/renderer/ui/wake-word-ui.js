@@ -6,10 +6,11 @@ function initWakeWord(deps) {
 
     // ── Wake Word: Auto-connect on detection ──
     window.liveAPI.onWakeWordDetected(async ({ score }) => {
-        if (_deps.getIsConnected()) return; // Already in an active session
+        if (_deps.getIsConnected() || _deps.getIsConnecting()) return; // Already in an active session or connecting
 
         console.log(`🎤 Wake word detected in renderer! Score: ${score.toFixed(4)}`);
-        
+        _deps.setIsConnecting(true);
+
         // Activation feedback: chime + orb pulse
         playWakeChime();
         const orbContainer = document.querySelector('.orb-container');
@@ -31,6 +32,9 @@ function initWakeWord(deps) {
         _deps.setOrbState('thinking', 'Connecting to Gemini...');
         _deps.setLastContextPayload(contextPayload);
         window.liveAPI.startSession(contextPayload);
+
+        // Reset connecting state after a safe margin if connection fails
+        setTimeout(() => { _deps.setIsConnecting(false); }, 5000);
     });
 }
 

@@ -5,6 +5,7 @@ const statusText = document.getElementById('statusText');
 const subtitleText = document.getElementById('subtitleText');
 const userTextElement = document.getElementById('userText');
 let isConnected = false;
+let isConnecting = false;
 let userDisconnected = false;
 let autoReconnectTimer = null;
 let pendingTextTimeouts = [];
@@ -63,6 +64,8 @@ function clearAllText() {
 
 function getIsConnected() { return isConnected; }
 function setIsConnected(val) { isConnected = val; }
+function getIsConnecting() { return isConnecting; }
+function setIsConnecting(val) { isConnecting = val; }
 function getUserDisconnected() { return userDisconnected; }
 function setUserDisconnected(val) { userDisconnected = val; }
 function getAutoReconnectTimer() { return autoReconnectTimer; }
@@ -76,6 +79,8 @@ module.exports = {
     clearAllText,
     getIsConnected,
     setIsConnected,
+    getIsConnecting,
+    setIsConnecting,
     getUserDisconnected,
     setUserDisconnected,
     getAutoReconnectTimer,

@@ -30,6 +30,8 @@ sessionEvents.initSessionEvents({
     setOrbState: orbState.setOrbState,
     getIsConnected: orbState.getIsConnected,
     setIsConnected: orbState.setIsConnected,
+    getIsConnecting: orbState.getIsConnecting,
+    setIsConnecting: orbState.setIsConnecting,
     getUserDisconnected: orbState.getUserDisconnected,
     setUserDisconnected: orbState.setUserDisconnected,
     getAutoReconnectTimer: orbState.getAutoReconnectTimer,
@@ -46,6 +48,8 @@ sessionEvents.initSessionEvents({
 
 wakeWordUi.initWakeWord({
     getIsConnected: orbState.getIsConnected,
+    getIsConnecting: orbState.getIsConnecting,
+    setIsConnecting: orbState.setIsConnecting,
     setUserDisconnected: orbState.setUserDisconnected,
     setOrbState: orbState.setOrbState,
     clearAllText: orbState.clearAllText,
@@ -82,7 +86,11 @@ document.querySelector('.orb-container').addEventListener('click', async () => {
         orbState.clearAllText();
         contextBuilder.setSelectedContinueDiary(null);
         wakeWordUi.setWakeWordIndicator('listening');
+        wakeWordUi.setWakeWordIndicator('listening');
     } else {
+        if (orbState.getIsConnecting()) return; // Prevent multiple clicks
+        
+        orbState.setIsConnecting(true);
         orbState.setUserDisconnected(false);
         orbState.setOrbState('thinking', 'Connecting to Gemini...');
         orbState.clearAllText();
@@ -92,6 +100,9 @@ document.querySelector('.orb-container').addEventListener('click', async () => {
         orbState.setOrbState('thinking', 'Connecting to Gemini...');
         sessionEvents.setLastContextPayload(contextPayload);
         window.liveAPI.startSession(contextPayload);
+        
+        // Reset connecting state after a safe margin if connection fails
+        setTimeout(() => { orbState.setIsConnecting(false); }, 5000);
     }
 });
 

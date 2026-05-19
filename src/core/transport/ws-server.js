@@ -248,6 +248,11 @@ class WsTransportServer {
                 registry.send(clientId, encode(MSG.PONG));
                 break;
 
+            case 'client_action_result':
+                // Pass back to waiting tools
+                bus.dispatch('client_action_result', msg);
+                break;
+
             default:
                 // Forward unknown messages to bus for extensibility
                 bus.dispatch(E.CLIENT_MESSAGE, { clientId, message: msg });

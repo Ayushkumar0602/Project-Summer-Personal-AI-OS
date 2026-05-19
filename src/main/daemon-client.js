@@ -244,40 +244,46 @@ class DaemonClient {
         switch (action) {
             case 'readClipboard': {
                 const text = clipboard ? clipboard.readText() : '';
-                this.send(encode('client_action_result', { action, result: { status: 'success', text } }));
+                this.send(encode('client_action_result', { requestId: msg.requestId, action, result: { status: 'success', text } }));
                 break;
             }
             case 'writeClipboard':
                 if (clipboard) clipboard.writeText(args?.text || '');
+                this.send(encode('client_action_result', { requestId: msg.requestId, action, result: { status: 'success' } }));
                 break;
 
             case 'showNotification':
                 this._showNotification(args?.title || 'Summer', args?.body || '');
+                this.send(encode('client_action_result', { requestId: msg.requestId, action, result: { status: 'success' } }));
                 break;
 
             case 'openUrl':
                 if (shell && args?.url) shell.openExternal(args.url);
+                this.send(encode('client_action_result', { requestId: msg.requestId, action, result: { status: 'success' } }));
                 break;
 
             case 'openFileOrFolder':
                 if (shell && args?.path) shell.openPath(args.path);
+                this.send(encode('client_action_result', { requestId: msg.requestId, action, result: { status: 'success' } }));
                 break;
 
             default: {
-                // Try executing it via the local platform adapter (e.g. MacOSAdapter)
-                const adapter = getPlatformAdapter();
-                if (typeof adapter[action] === 'function') {
-                    adapter[action](args).then(result => {
-                        // Send the result back if needed
-                        this.send(encode('client_action_result', { action, result }));
-                    }).catch(err => {
-                        log.error(`Local adapter failed to execute ${action}`, { err: err.message });
-                        this.send(encode('client_action_result', { action, result: { status: 'error', error: err.message } }));
+                // Execute natively on the Mac client using the tool loader
+                const { executeTool } = require('../tools/integration-loader');
+                
+                executeTool(action, args, {})
+                    .then(result => {
+                        this.send(encode('client_action_result', { requestId: msg.requestId, action, result }));
+                    })
+                    .catch(err => {
+                        // If it's a completely unknown tool to the integration loader, forward to renderer
+                        if (err.message.includes('Unknown tool')) {
+                            if (win && !win.isDestroyed()) win.webContents.send('client-action', msg);
+                        } else {
+                            log.error(`Client failed to execute ${action}`, { err: err.message });
+                            this.send(encode('client_action_result', { requestId: msg.requestId, action, result: { status: 'error', error: err.message } }));
+                        }
                     });
-                } else {
-                    // Forward to renderer for UI-level handling
-                    if (win && !win.isDestroyed()) win.webContents.send('client-action', msg);
-                }
                 break;
             }
         }

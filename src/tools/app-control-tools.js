@@ -1528,7 +1528,7 @@ async function executeAppControlTool(name, args = {}) {
 
             // Listen for the client's response
             const onResult = (data) => {
-                if (data?.action === name || data?.requestId === requestId) {
+                if (data?.requestId === requestId) {
                     clearTimeout(timeout);
                     bus.off?.('client_action_result', onResult);
                     resolve(data.result || { status: 'success', message: `${name} executed on client.` });
