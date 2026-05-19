@@ -308,7 +308,7 @@ class DaemonClient {
     }
 
     _getPairingToken() {
-        if (process.env.REMOTE_DAEMON_TOKEN) return process.env.REMOTE_DAEMON_TOKEN;
+        if (process.env.REMOTE_DAEMON_TOKEN) return process.env.REMOTE_DAEMON_TOKEN.replace(/^["']|["']$/g, '');
         try {
             const tokenPath = Paths.pairingToken();
             if (fs.existsSync(tokenPath)) return fs.readFileSync(tokenPath, 'utf8').trim();

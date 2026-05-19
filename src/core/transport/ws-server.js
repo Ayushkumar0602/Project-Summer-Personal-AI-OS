@@ -31,7 +31,7 @@ const PING_INTERVAL_MS = 20_000;
 // ── Auth token ────────────────────────────────────────────────────────────────
 
 function _loadOrCreateToken() {
-    if (process.env.DAEMON_TOKEN) return process.env.DAEMON_TOKEN;
+    if (process.env.DAEMON_TOKEN) return process.env.DAEMON_TOKEN.replace(/^["']|["']$/g, '');
     const tokenPath = Paths.pairingToken();
     if (fs.existsSync(tokenPath)) {
         const t = fs.readFileSync(tokenPath, 'utf8').trim();
