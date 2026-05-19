@@ -121,7 +121,8 @@ class WsTransportServer {
                     const expectedLen = this._token?.length || 0;
                     const gotLen = msg.token?.length || 0;
                     log.warn(`${clientId} failed to authenticate — closing. Expected len: ${expectedLen}, Got len: ${gotLen}`);
-                    ws.close(1008, 'Invalid pairing token.');
+                    log.warn(`Raw received message: ${JSON.stringify(msg)}`);
+                    ws.close();
                 }
                 return;
             }
