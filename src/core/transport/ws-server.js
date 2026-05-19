@@ -114,14 +114,14 @@ class WsTransportServer {
             // client_hello ALWAYS handled first — registers the client regardless of skipAuth
             // client_hello ALWAYS handled first — registers the client regardless of skipAuth
             if (msg.type === MSG.CLIENT_HELLO) {
-                if (this._skipAuth || msg.payload?.token === this._token) {
+                if (this._skipAuth || msg.token === this._token) {
                     authenticated = true;
-                    this._onClientHello(ws, clientId, msg.payload || {});
+                    this._onClientHello(ws, clientId, msg);
                 } else {
                     const expectedLen = this._token?.length || 0;
-                    const gotLen = msg.payload?.token?.length || 0;
+                    const gotLen = msg.token?.length || 0;
                     log.warn(`${clientId} failed to authenticate — closing. Expected len: ${expectedLen}, Got len: ${gotLen}`);
-                    ws.close(1005, 'Invalid pairing token.');
+                    ws.close(1008, 'Invalid pairing token.');
                 }
                 return;
             }
