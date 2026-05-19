@@ -1,5 +1,7 @@
 const { google } = require('googleapis');
 const { getClient, isAuthenticated } = require('../auth/google-auth');
+const fs = require('node:fs');
+const path = require('node:path');
 
 /**
  * Searches Google Drive for files matching a query.
@@ -46,6 +48,39 @@ async function createFile(title, type = 'doc') {
     });
 
     return `Successfully created ${type}: "${res.data.name}". ID: ${res.data.id}. Link: ${res.data.webViewLink}`;
+}
+
+/**
+ * Uploads a local file to Google Drive and optionally deletes it locally.
+ * Solves "Storage Costs & Bloat" (Problem C) for cloud architecture.
+ */
+async function uploadFile(filePath, mimeType, deleteAfter = true) {
+    if (!(await isAuthenticated())) throw new Error("Google Drive not connected.");
+    if (!fs.existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
+
+    const drive = google.drive({ version: 'v3', auth: getClient() });
+    const fileName = path.basename(filePath);
+
+    try {
+        const res = await drive.files.create({
+            requestBody: { name: fileName, mimeType },
+            media: { mimeType, body: fs.createReadStream(filePath) },
+            fields: 'id, name, webViewLink'
+        });
+
+        if (deleteAfter) {
+            try { fs.unlinkSync(filePath); } catch(e) {}
+        }
+
+        return {
+            id: res.data.id,
+            name: res.data.name,
+            url: res.data.webViewLink,
+            status: 'success'
+        };
+    } catch (e) {
+        throw new Error(`Google Drive upload failed: ${e.message}`);
+    }
 }
 
 /**
@@ -105,6 +140,7 @@ async function appendSheetData(spreadsheetId, range, values) {
 module.exports = {
     searchFiles,
     createFile,
+    uploadFile,
     readSheetRange,
     appendSheetData
 };

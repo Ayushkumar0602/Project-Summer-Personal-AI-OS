@@ -173,3 +173,16 @@ app.on('will-quit', () => {
         daemonProcess.kill('SIGTERM');
     }
 });
+
+// Ensure the daemon is killed even on abrupt exits (like nodemon / electron-forge restarts)
+process.on('exit', () => {
+    if (daemonProcess) daemonProcess.kill('SIGKILL');
+});
+process.on('SIGINT', () => {
+    if (daemonProcess) daemonProcess.kill('SIGKILL');
+    process.exit();
+});
+process.on('SIGTERM', () => {
+    if (daemonProcess) daemonProcess.kill('SIGKILL');
+    process.exit();
+});

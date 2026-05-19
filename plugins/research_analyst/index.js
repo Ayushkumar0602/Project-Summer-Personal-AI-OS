@@ -4,6 +4,8 @@ const path = require('node:path');
 const os = require('node:os');
 const { marked } = require('marked');
 const { chromium } = require('playwright');
+const driveService = require('../../src/services/drive-service');
+const { isAuthenticated } = require('../../src/auth/google-auth');
 
 async function formatAndSave(outputs, topic, sdk) {
     sdk.reportProgress(86, 'Parsing research outputs...');
@@ -21,9 +23,9 @@ async function formatAndSave(outputs, topic, sdk) {
                 const imgTag = `__EMBEDDED_IMG_${imageCounter}__`;
                 const mimeType = out.mime_type || 'image/png';
                 
-                // Save image file to Desktop
+                // Save image file to temp directory
                 const imgName = `${topic.replace(/[^a-zA-Z0-9]/g, '_')}_chart_${imageCounter}.png`;
-                const imgPath = path.join(os.homedir(), 'Desktop', imgName);
+                const imgPath = path.join(os.tmpdir(), imgName);
                 await fs.writeFile(imgPath, Buffer.from(out.data, 'base64'));
                 sdk.reportProgress(87, `Saved chart ${imageCounter}: ${imgName}`);
 
@@ -43,15 +45,15 @@ async function formatAndSave(outputs, topic, sdk) {
     }
 
     const docName = `${topic.replace(/[^a-zA-Z0-9]/g, '_')}_Report`;
-    const mdPath = path.join(os.homedir(), 'Desktop', `${docName}.md`);
-    const pdfPath = path.join(os.homedir(), 'Desktop', `${docName}.pdf`);
+    const mdPath = path.join(os.tmpdir(), `${docName}.md`);
+    const pdfPath = path.join(os.tmpdir(), `${docName}.pdf`);
     
     // Save Markdown (with file:// paths for local viewing)
     let mdForFile = markdownContent;
     for (const img of embeddedImages) {
         const chartNum = img.tag.match(/__EMBEDDED_IMG_(\d+)__/)[1];
         const imgName = `${topic.replace(/[^a-zA-Z0-9]/g, '_')}_chart_${chartNum}.png`;
-        const imgPath = path.join(os.homedir(), 'Desktop', imgName);
+        const imgPath = path.join(os.tmpdir(), imgName);
         mdForFile = mdForFile.replace(img.tag, `file://${imgPath}`);
     }
     await fs.writeFile(mdPath, mdForFile);
@@ -182,7 +184,18 @@ async function main(taskManifest, sdk) {
         // Pass sdk to formatAndSave so it can report granular progress (86-98%)
         const docPath = await formatAndSave(finalResult.outputs, topic, sdk);
         
-        sdk.complete({ file_path: docPath });
+        // Cloud Architecture: Problem C Solution -> Upload to Google Drive
+        if (await isAuthenticated()) {
+            sdk.reportProgress(99, 'Uploading report to Google Drive...');
+            const driveResult = await driveService.uploadFile(docPath, 'application/pdf', true);
+            sdk.complete({ 
+                message: `Deep Research Report generated and saved to Google Drive.`,
+                file_path: docPath,
+                drive_url: driveResult.url 
+            });
+        } else {
+            sdk.complete({ file_path: docPath, message: "Saved locally (Google Drive not connected)." });
+        }
 
     } catch (error) {
         console.error('Research Agent failed:', error);

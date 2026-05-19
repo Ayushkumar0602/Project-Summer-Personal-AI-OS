@@ -3,6 +3,10 @@ const { writeContent } = require('./lib/content-writer');
 const { handleAssets } = require('./lib/asset-handler');
 const { buildPPTX } = require('./lib/pptx-builder');
 const path = require('path');
+const fs = require('node:fs');
+const os = require('node:os');
+const driveService = require('../../src/services/drive-service');
+const { isAuthenticated } = require('../../src/auth/google-auth');
 
 async function main(taskManifest, sdk) {
   try {
@@ -20,14 +24,26 @@ async function main(taskManifest, sdk) {
 
     sdk.reportProgress(85, 'Building .pptx file...');
     
-    // Default output path to user's desktop for this POC
-    const defaultOutputPath = path.join(require('os').homedir(), 'Desktop', `Presentation_${Date.now()}.pptx`);
+    // Default output path (use a temp dir if on cloud, or desktop if local)
+    const defaultOutputPath = path.join(os.tmpdir(), `Presentation_${Date.now()}.pptx`);
     const outputPath = taskManifest.output_path || defaultOutputPath;
     
     const finalPath = await buildPPTX(withAssetsXml, outputPath, taskManifest.color_theme || 'modern-dark');
 
-    sdk.reportProgress(100, 'Done');
-    sdk.complete({ file_path: finalPath });
+    // Cloud Architecture: Problem C & 1 Solution -> Upload to Google Drive if connected
+    if (await isAuthenticated()) {
+        sdk.reportProgress(90, 'Uploading presentation to Google Drive...');
+        const driveResult = await driveService.uploadFile(finalPath, 'application/vnd.openxmlformats-officedocument.presentationml.presentation', true);
+        sdk.reportProgress(100, 'Done');
+        sdk.complete({ 
+            message: `Presentation generated successfully and saved to Google Drive.`,
+            file_path: finalPath,
+            drive_url: driveResult.url 
+        });
+    } else {
+        sdk.reportProgress(100, 'Done');
+        sdk.complete({ file_path: finalPath, message: "Saved locally (Google Drive not connected)." });
+    }
   } catch (error) {
     console.error('PPT Agent failed:', error);
     sdk.fail({ error: error.message, stage: error.stage || 'unknown' });

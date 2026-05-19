@@ -164,10 +164,12 @@ class BrainBridge {
                 bus.broadcast(encode(MSG.TOOL_COMPLETE, { name: payload?.name }));
                 break;
 
-            case 'show-hud-widget':
+            case 'show-hud-widget': {
                 bus.dispatch(E.HUD_UPDATE, payload);
-                bus.broadcast(encode(MSG.HUD_UPDATE, { widget: payload?.type, state: payload?.data }));
+                const { type, ...state } = payload || {};
+                bus.broadcast(encode(MSG.HUD_UPDATE, { widget: type, state }));
                 break;
+            }
 
             case 'memory-conflict':
                 bus.dispatch(E.MEMORY_CONFLICT, { contradictions: payload });

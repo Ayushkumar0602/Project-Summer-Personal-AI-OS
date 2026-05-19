@@ -34,6 +34,9 @@ class ClientRegistry {
 
         /** ID of the client that currently "owns" the session */
         this._activeClientId = null;
+
+        /** @type {Map<string, string[]>} Queue of messages keyed by platform (e.g. 'electron') */
+        this._offlineQueue = new Map();
     }
 
     // ── Registration ──────────────────────────────────────────────────────────
@@ -68,6 +71,16 @@ class ClientRegistry {
 
         // Auto-assign session ownership if nothing active or this client has higher priority
         this._evaluateOwnership(clientId);
+
+        // Drain offline queue for this platform
+        if (this._offlineQueue.has(record.platform)) {
+            const queue = this._offlineQueue.get(record.platform);
+            if (queue && queue.length > 0) {
+                log.info(`Draining ${queue.length} offline queued messages for platform [${record.platform}]`);
+                queue.forEach(msg => this._sendSafe(record, msg));
+                this._offlineQueue.set(record.platform, []);
+            }
+        }
     }
 
     /**
@@ -168,6 +181,45 @@ class ClientRegistry {
             record.send(encodedMsg);
         } catch (err) {
             log.error(`Send failed to ${clientId}:`, { err: err.message });
+        }
+    }
+
+    _sendSafe(record, encodedMsg) {
+        try {
+            record.send(encodedMsg);
+        } catch (err) {
+            log.error(`Send safe failed to ${record.id}:`, { err: err.message });
+        }
+    }
+
+    /**
+     * Send a raw message specifically to the highest-priority client of a specific platform.
+     * Use this for platform-specific tasks (e.g., Mac screenshot must go to Mac).
+     * If no client of that platform is online, the message is queued for when they reconnect.
+     * @param {string} platform - e.g., 'electron', 'ios'
+     * @param {string} encodedMessage
+     */
+    sendToPlatform(platform, encodedMessage) {
+        if (!platform || !encodedMessage) return;
+
+        let bestClient = null;
+        for (const client of this._clients.values()) {
+            if (client.platform === platform) {
+                if (!bestClient || client.connectedAt < bestClient.connectedAt) {
+                    bestClient = client; // prefer oldest connected (most stable)
+                }
+            }
+        }
+
+        if (bestClient) {
+            this._sendSafe(bestClient, encodedMessage);
+        } else {
+            // Queue for later when the device comes online (Problem B Solution)
+            log.warn(`No active client found for platform [${platform}]. Queuing message for reconnect.`);
+            if (!this._offlineQueue.has(platform)) {
+                this._offlineQueue.set(platform, []);
+            }
+            this._offlineQueue.get(platform).push(encodedMessage);
         }
     }
 

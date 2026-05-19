@@ -56,6 +56,7 @@ class PlatformAdapterBase {
     async screenshotApp(args)    { return this._unsupported('screenshotApp'); }
 
     // ── File System ───────────────────────────────────────────────────────────
+    async readFile(args)         { return this._requiresClient('readFile', args); }
     async openFileOrFolder(args) { return this._requiresClient('openFileOrFolder', args); }
     async openUrl(args)          { return this._requiresClient('openUrl', args); }
     async searchFiles(args)      { return this._unsupported('searchFiles'); }

@@ -137,6 +137,15 @@ const osToolDeclarations = [
 
     // ── File / URL ─────────────────────────────────────────────
     {
+        name: "os_read_file",
+        description: "Read the contents of a text-based file from the user's local device. Works for .txt, .md, .csv, .json, etc. NOT for binary files or images. ALWAYS use finder_search_files first to get the exact absolute path before reading.",
+        parameters: {
+            type: "OBJECT",
+            properties: { path: { type: "STRING", description: "Absolute path to the file on the user's device" } },
+            required: ["path"]
+        }
+    },
+    {
         name: "os_open_file",
         description: "Open a file or folder using the default macOS application. Use for opening documents, folders in Finder, etc.",
         parameters: {

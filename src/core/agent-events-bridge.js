@@ -34,7 +34,7 @@ function createAgentEventEmitter() {
                 bus.broadcast(encode(MSG.AGENT_PROGRESS, payload));
                 bus.broadcast(encode(MSG.HUD_UPDATE, {
                     widget: 'agent_progress',
-                    state:  payload,
+                    state:  { data: payload },
                 }));
                 break;
 
@@ -51,7 +51,7 @@ function createAgentEventEmitter() {
                 bus.broadcast(encode(MSG.AGENT_COMPLETE, completionPayload));
                 bus.broadcast(encode(MSG.HUD_UPDATE, {
                     widget: 'agent_progress',
-                    state:  completionPayload,
+                    state:  { data: completionPayload },
                 }));
                 break;
             }
@@ -68,7 +68,7 @@ function createAgentEventEmitter() {
                 bus.broadcast(encode(MSG.AGENT_FAIL, failPayload));
                 bus.broadcast(encode(MSG.HUD_UPDATE, {
                     widget: 'agent_progress',
-                    state:  failPayload,
+                    state:  { data: failPayload },
                 }));
                 break;
             }
@@ -78,7 +78,7 @@ function createAgentEventEmitter() {
                 bus.dispatch(event, payload);
                 bus.broadcast(encode(MSG.HUD_UPDATE, {
                     widget: event,
-                    state:  payload,
+                    state:  { data: payload },
                 }));
                 break;
         }

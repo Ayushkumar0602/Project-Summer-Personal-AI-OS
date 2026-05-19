@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const xml2js = require('xml2js');
 
 async function handleAssets(xmlString, manifest) {

@@ -426,6 +426,20 @@ async function showNotification(args) {
 
 // ── 8. File System (Read-Only + Open) ──────────────────────────────
 
+async function readFile(args) {
+    const target = sanitize(args.path || '');
+    if (!target) return { error: 'Missing path.' };
+    auditLog('read_file', { target }, 'executing');
+    try {
+        const fs = require('fs');
+        if (!fs.existsSync(target)) return { error: 'File not found' };
+        const content = fs.readFileSync(target, 'utf-8');
+        return { status: 'success', content: content.substring(0, 50000) }; // Limit size
+    } catch (e) {
+        return { error: e.message };
+    }
+}
+
 async function openFileOrFolder(args) {
     const target = sanitize(args.path || '');
     if (!target) return { error: 'Missing path.' };
@@ -652,6 +666,7 @@ const OS_TOOL_HANDLERS = {
     os_write_clipboard:      writeClipboard,
     os_show_notification:    showNotification,
     os_open_file:            openFileOrFolder,
+    os_read_file:            readFile,
     os_open_url:             openUrl,
     os_toggle_dark_mode:     toggleDarkMode,
     os_get_dark_mode:        getDarkModeStatus,
