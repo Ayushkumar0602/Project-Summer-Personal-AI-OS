@@ -20,7 +20,7 @@ const { createLogger }   = require('./utils/logger');
 const bus                = require('./event-bus');
 const registry           = require('./transport/client-registry');
 const { MSG, encode }    = require('./transport/protocol');
-const { getPlatformAdapter } = require('./platform/adapter-factory');
+// Platform adapter not needed here — tool execution is handled by LiveSessionManager
 
 const log = createLogger('BrainBridge');
 
@@ -156,7 +156,6 @@ class BrainBridge {
             case 'agent-tool-call':
                 bus.dispatch(E.TOOL_STARTED, payload);
                 bus.broadcast(encode(MSG.TOOL_CALL, { name: payload?.name, args: payload?.args }));
-                this._handleToolCall(payload);
                 break;
 
             case 'agent-tool-complete':
@@ -194,67 +193,9 @@ class BrainBridge {
         }
     }
 
-    /**
-     * Intercept tool calls that need platform adapter context.
-     * OS tools go through getPlatformAdapter() instead of raw os-tools.js.
-     */
-    _handleToolCall(payload) {
-        const { name, args } = payload || {};
-        if (!name) return;
-
-        const adapter = getPlatformAdapter();
-
-        // Check if this is a tool that has a platform adapter method
-        const adapterMethod = this._resolveAdapterMethod(name);
-        if (!adapterMethod) return; // Not an adapter-managed tool — let live-session.js handle it
-
-        // Execute via adapter and check if we need to delegate to client
-        adapterMethod.call(adapter, args).then(result => {
-            if (result?.status === 'requires_client') {
-                // Send to active client for native execution
-                const { encode: enc, MSG: M } = require('./transport/protocol');
-                registry.sendToActive(enc('client_action', {
-                    action: result.action,
-                    args:   result.args,
-                }));
-                log.debug(`Delegated "${name}" to client (requires_client: ${result.action})`);
-            }
-        }).catch(err => {
-            log.error(`Adapter tool execution failed: ${name}`, { err: err.message });
-        });
-    }
-
-    /**
-     * Map a tool name to its platform adapter method.
-     * Returns null if not an adapter-managed tool.
-     */
-    _resolveAdapterMethod(name) {
-        const TOOL_MAP = {
-            os_open_app:          'openApp',
-            os_quit_app:          'quitApp',
-            os_focus_app:         'focusApp',
-            os_list_running_apps: 'listRunningApps',
-            os_set_volume:        'setVolume',
-            os_get_volume:        'getVolume',
-            os_toggle_mute:       'toggleMute',
-            os_set_brightness:    'setBrightness',
-            os_get_system_info:   'getSystemInfo',
-            os_get_top_processes: 'getTopProcesses',
-            os_system_sleep:      'systemSleep',
-            os_lock_screen:       'lockScreen',
-            os_empty_trash:       'emptyTrash',
-            os_take_screenshot:   'takeScreenshot',
-            os_open_file:         'openFileOrFolder',
-            os_open_url:          'openUrl',
-            os_toggle_dark_mode:  'toggleDarkMode',
-            os_toggle_dnd:        'toggleDoNotDisturb',
-            os_get_wifi_status:   'getWifiStatus',
-        };
-        const method = TOOL_MAP[name];
-        if (!method) return null;
-        const adapter = getPlatformAdapter();
-        return adapter[method] ? adapter[method] : null;
-    }
+    // NOTE: Tool execution is handled SOLELY by LiveSessionManager → executeTool().
+    // BrainBridge only translates events to protocol messages — it never executes tools.
+    // This prevents the double-execution bug (Flaw #7).
 }
 
 module.exports = { BrainBridge };

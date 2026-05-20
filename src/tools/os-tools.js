@@ -20,9 +20,13 @@ const os = require('node:os');
 const Paths = require('../core/utils/paths');
 const { isPermissionGranted, grantPermission } = require('../settings/permissions-store');
 
-// Lazy-load Electron APIs — these exist when running inside Electron, not in daemon
-function _electron() {
-    try { return require('electron'); } catch { return {}; }
+// Permission system uses WebSocket protocol — ZERO Electron dependency
+let _bus = null;
+function _getBus() {
+    if (!_bus) {
+        try { _bus = require('../core/event-bus'); } catch { _bus = null; }
+    }
+    return _bus;
 }
 
 // ── Audit Log ──────────────────────────────────────────────────────
@@ -63,7 +67,12 @@ function runAppleScript(script, timeoutMs = 10000) {
     return runShell(`osascript -e '${script.replace(/'/g, "'\\''")}'`, timeoutMs);
 }
 
-// ── Confirmation Dialog (with persistent "Always Allow") ──────────
+// ── Confirmation Dialog (protocol-based, no Electron) ─────────────
+/**
+ * Request user confirmation for dangerous actions.
+ * Uses the WebSocket permission_request/permission_response protocol.
+ * Falls back to auto-approve if no client is connected or pre-approved.
+ */
 async function confirmDangerousAction(toolName, actionDescription, actionLabel) {
     // Check if this tool has been permanently approved
     if (isPermissionGranted(toolName)) {
@@ -71,28 +80,43 @@ async function confirmDangerousAction(toolName, actionDescription, actionLabel) 
         return true;
     }
 
-    const { BrowserWindow, dialog } = _electron();
-    if (!BrowserWindow || !dialog) return true; // running headless — auto-approve
+    const bus = _getBus();
+    if (!bus) return true; // No event bus available — auto-approve (shouldn't happen)
 
-    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
-    if (!win) return true; // no window available — auto-approve in daemon mode
+    const requestId = `perm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    const { response } = await dialog.showMessageBox(win, {
-        type: 'warning',
-        buttons: ['Deny', 'Allow Once', 'Always Allow'],
-        defaultId: 0,
-        cancelId: 0,
-        title: '🔒 Summer — Permission Request',
-        message: `Summer wants to perform a system action:`,
-        detail: actionDescription + '\n\nChoose "Always Allow" to never be asked again.\nYou can revoke this anytime in Settings.',
+    return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+            bus.removeListener(bus.EVENTS.PERMISSION_RESPONSE, onResponse);
+            console.log(`[Permissions] ⏰ ${toolName} — no client response within 30s, auto-approving.`);
+            resolve(true);
+        }, 30000);
+
+        const onResponse = (data) => {
+            if (data?.requestId !== requestId) return; // Not our request
+            clearTimeout(timeout);
+            bus.removeListener(bus.EVENTS.PERMISSION_RESPONSE, onResponse);
+
+            if (data.alwaysAllow) {
+                grantPermission(toolName, actionLabel || actionDescription);
+            }
+            resolve(data.granted === true);
+        };
+
+        bus.on(bus.EVENTS.PERMISSION_RESPONSE, onResponse);
+
+        // Dispatch request to clients via event bus
+        const { encode, MSG } = require('../core/transport/protocol');
+        const registry = require('../core/transport/client-registry');
+        registry.broadcast(encode(MSG.PERMISSION_REQUEST || 'permission_request', {
+            requestId,
+            toolName,
+            actionDescription,
+            actionLabel: actionLabel || toolName,
+            buttons: ['Deny', 'Allow Once', 'Always Allow'],
+        }));
+        console.log(`[Permissions] 🔐 Sent permission request: ${toolName} (${requestId})`);
     });
-
-    if (response === 2) {
-        // "Always Allow" — save permanently
-        grantPermission(toolName, actionLabel || actionDescription);
-        return true;
-    }
-    return response === 1; // "Allow Once" is index 1
 }
 
 
@@ -360,18 +384,11 @@ async function emptyTrash() {
     }
 }
 
-// ── 6. Clipboard ───────────────────────────────────────────────────
+// ── 6. Clipboard (shell-only, no Electron) ─────────────────────────
 
 async function readClipboard() {
     auditLog('read_clipboard', {}, 'executing');
     try {
-        // Try Electron clipboard first (when running in Electron renderer context)
-        const { clipboard } = _electron();
-        if (clipboard) {
-            const text = clipboard.readText();
-            return { status: 'success', text: text.substring(0, 5000) };
-        }
-        // macOS fallback: pbpaste (works in daemon/headless mode)
         const text = await runShell('pbpaste').catch(() => '');
         return { status: 'success', text: (text || '').substring(0, 5000) };
     } catch (e) {
@@ -383,16 +400,9 @@ async function writeClipboard(args) {
     const text = args.text || '';
     auditLog('write_clipboard', { length: text.length }, 'executing');
     try {
-        // Try Electron clipboard first
-        const { clipboard } = _electron();
-        if (clipboard) {
-            clipboard.writeText(text);
-            return { status: 'success', message: `Copied ${text.length} characters to clipboard.` };
-        }
-        // macOS fallback: pipe text to pbcopy
-        const { exec } = require('child_process');
+        const { exec: execCb } = require('child_process');
         await new Promise((resolve, reject) => {
-            const proc = exec('pbcopy', (err) => { if (err) reject(err); else resolve(); });
+            const proc = execCb('pbcopy', (err) => { if (err) reject(err); else resolve(); });
             proc.stdin.end(text, 'utf8');
         });
         return { status: 'success', message: `Copied ${text.length} characters to clipboard.` };
@@ -408,16 +418,23 @@ async function showNotification(args) {
     const body = (args.body || '').substring(0, 500);
     auditLog('show_notification', { title }, 'executing');
     try {
-        // Try Electron Notification first
-        const { Notification } = _electron();
-        if (Notification) {
-            new Notification({ title, body }).show();
-            return { status: 'success', message: 'Notification shown.' };
+        // macOS native notification via osascript (no Electron dependency)
+        const safeTitle = title.replace(/'/g, "'\\''");
+        const safeBody  = body.replace(/'/g, "'\\''");
+        if (process.platform === 'darwin') {
+            await runShell(`osascript -e 'display notification "${safeBody}" with title "${safeTitle}"'`);
         }
-        // macOS fallback: osascript notification
-        const safeTitle = title.replace(/'/g, "'\''");
-        const safeBody  = body.replace(/'/g, "'\''");
-        await runShell(`osascript -e 'display notification "${safeBody}" with title "${safeTitle}"'`);
+
+        // Also notify all connected clients via protocol
+        const bus = _getBus();
+        if (bus) {
+            try {
+                const { encode } = require('../core/transport/protocol');
+                const registry = require('../core/transport/client-registry');
+                registry.broadcast(encode('notification', { title, body }));
+            } catch (_) { /* no transport */ }
+        }
+
         return { status: 'success', message: 'Notification shown.' };
     } catch (e) {
         return { error: e.message };
@@ -445,12 +462,7 @@ async function openFileOrFolder(args) {
     if (!target) return { error: 'Missing path.' };
     auditLog('open_file_or_folder', { target }, 'executing');
     try {
-        const { shell } = _electron();
-        if (shell) {
-            await shell.openPath(target);
-        } else {
-            await runShell(`open "${target.replace(/"/g, '\\"')}"`);
-        }
+        await runShell(`open "${target.replace(/"/g, '\\"')}"`);
         return { status: 'success', message: `Opened ${target}.` };
     } catch (e) {
         return { error: e.message };
@@ -464,13 +476,8 @@ async function openUrl(args) {
     }
     auditLog('open_url_in_default_browser', { url }, 'executing');
     try {
-        const { shell } = _electron();
-        if (shell) {
-            await shell.openExternal(url);
-        } else {
-            // macOS fallback — works in daemon mode
-            await runShell(`open "${url.replace(/"/g, '\\')}"`);
-        }
+        // macOS: `open` command works in daemon mode (no Electron dependency)
+        await runShell(`open "${url.replace(/"/g, '\\"')}"`);
         return { status: 'success', message: `Opened ${url} in default browser.` };
     } catch (e) {
         return { error: e.message };
@@ -616,13 +623,28 @@ async function setTimer(args) {
     const endsAtStr = endsAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
     const timer = setTimeout(async () => {
-        // Use macOS native notification (actually shows on screen with sound)
-        const { exec } = require('child_process');
-        exec(`osascript -e 'display notification "${label} — Time is up!" with title "⏰ Summer Timer" sound name "Glass"'`);
-        // Also speak it aloud
-        exec(`say "Hey! Your timer for ${label} is done!"`);
-        // Show alert dialog
-        exec(`osascript -e 'tell application "System Events" to display dialog "⏰ ${label} — Time is up!" with title "Summer Timer" buttons {"OK"} default button "OK"'`);
+        // macOS native notification (works on daemon host)
+        const { exec: execCb } = require('child_process');
+        if (process.platform === 'darwin') {
+            execCb(`osascript -e 'display notification "${label} — Time is up!" with title "⏰ Summer Timer" sound name "Glass"'`);
+            execCb(`say "Hey! Your timer for ${label} is done!"`);
+        }
+
+        // Dispatch to all connected clients via event bus + protocol
+        const bus = _getBus();
+        if (bus) {
+            bus.dispatch(bus.EVENTS.TIMER_FIRED, { timerId, label });
+            try {
+                const { encode } = require('../core/transport/protocol');
+                const registry = require('../core/transport/client-registry');
+                registry.broadcast(encode('timer_fired', {
+                    timerId,
+                    label,
+                    message: `${label} — Time is up!`,
+                }));
+            } catch (_) { /* no transport available */ }
+        }
+
         activeTimers.delete(timerId);
     }, seconds * 1000);
 

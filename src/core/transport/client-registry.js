@@ -55,6 +55,7 @@ class ClientRegistry {
             pushToken:  capabilities.pushToken   || null,  // APNs / FCM for offline notify
             hasMic:     capabilities.hasMic     ?? true,
             hasScreen:  capabilities.hasScreen  ?? true,
+            supportedActions: capabilities.supportedActions || null, // null = supports all
             connectedAt: Date.now(),
             send:       sendFn,  // private — only send() below uses this
         };
@@ -256,6 +257,22 @@ class ClientRegistry {
         return this._activeClientId === clientId;
     }
 
+    /**
+     * Get capabilities of the active (session-owning) client.
+     * Used by tool-router to filter which tools to send to Gemini.
+     * @returns {{ platform: string, hasMic: boolean, hasScreen: boolean, supportedActions: string[]|null }}
+     */
+    getActiveCapabilities() {
+        const record = this.getActiveClient();
+        if (!record) return { platform: 'unknown', hasMic: true, hasScreen: true, supportedActions: null };
+        return {
+            platform:         record.platform,
+            hasMic:           record.hasMic,
+            hasScreen:        record.hasScreen,
+            supportedActions: record.supportedActions,
+        };
+    }
+
     /** Alias for settings IPC — returns safe serializable list */
     getAll() {
         return Array.from(this._clients.values()).map(r => ({
@@ -264,6 +281,7 @@ class ClientRegistry {
             deviceName:  r.deviceName,
             hasMic:      r.hasMic,
             hasScreen:   r.hasScreen,
+            supportedActions: r.supportedActions,
             connectedAt: r.connectedAt,
             isActive:    r.id === this._activeClientId,
         }));

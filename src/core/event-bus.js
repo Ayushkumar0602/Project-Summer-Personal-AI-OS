@@ -69,6 +69,7 @@ class SummerEventBus extends EventEmitter {
             CLIENT_DISCONNECTED: 'client:disconnected',  // { clientId }
             CLIENT_MESSAGE:      'client:message',       // { clientId, message }
             CLIENT_SEND:         'client:send',          // { clientId | 'all', message } — daemon → client
+            CLIENT_ACTION_RESULT:'client:action_result', // { clientId, requestId, action, result }
 
             // ── Permission system ─────────────────────────────
             PERMISSION_REQUEST:  'permission:request',   // daemon needs client to show dialog

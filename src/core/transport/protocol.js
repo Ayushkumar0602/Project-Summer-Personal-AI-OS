@@ -24,6 +24,14 @@ const MSG = Object.freeze({
     SEND_TEXT:           'send_text',            // { text: string } — text mode
     PERMISSION_RESPONSE: 'permission_response',  // { requestId, granted: bool }
     CANCEL_AGENTS:       'cancel_agents',        // Abort all running Tier-2 agents
+    CLIENT_ACTION_RESULT:'client_action_result', // { requestId, action, result } — response to client_action
+    GOOGLE_AUTH_REQUEST: 'google_auth_request',  // Client wants to authenticate Google
+    GOOGLE_AUTH_LOGOUT:  'google_auth_logout',   // Client wants to logout Google
+    GOOGLE_AUTH_CHECK:   'google_auth_check',    // Client checks auth status
+    MEMORY_GET_GRAPH:    'memory_get_graph',     // Client requests full graph
+    MEMORY_GET_DIARY:    'memory_get_diary',     // Client requests diary
+    MEMORY_UPDATE_NODE:  'memory_update_node',   // { nodeId, updates }
+    MEMORY_DELETE_NODE:  'memory_delete_node',   // { nodeId }
     PING:                'ping',                 // Keepalive
 
     // ━━━ DAEMON → CLIENT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -48,6 +56,11 @@ const MSG = Object.freeze({
     AGENT_PROGRESS:      'agent_progress',       // { agentId, percent, message }
     AGENT_COMPLETE:      'agent_complete',       // { agentId, result }
     AGENT_FAIL:          'agent_fail',           // { agentId, error }
+    GOOGLE_AUTH_RESULT:  'google_auth_result',   // { success, authUrl? } — reply to auth request
+    GOOGLE_AUTH_STATUS:  'google_auth_status',   // { authenticated: bool }
+    MEMORY_GRAPH_DATA:   'memory_graph_data',    // { nodes, edges }
+    MEMORY_DIARY_DATA:   'memory_diary_data',    // { entries }
+    MEMORY_OP_RESULT:    'memory_op_result',     // { success, ... }
     ERROR:               'error',                // { message }
     PONG:                'pong',                 // Keepalive reply
 });

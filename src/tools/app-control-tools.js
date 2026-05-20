@@ -16,9 +16,13 @@ const fs = require('node:fs');
 const Paths = require('../core/utils/paths');
 const { isPermissionGranted, grantPermission } = require('../settings/permissions-store');
 
-// Lazy-load Electron APIs
-function _electron() {
-    try { return require('electron'); } catch { return {}; }
+// Permission system uses WebSocket protocol — ZERO Electron dependency
+let _bus = null;
+function _getBus() {
+    if (!_bus) {
+        try { _bus = require('../core/event-bus'); } catch { _bus = null; }
+    }
+    return _bus;
 }
 
 // Reuse the audit log infrastructure
@@ -104,20 +108,42 @@ async function confirmDangerous(toolName, actionDescription, actionLabel) {
         console.log(`[Permissions] ✅ ${toolName} — pre-approved.`);
         return true;
     }
-    const { BrowserWindow, dialog } = _electron();
-    if (!BrowserWindow || !dialog) return true; // headless daemon — auto-approve
-    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
-    if (!win) return true; // no window — auto-approve in daemon mode
-    const { response } = await dialog.showMessageBox(win, {
-        type: 'warning',
-        buttons: ['Deny', 'Allow Once', 'Always Allow'],
-        defaultId: 0, cancelId: 0,
-        title: '🔒 Summer — Permission Request',
-        message: `Summer wants to:`,
-        detail: actionDescription + '\n\n"Always Allow" saves this permission. Revoke anytime in Settings.',
+
+    const bus = _getBus();
+    if (!bus) return true; // No event bus — auto-approve
+
+    const requestId = `perm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+            bus.removeListener(bus.EVENTS.PERMISSION_RESPONSE, onResponse);
+            console.log(`[Permissions] ⏰ ${toolName} — no response in 30s, auto-approving.`);
+            resolve(true);
+        }, 30000);
+
+        const onResponse = (data) => {
+            if (data?.requestId !== requestId) return;
+            clearTimeout(timeout);
+            bus.removeListener(bus.EVENTS.PERMISSION_RESPONSE, onResponse);
+            if (data.alwaysAllow) {
+                grantPermission(toolName, actionLabel || actionDescription);
+            }
+            resolve(data.granted === true);
+        };
+
+        bus.on(bus.EVENTS.PERMISSION_RESPONSE, onResponse);
+
+        const { encode, MSG } = require('../core/transport/protocol');
+        const registry = require('../core/transport/client-registry');
+        registry.broadcast(encode(MSG.PERMISSION_REQUEST || 'permission_request', {
+            requestId,
+            toolName,
+            actionDescription,
+            actionLabel: actionLabel || toolName,
+            buttons: ['Deny', 'Allow Once', 'Always Allow'],
+        }));
+        console.log(`[Permissions] 🔐 Sent permission request: ${toolName} (${requestId})`);
     });
-    if (response === 2) { grantPermission(toolName, actionLabel); return true; }
-    return response === 1;
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -773,19 +799,8 @@ async function terminalRunCommand(args) {
     if (!command) return { error: 'Missing command.' };
 
     // ALWAYS require confirmation — never auto-save
-    const { BrowserWindow, dialog } = _electron();
-    if (!BrowserWindow || !dialog) return { error: 'Terminal commands require a UI client connected.' };
-    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
-    if (!win) return { error: 'No window available for confirmation.' };
-    const { response } = await dialog.showMessageBox(win, {
-        type: 'warning',
-        buttons: ['Deny', 'Allow'],
-        defaultId: 0, cancelId: 0,
-        title: '⚠️ Summer — Terminal Command',
-        message: `Summer wants to run a terminal command:`,
-        detail: `$ ${command}\n\nThis will execute on your system. Only allow if you trust this command.`,
-    });
-    if (response !== 1) {
+    const allowed = await confirmDangerous('terminal_run_command', `Run terminal command:\n$ ${command}`, 'Terminal Commands');
+    if (!allowed) {
         auditLog('terminal_run_command', { command }, 'denied', false);
         return { status: 'denied', message: 'User denied terminal command.' };
     }
@@ -895,7 +910,7 @@ end tell`);
  */
 async function clipboardRead() {
     auditLog('clipboard_read', {}, 'executing');
-    const text = clipboard.readText();
+    const text = await runShell('pbpaste').catch(() => '');
     return {
         status: 'success',
         content: text || '(clipboard is empty or contains non-text data)',
@@ -910,7 +925,11 @@ async function clipboardWrite(args) {
     const text = args.text || '';
     if (!text) return { error: 'Missing text to copy.' };
     auditLog('clipboard_write', { textLength: text.length }, 'executing');
-    clipboard.writeText(text);
+    const { exec: execCb } = require('child_process');
+    await new Promise((resolve, reject) => {
+        const proc = execCb('pbcopy', (err) => { if (err) reject(err); else resolve(); });
+        proc.stdin.end(text, 'utf8');
+    });
     return {
         status: 'success',
         message: `Copied ${text.length} characters to clipboard.`,

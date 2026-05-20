@@ -5,16 +5,22 @@
 
 const { loadConfig } = require('./user-integrations-config');
 const loader = require('./integration-loader');
+const registry = require('../core/transport/client-registry');
+
+// Tools that require macOS-specific features (AppleScript, Accessibility API)
+const MACOS_ONLY_PACKS = new Set(['os', 'app-control']);
 
 /** In-memory cache: context signature → Gemini tools payload */
 const declarationCache = new Map();
 const CACHE_MAX = 16;
 
 function buildContextSignature(ctx) {
+    const caps = registry.getActiveCapabilities();
     return JSON.stringify({
         mode: ctx.mode,
         google: !!(ctx.googleAuthenticated || ctx.googleContext),
         pinned: (ctx.pinnedPacks || []).slice().sort().join(','),
+        platform: caps.platform,
     });
 }
 
@@ -68,10 +74,45 @@ function getAgentTools(toolContext) {
     }
 
     const packIds = selectPackIds(ctx);
-    const declarations = loader.getDeclarationsForPacks(packIds);
+
+    // Capability-based filtering: remove packs the active client can't support
+    const caps = registry.getActiveCapabilities();
+    const filteredPackIds = packIds.filter(id => {
+        // If client is not macOS/electron, skip macOS-only packs
+        if (MACOS_ONLY_PACKS.has(id)) {
+            const isMac = caps.platform === 'electron' || caps.platform === 'darwin';
+            if (!isMac && caps.platform !== 'unknown') {
+                return false;
+            }
+        }
+        // If client declared supportedActions, filter packs whose tools aren't in the list
+        // (only for OS/app packs — cloud tools like Google/web always pass)
+        return true;
+    });
+
+    const declarations = loader.getDeclarationsForPacks(filteredPackIds);
+
+    // Additional per-tool filtering if client declared supportedActions
+    let finalDeclarations = declarations;
+    if (caps.supportedActions && Array.isArray(caps.supportedActions)) {
+        const supported = new Set(caps.supportedActions);
+        finalDeclarations = declarations.filter(d => {
+            // Always include non-OS tools (web, google, memory, ui, orchestration, browser)
+            if (!d.name.startsWith('os_') && !d.name.startsWith('app_') &&
+                !d.name.startsWith('music_') && !d.name.startsWith('finder_') &&
+                !d.name.startsWith('whatsapp_') && !d.name.startsWith('terminal_') &&
+                !d.name.startsWith('clipboard_') && !d.name.startsWith('airdrop_') &&
+                !d.name.startsWith('notes_') && !d.name.startsWith('calendar_') &&
+                !d.name.startsWith('reminders_')) {
+                return true;
+            }
+            // For platform-specific tools, only include if client supports them
+            return supported.has(d.name);
+        });
+    }
 
     const payload = [{
-        functionDeclarations: declarations,
+        functionDeclarations: finalDeclarations,
     }];
 
     if (declarationCache.size >= CACHE_MAX) {
@@ -81,7 +122,7 @@ function getAgentTools(toolContext) {
     declarationCache.set(cacheKey, payload);
 
     console.log(
-        `[ToolRouter] mode=${ctx.mode} packs=[${packIds.join(', ')}] tools=${declarations.length}/${loader.getToolCount()}`
+        `[ToolRouter] mode=${ctx.mode} platform=${caps.platform} packs=[${filteredPackIds.join(', ')}] tools=${finalDeclarations.length}/${loader.getToolCount()}`
     );
 
     return payload;

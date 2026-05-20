@@ -99,10 +99,8 @@ const handlers = {
     },
 
     ui_control_window: async (args) => {
-        // Resize via renderer script (only matters in Electron)
-        executeInRenderer(
-            `try { const { ipcRenderer } = require('electron'); ipcRenderer.send('resize-window', ${JSON.stringify({ width: args.width, height: args.height })}); } catch(e) {}`
-        );
+        // Delegate window resize to the client via renderer bridge
+        sendToRenderer('resize-window', { width: args.width, height: args.height });
         return `Successfully resized window to ${args.width}x${args.height}.`;
     },
 

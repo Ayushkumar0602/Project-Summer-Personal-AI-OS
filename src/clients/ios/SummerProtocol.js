@@ -3,260 +3,164 @@
  *
  * iOS Client Protocol Reference (JavaScript mirror of the Swift implementation).
  *
- * This file is the SPECIFICATION for what the iOS Swift client must implement.
- * It mirrors the Swift structs/enums as JS comments so you can reference both
- * in one place.
+ * This file is the SPECIFICATION for what any non-Electron client must implement.
+ * It documents the full Summer Wire Protocol so iOS/Android/CLI teams stay in sync.
  *
- * SWIFT EQUIVALENT:
- * -----------------
- * The actual Swift code lives in:
- *   Xcode → SummerApp/Network/SummerDaemonClient.swift
- *   Xcode → SummerApp/Network/SummerProtocol.swift
- *
- * This file documents the full protocol so the iOS team and daemon stay in sync.
+ * UPDATED: 2026-05-20 — Added capability negotiation, client_action_result,
+ *          Google auth, memory management, and permission system.
  */
 
 'use strict';
 
-/**
- * iOS CLIENT CHECKLIST
- * ====================
- *
- * 1. WebSocket connection
- *    - URL: ws://{mac_local_ip}:8765
- *    - Find mac_local_ip: Settings → Wi-Fi → (i) → IP Address
- *    - OR: use Bonjour/mDNS to discover "summer._tcp.local" (future)
- *
- * 2. Authentication
- *    - On connect, send CLIENT_HELLO with the pairing token
- *    - Token is in: ~/Library/Application Support/Summer/daemon/.pairing-token
- *    - Display this to the user as a QR code in Mac Settings UI
- *
- * 3. Capabilities to declare (in CLIENT_HELLO):
- *    - platform: "ios"
- *    - deviceName: UIDevice.current.name
- *    - hasMic: true (AVAudioSession)
- *    - hasScreen: false (no screen capture on iOS)
- *    - pushToken: APNs device token (for offline notifications)
- *
- * 4. Audio pipeline (iOS → Daemon → Gemini):
- *    - Format: PCM 16-bit, 16kHz, mono, little-endian
- *    - Encode to base64 before sending
- *    - Send as SEND_AUDIO messages
- *    - For push-to-talk: send SEND_TURN_COMPLETE on button release
- *    - For VAD: implement Apple's SFSpeechRecognizer silenceDetection
- *
- * 5. Audio playback (Daemon → iOS):
- *    - Receive AUDIO_RESPONSE messages (base64 PCM 24kHz)
- *    - Decode base64 → PCM bytes
- *    - Play via AVAudioEngine / AVAudioPlayer
- *    - Configure AVAudioSession category: .playAndRecord
- *
- * 6. Client actions to handle (daemon delegates these to native iOS):
- *    - "setVolume"         → AVAudioSession.setVolume(args.level)
- *    - "speak"             → AVSpeechSynthesizer (fallback TTS)
- *    - "showNotification"  → UNUserNotificationCenter
- *    - "openUrl"           → UIApplication.shared.open(URL)
- *    - "toggleDarkMode"    → UIApplication.shared.setUIStyle
- *    - "readClipboard"     → UIPasteboard.general.string
- *    - "writeClipboard"    → UIPasteboard.general.string = text
- *    - "musicPlayPause"    → MPMusicPlayerController.systemMusicPlayer.pause/play
- *    - "musicNext"         → systemMusicPlayer.skipToNextItem()
- *    - "musicPrevious"     → systemMusicPlayer.skipToPreviousItem()
- *
- * 7. HUD rendering (receive HUD_UPDATE):
- *    - widget: "agent_progress" → show a circular progress overlay
- *    - widget: "image_gallery"  → show a native image carousel
- *    - widget: "wake_word"      → show a pulsing orb animation
- *    - widget: "agent_progress" with done: true → dismiss overlay
- *
- * 8. Keepalive:
- *    - Send PING every 20s
- *    - Expect PONG in response
- *    - Reconnect if no PONG within 5s
- */
-
 // ── Message type constants (mirror of protocol.js MSG) ────────────────────────
 const IOS_MSG = {
-    // Client → Daemon
-    CLIENT_HELLO:       'client_hello',
-    START_SESSION:      'start_session',
-    STOP_SESSION:       'stop_session',
-    SEND_AUDIO:         'send_audio',
-    SEND_TURN_COMPLETE: 'send_turn_complete',
-    SEND_TEXT:          'send_text',
-    CANCEL_AGENTS:      'cancel_agents',
-    PERMISSION_RESPONSE:'permission_response',
-    PING:               'ping',
+    // ━━━ Client → Daemon ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    CLIENT_HELLO:        'client_hello',
+    START_SESSION:       'start_session',
+    STOP_SESSION:        'stop_session',
+    SEND_AUDIO:          'send_audio',
+    SEND_TURN_COMPLETE:  'send_turn_complete',
+    SEND_TEXT:           'send_text',
+    CANCEL_AGENTS:       'cancel_agents',
+    PERMISSION_RESPONSE: 'permission_response',
+    CLIENT_ACTION_RESULT:'client_action_result',  // NEW: response to client_action
+    GOOGLE_AUTH_REQUEST: 'google_auth_request',   // NEW: trigger Google OAuth
+    GOOGLE_AUTH_LOGOUT:  'google_auth_logout',    // NEW: logout Google
+    GOOGLE_AUTH_CHECK:   'google_auth_check',     // NEW: check auth status
+    MEMORY_GET_GRAPH:    'memory_get_graph',      // NEW: request full graph
+    MEMORY_GET_DIARY:    'memory_get_diary',      // NEW: request diary
+    MEMORY_UPDATE_NODE:  'memory_update_node',    // NEW: { nodeId, updates }
+    MEMORY_DELETE_NODE:  'memory_delete_node',    // NEW: { nodeId }
+    PING:                'ping',
 
-    // Daemon → Client
-    DAEMON_HELLO:       'daemon_hello',
-    SESSION_STARTED:    'session_started',
-    SESSION_ENDED:      'session_ended',
-    AUDIO_RESPONSE:     'audio_response',
-    TEXT_RESPONSE:      'text_response',
-    USER_TRANSCRIPT:    'user_transcript',
-    TURN_COMPLETE:      'turn_complete',
-    AGENT_INTERRUPTED:  'agent_interrupted',
-    HUD_UPDATE:         'hud_update',
-    NOTIFICATION:       'notification',
-    TIMER_FIRED:        'timer_fired',
-    AGENT_PROGRESS:     'agent_progress',
-    AGENT_COMPLETE:     'agent_complete',
-    AGENT_FAIL:         'agent_fail',
-    PERMISSION_REQUEST: 'permission_request',
-    ERROR:              'error',
-    PONG:               'pong',
+    // ━━━ Daemon → Client ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    DAEMON_HELLO:        'daemon_hello',
+    SESSION_STARTED:     'session_started',
+    SESSION_ENDED:       'session_ended',
+    AUDIO_RESPONSE:      'audio_response',
+    TEXT_RESPONSE:       'text_response',
+    USER_TRANSCRIPT:     'user_transcript',
+    TURN_COMPLETE:       'turn_complete',
+    AGENT_INTERRUPTED:   'agent_interrupted',
+    HUD_UPDATE:          'hud_update',
+    HUD_CLEAR:           'hud_clear',
+    NOTIFICATION:        'notification',
+    TIMER_FIRED:         'timer_fired',
+    AGENT_PROGRESS:      'agent_progress',
+    AGENT_COMPLETE:      'agent_complete',
+    AGENT_FAIL:          'agent_fail',
+    PERMISSION_REQUEST:  'permission_request',
+    TOOL_CALL:           'tool_call',
+    TOOL_COMPLETE:       'tool_complete',
+    CLIENT_ACTION:       'client_action',         // Daemon delegates a native action to client
+    GOOGLE_AUTH_RESULT:  'google_auth_result',    // NEW: { success, authUrl? }
+    GOOGLE_AUTH_STATUS:  'google_auth_status',    // NEW: { authenticated }
+    MEMORY_GRAPH_DATA:   'memory_graph_data',     // NEW: full graph response
+    MEMORY_DIARY_DATA:   'memory_diary_data',     // NEW: diary entries
+    MEMORY_OP_RESULT:    'memory_op_result',      // NEW: { success, node? }
+    ERROR:               'error',
+    PONG:                'pong',
 };
 
 /**
- * Swift structs for reference (what your Swift team implements):
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * iOS CLIENT IMPLEMENTATION CHECKLIST
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  *
- * ```swift
- * // SummerProtocol.swift
- * struct ClientHello: Codable {
- *     let type: String = "client_hello"
- *     let platform: String = "ios"
- *     let deviceName: String
- *     let hasMic: Bool = true
- *     let hasScreen: Bool = false
- *     let pushToken: String?
- *     let token: String
- *     let _ts: TimeInterval
- * }
+ * 1. WebSocket connection
+ *    - URL: ws://{daemon_ip}:8765
+ *    - Find IP via Bonjour/mDNS or manual entry
  *
- * struct SendAudio: Codable {
- *     let type: String = "send_audio"
- *     let data: String  // base64 PCM 16kHz
- *     let sampleRate: Int = 16000
- *     let _ts: TimeInterval
- * }
+ * 2. Authentication — send CLIENT_HELLO with pairing token
+ *    {
+ *      type: "client_hello",
+ *      platform: "ios",
+ *      deviceName: "Ayush's iPhone",
+ *      hasMic: true,
+ *      hasScreen: false,
+ *      pushToken: "<APNs device token>",
+ *      token: "<pairing token from daemon>",
+ *      supportedActions: [           // ← NEW: declare what you can do
+ *        "setVolume", "speak", "showNotification", "openUrl",
+ *        "musicPlayPause", "musicNext", "musicPrevious",
+ *        "readClipboard", "writeClipboard"
+ *      ],
+ *      _ts: Date.now()
+ *    }
  *
- * struct AudioResponse: Codable {
- *     let type: String
- *     let data: String  // base64 PCM 24kHz
- *     let _ts: TimeInterval
- * }
+ * 3. Capability negotiation (NEW)
+ *    - `supportedActions`: Array of client_action names this client can handle
+ *    - If omitted, daemon assumes client supports ALL actions
+ *    - The daemon filters Gemini tool declarations based on these capabilities
+ *    - An iOS client should NOT declare macOS-specific actions (screenshots, etc.)
  *
- * struct HudUpdate: Codable {
- *     let type: String
- *     let widget: String
- *     let state: AnyCodable
- *     let _ts: TimeInterval
- * }
+ * 4. Audio pipeline
+ *    - Send: PCM 16-bit, 16kHz, mono, base64-encoded → SEND_AUDIO
+ *    - Receive: AUDIO_RESPONSE (PCM 24kHz base64) → decode + play
+ *    - VAD: Send SEND_TURN_COMPLETE on silence or button release
  *
- * struct ClientAction: Codable {
- *     let type: String = "client_action"
- *     let action: String
- *     let args: AnyCodable?
- *     let _ts: TimeInterval
- * }
- * ```
- */
-
-/**
- * Swift connection code template:
+ * 5. Client actions — handle `client_action` messages:
+ *    When daemon sends { type: "client_action", action: "...", args: {...}, requestId: "..." }
+ *    Execute the action natively, then respond with:
+ *    {
+ *      type: "client_action_result",
+ *      requestId: "<same requestId>",
+ *      action: "<same action name>",
+ *      result: { status: "success", ... }
+ *    }
  *
- * ```swift
- * // SummerDaemonClient.swift
- * import Foundation
+ *    Supported client actions:
+ *    - "setVolume"         → MPVolumeView.setVolume(args.level)
+ *    - "speak"             → AVSpeechSynthesizer
+ *    - "showNotification"  → UNUserNotificationCenter
+ *    - "openUrl"           → UIApplication.shared.open(URL)
+ *    - "readClipboard"     → UIPasteboard.general.string
+ *    - "writeClipboard"    → UIPasteboard.general.string = text
+ *    - "musicPlayPause"    → MPMusicPlayerController.systemMusicPlayer
+ *    - "musicNext"         → systemMusicPlayer.skipToNextItem()
+ *    - "musicPrevious"     → systemMusicPlayer.skipToPreviousItem()
  *
- * class SummerDaemonClient: NSObject, URLSessionWebSocketDelegate {
- *     private var webSocketTask: URLSessionWebSocketTask?
- *     private let pairingToken: String
- *     private let daemonURL: URL
+ * 6. Permission requests
+ *    When daemon sends { type: "permission_request", requestId, toolName, actionDescription }
+ *    Show a native alert and respond with:
+ *    {
+ *      type: "permission_response",
+ *      requestId: "<same>",
+ *      granted: true/false,
+ *      alwaysAllow: true/false  // user chose "Always Allow"
+ *    }
  *
- *     init(macIPAddress: String, port: Int = 8765, token: String) {
- *         self.daemonURL = URL(string: "ws://\(macIPAddress):\(port)")!
- *         self.pairingToken = token
- *     }
+ * 7. Google Auth (NEW)
+ *    - Send: { type: "google_auth_request" }
+ *    - Receive: { type: "google_auth_result", success: true/false, authUrl?: "..." }
+ *    - If authUrl provided: open in Safari for OAuth, daemon handles callback
+ *    - Check status: { type: "google_auth_check" }
+ *    - Receive: { type: "google_auth_status", authenticated: true/false }
  *
- *     func connect() {
- *         let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
- *         webSocketTask = session.webSocketTask(with: daemonURL)
- *         webSocketTask?.resume()
- *         sendHello()
- *         receiveMessages()
- *         startPingTimer()
- *     }
+ * 8. Memory management (NEW)
+ *    - Get graph: Send { type: "memory_get_graph" }
+ *    - Receive: { type: "memory_graph_data", nodes: [...], edges: [...] }
+ *    - Get diary: Send { type: "memory_get_diary" }
+ *    - Receive: { type: "memory_diary_data", entries: [...] }
+ *    - Update node: Send { type: "memory_update_node", nodeId: "...", updates: { label, description, tags } }
+ *    - Delete node: Send { type: "memory_delete_node", nodeId: "..." }
+ *    - Receive: { type: "memory_op_result", success: true/false }
  *
- *     private func sendHello() {
- *         let hello = ClientHello(
- *             deviceName: UIDevice.current.name,
- *             pushToken: APNsManager.shared.deviceToken,
- *             token: pairingToken
- *         )
- *         send(hello)
- *     }
+ * 9. Timer notifications (NEW)
+ *    When daemon sends { type: "timer_fired", timerId: "...", label: "...", message: "..." }
+ *    Show a notification with sound via UNUserNotificationCenter.
  *
- *     func sendAudio(_ pcmData: Data) {
- *         let msg = SendAudio(data: pcmData.base64EncodedString(), _ts: Date().timeIntervalSince1970)
- *         send(msg)
- *     }
+ * 10. HUD rendering
+ *    - "agent_progress" → circular progress overlay
+ *    - "image_gallery"  → native image carousel
+ *    - "calendar"       → calendar event list
+ *    - "emails"         → email summary list
+ *    - "agent_progress" with done:true → dismiss
  *
- *     func sendTurnComplete() {
- *         sendRaw(["type": "send_turn_complete", "_ts": Date().timeIntervalSince1970])
- *     }
- *
- *     private func receiveMessages() {
- *         webSocketTask?.receive { [weak self] result in
- *             switch result {
- *             case .success(let message):
- *                 self?.handleMessage(message)
- *                 self?.receiveMessages() // keep listening
- *             case .failure(let error):
- *                 self?.handleDisconnect(error)
- *             }
- *         }
- *     }
- *
- *     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
- *         guard case .string(let text) = message,
- *               let data = text.data(using: .utf8),
- *               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
- *               let type = json["type"] as? String else { return }
- *
- *         switch type {
- *         case "daemon_hello":  handleDaemonHello(json)
- *         case "session_started": onSessionStarted()
- *         case "audio_response":  handleAudio(json)
- *         case "text_response":   handleText(json)
- *         case "hud_update":      handleHUD(json)
- *         case "client_action":   handleClientAction(json)
- *         case "notification":    showNotification(json)
- *         case "timer_fired":     handleTimer(json)
- *         case "agent_progress":  updateProgressHUD(json)
- *         case "turn_complete":   onTurnComplete()
- *         default: break
- *         }
- *     }
- *
- *     private func handleClientAction(_ json: [String: Any]) {
- *         guard let action = json["action"] as? String,
- *               let args = json["args"] as? [String: Any] else { return }
- *         switch action {
- *         case "setVolume":
- *             let level = args["level"] as? Float ?? 0.5
- *             MPVolumeView.setVolume(level)
- *         case "speak":
- *             let text = args["text"] as? String ?? ""
- *             let synth = AVSpeechSynthesizer()
- *             synth.speak(AVSpeechUtterance(string: text))
- *         case "showNotification":
- *             let title = args["title"] as? String ?? "Summer"
- *             let body = args["body"] as? String ?? ""
- *             UNUserNotificationCenter.current().add(UNNotificationRequest(...))
- *         case "openUrl":
- *             if let urlString = args["url"] as? String, let url = URL(string: urlString) {
- *                 UIApplication.shared.open(url)
- *             }
- *         case "musicPlayPause":
- *             MPMusicPlayerController.systemMusicPlayer.togglePlayPause()
- *         default: break
- *         }
- *     }
- * }
- * ```
+ * 11. Keepalive
+ *    - Send PING every 20s
+ *    - Expect PONG in response
+ *    - Reconnect if no PONG within 5s
  */
 
 module.exports = { IOS_MSG };

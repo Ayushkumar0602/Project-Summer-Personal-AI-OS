@@ -172,6 +172,7 @@ class WsTransportServer {
             pushToken:  msg.pushToken  || null,
             hasMic:     msg.hasMic     ?? true,
             hasScreen:  msg.hasScreen  ?? true,
+            supportedActions: msg.supportedActions || null, // null = supports everything
         };
 
         // Register with a send function that wraps this ws instance
@@ -240,8 +241,42 @@ class WsTransportServer {
                 });
                 break;
 
+            case MSG.CLIENT_ACTION_RESULT:
+                bus.dispatch(E.CLIENT_ACTION_RESULT, {
+                    clientId,
+                    requestId: msg.requestId,
+                    action:    msg.action,
+                    result:    msg.result,
+                });
+                break;
+
             case MSG.CANCEL_AGENTS:
                 bus.dispatch(E.AGENT_KILLED, { clientId, reason: 'user_cancel' });
+                break;
+
+            // ── Google Auth via WebSocket (Flaw #6 fix) ─────────────────
+            case MSG.GOOGLE_AUTH_REQUEST:
+                this._handleGoogleAuth(clientId, 'authenticate');
+                break;
+            case MSG.GOOGLE_AUTH_LOGOUT:
+                this._handleGoogleAuth(clientId, 'logout');
+                break;
+            case MSG.GOOGLE_AUTH_CHECK:
+                this._handleGoogleAuth(clientId, 'check');
+                break;
+
+            // ── Memory via WebSocket (Flaw #5 fix) ──────────────────────
+            case MSG.MEMORY_GET_GRAPH:
+                this._handleMemoryOp(clientId, 'getGraph');
+                break;
+            case MSG.MEMORY_GET_DIARY:
+                this._handleMemoryOp(clientId, 'getDiary');
+                break;
+            case MSG.MEMORY_UPDATE_NODE:
+                this._handleMemoryOp(clientId, 'updateNode', msg);
+                break;
+            case MSG.MEMORY_DELETE_NODE:
+                this._handleMemoryOp(clientId, 'deleteNode', msg);
                 break;
 
             case MSG.PING:
@@ -252,6 +287,73 @@ class WsTransportServer {
                 // Forward unknown messages to bus for extensibility
                 bus.dispatch(E.CLIENT_MESSAGE, { clientId, message: msg });
                 break;
+        }
+    }
+
+    // ── Google Auth handler ───────────────────────────────────────────────────
+    async _handleGoogleAuth(clientId, action) {
+        try {
+            const googleAuth = require('../../auth/google-auth');
+            if (action === 'authenticate') {
+                await googleAuth.authenticate();
+                registry.send(clientId, encode(MSG.GOOGLE_AUTH_RESULT, { success: true }));
+            } else if (action === 'logout') {
+                googleAuth.logout();
+                registry.send(clientId, encode(MSG.GOOGLE_AUTH_RESULT, { success: true, action: 'logout' }));
+            } else if (action === 'check') {
+                const authenticated = await googleAuth.isAuthenticated();
+                registry.send(clientId, encode(MSG.GOOGLE_AUTH_STATUS, { authenticated }));
+            }
+        } catch (err) {
+            log.error(`Google auth ${action} failed:`, { err: err.message });
+            registry.send(clientId, encode(MSG.GOOGLE_AUTH_RESULT, { success: false, error: err.message }));
+        }
+    }
+
+    // ── Memory handler ────────────────────────────────────────────────────────
+    async _handleMemoryOp(clientId, op, msg = {}) {
+        try {
+            const { loadGraph, saveGraph } = require('../../knowledge/graph-store');
+            const { loadDiary } = require('../../knowledge/session-diary');
+
+            switch (op) {
+                case 'getGraph': {
+                    const graph = loadGraph();
+                    registry.send(clientId, encode(MSG.MEMORY_GRAPH_DATA, graph));
+                    break;
+                }
+                case 'getDiary': {
+                    const diary = loadDiary();
+                    registry.send(clientId, encode(MSG.MEMORY_DIARY_DATA, { entries: diary }));
+                    break;
+                }
+                case 'updateNode': {
+                    const graph = loadGraph();
+                    const node = graph.nodes.find(n => n.id === msg.nodeId);
+                    if (!node) {
+                        registry.send(clientId, encode(MSG.MEMORY_OP_RESULT, { success: false, error: 'Node not found' }));
+                        break;
+                    }
+                    if (msg.updates?.label) node.label = msg.updates.label;
+                    if (msg.updates?.description !== undefined) node.description = msg.updates.description;
+                    if (msg.updates?.tags !== undefined) node.tags = msg.updates.tags;
+                    node.updatedAt = Date.now();
+                    saveGraph(graph);
+                    registry.send(clientId, encode(MSG.MEMORY_OP_RESULT, { success: true, node }));
+                    break;
+                }
+                case 'deleteNode': {
+                    const graph = loadGraph();
+                    graph.nodes = graph.nodes.filter(n => n.id !== msg.nodeId);
+                    graph.edges = graph.edges.filter(e => e.from !== msg.nodeId && e.to !== msg.nodeId);
+                    saveGraph(graph);
+                    registry.send(clientId, encode(MSG.MEMORY_OP_RESULT, { success: true }));
+                    break;
+                }
+            }
+        } catch (err) {
+            log.error(`Memory op ${op} failed:`, { err: err.message });
+            registry.send(clientId, encode(MSG.MEMORY_OP_RESULT, { success: false, error: err.message }));
         }
     }
 
