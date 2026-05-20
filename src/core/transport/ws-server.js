@@ -289,6 +289,7 @@ class WsTransportServer {
                     clientId,
                     requestId: msg.requestId,
                     granted:   msg.granted,
+                    alwaysAllow: msg.alwaysAllow,
                 });
                 break;
 

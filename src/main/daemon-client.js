@@ -417,18 +417,34 @@ class DaemonClient {
     // ── Permission request (daemon needs approval) ────────────────────────────
 
     async _handlePermissionRequest(msg) {
-        const { requestId, toolName, description } = msg;
+        const { requestId, toolName, description, actionLabel } = msg;
         const { dialog, BrowserWindow } = this._safeElectron();
+        
+        // 1. Check local pre-approved permissions first (so it works with cloud brain)
+        let isGrantedLocally = false;
+        try {
+            const { isPermissionGranted } = require('../../settings/permissions-store');
+            isGrantedLocally = isPermissionGranted(toolName);
+        } catch (_) {}
+
+        if (isGrantedLocally) {
+            log.info(`[Permissions] ✅ ${toolName} locally pre-approved. Skipping dialog.`);
+            this.send(encode(MSG.PERMISSION_RESPONSE, { requestId, granted: true, alwaysAllow: true }));
+            return;
+        }
+
         if (!dialog || !BrowserWindow) {
             // Auto-approve in daemon-only mode
             this.send(encode(MSG.PERMISSION_RESPONSE, { requestId, granted: true }));
             return;
         }
+
         const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
         if (!win) {
             this.send(encode(MSG.PERMISSION_RESPONSE, { requestId, granted: true }));
             return;
         }
+
         const { response } = await dialog.showMessageBox(win, {
             type:    'warning',
             buttons: ['Deny', 'Allow Once', 'Always Allow'],
@@ -437,8 +453,21 @@ class DaemonClient {
             message: `Summer wants to: ${toolName}`,
             detail:  description || '',
         });
+
         const granted = response > 0;
-        this.send(encode(MSG.PERMISSION_RESPONSE, { requestId, granted }));
+        const alwaysAllow = response === 2;
+
+        // 2. Save locally if user selected "Always Allow"
+        if (alwaysAllow) {
+            try {
+                const { grantPermission } = require('../../settings/permissions-store');
+                grantPermission(toolName, actionLabel || description);
+            } catch (e) {
+                log.error(`[Permissions] Failed to save locally: ${e.message}`);
+            }
+        }
+
+        this.send(encode(MSG.PERMISSION_RESPONSE, { requestId, granted, alwaysAllow }));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
