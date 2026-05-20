@@ -27,33 +27,34 @@ import AVFoundation
 class AudioEngine {
 
     // ── Callbacks → SummerClient ──────────────────────────────────────────────
-    // Mirrors the dependency injection pattern in vad-recorder.js initVadRecorder(deps)
     var onAudioChunk:      ((String) -> Void)?   // → send_audio message
     var onTurnComplete:    (() -> Void)?          // → send_turn_complete message
     var onBargeIn:         (() -> Void)?          // → clear playback + set listening
     var onPlaybackFinished:(() -> Void)?          // → set state back to listening
 
     // ── Recording engine ──────────────────────────────────────────────────────
-    // Mirrors: inputAudioCtx = new AudioContext({ sampleRate: 16000 })
     private let recordEngine  = AVAudioEngine()
     private var inputConverter: AVAudioConverter?
 
-    // ── VAD state — EXACT mirrors of vad-recorder.js variables ───────────────
-    private var vadNoiseFloor:           Float = 0.01   // let vadNoiseFloor = 0.01
-    private let VAD_ALPHA:               Float = 0.02   // const VAD_ALPHA = 0.02
-    private var isSpeakingToAgent              = false  // let isSpeakingToAgent = false
-    private var consecutiveVoiceBuffers        = 0      // let consecutiveVoiceBuffers = 0
-    private var silenceWorkItem: DispatchWorkItem?       // let silenceTimer = null
+    // ── VAD state ─────────────────────────────────────────────────────────────
+    private var vadNoiseFloor:           Float = 0.01
+    private let VAD_ALPHA:               Float = 0.02
+    private var isSpeakingToAgent              = false
+    private var consecutiveVoiceBuffers        = 0
+    private var silenceWorkItem: DispatchWorkItem?
 
     // ── Playback engine ───────────────────────────────────────────────────────
-    // Mirrors: this.audioCtx = new AudioContext({ sampleRate: 24000 })
     private let playEngine   = AVAudioEngine()
     private let playerNode   = AVAudioPlayerNode()
 
-    // Mirrors: this.isPlaying = false
     private(set) var isPlaybackActive = false
 
-    // 24kHz mono float32 — mirrors: this.sampleRate = 24000
+    // Dedicated queue for audio processing — keeps main thread free (fixes lag)
+    private let audioProcessingQueue = DispatchQueue(label: "com.summer.audio", qos: .userInteractive)
+
+    // Track scheduled buffers so we know when playback truly finishes
+    private var scheduledBufferCount = 0
+
     private let playbackFormat = AVAudioFormat(
         commonFormat: .pcmFormatFloat32,
         sampleRate:   24000,
@@ -63,13 +64,12 @@ class AudioEngine {
 
     init() {
         setupPlaybackEngine()
+        setupInterruptionHandling()
     }
 
     // MARK: - Recording Setup
     // Mirrors: async function startRecording() in vad-recorder.js
     func startRecording() {
-        // Mirrors: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        // iOS equivalent: voiceChat mode enables all of these automatically
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playAndRecord,
@@ -85,7 +85,6 @@ class AudioEngine {
         let inputNode   = recordEngine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
-        // Target: PCM 16-bit, 16kHz, mono — mirrors: new AudioContext({ sampleRate: 16000 })
         guard let targetFormat = AVAudioFormat(
             commonFormat: .pcmFormatInt16,
             sampleRate:   16000,
@@ -102,9 +101,11 @@ class AudioEngine {
         }
         inputConverter = converter
 
-        // Mirrors: processor = inputAudioCtx.createScriptProcessor(4096, 1, 1)
+        // Process audio on dedicated queue — NOT the main thread (fixes lag)
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
-            self?.processAudioBuffer(buffer, converter: converter, targetFormat: targetFormat)
+            self?.audioProcessingQueue.async {
+                self?.processAudioBuffer(buffer, converter: converter, targetFormat: targetFormat)
+            }
         }
 
         do {
@@ -197,8 +198,11 @@ class AudioEngine {
         recordEngine.inputNode.removeTap(onBus: 0)
         recordEngine.stop()
         silenceWorkItem?.cancel()
+        silenceWorkItem = nil
         isSpeakingToAgent       = false
         consecutiveVoiceBuffers = 0
+        // Deactivate audio session so iOS doesn't kill us for holding it
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         print("[AudioEngine] Recording stopped")
     }
 
@@ -217,46 +221,52 @@ class AudioEngine {
     // MARK: - Play Audio
     // Mirrors: AudioQueue.addAudioData(base64String) in audio-queue.js
     func playAudio(base64: String) {
-        guard let data = Data(base64Encoded: base64) else { return }
+        // Decode on background queue to reduce main thread pressure
+        audioProcessingQueue.async { [weak self] in
+            guard let self else { return }
+            guard let data = Data(base64Encoded: base64) else { return }
 
-        // Mirrors: const int16Array = new Int16Array(bytes.buffer)
-        let samples = data.withUnsafeBytes { Array($0.bindMemory(to: Int16.self)) }
+            let samples = data.withUnsafeBytes { Array($0.bindMemory(to: Int16.self)) }
+            let floatSamples = samples.map { Float($0) / 32768.0 }
 
-        // Mirrors: float32Array[i] = int16Array[i] / 32768.0
-        let floatSamples = samples.map { Float($0) / 32768.0 }
+            guard let buffer = AVAudioPCMBuffer(
+                pcmFormat:     self.playbackFormat,
+                frameCapacity: AVAudioFrameCount(floatSamples.count)
+            ) else { return }
+            buffer.frameLength = buffer.frameCapacity
+            floatSamples.withUnsafeBufferPointer {
+                buffer.floatChannelData![0].update(from: $0.baseAddress!, count: floatSamples.count)
+            }
 
-        guard let buffer = AVAudioPCMBuffer(
-            pcmFormat:     playbackFormat,
-            frameCapacity: AVAudioFrameCount(floatSamples.count)
-        ) else { return }
-        buffer.frameLength = buffer.frameCapacity
-        floatSamples.withUnsafeBufferPointer {
-            buffer.floatChannelData![0].update(from: $0.baseAddress!, count: floatSamples.count)
-        }
-
-        isPlaybackActive = true
-
-        // Mirrors: source.start(this.nextStartTime) — gapless scheduling
-        // iOS: scheduleBuffer() automatically enqueues after the previous buffer
-        playerNode.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
             DispatchQueue.main.async {
-                guard let self else { return }
-                if !self.playerNode.isPlaying {
-                    self.isPlaybackActive = false
-                    self.onPlaybackFinished?()
+                self.isPlaybackActive = true
+                self.scheduledBufferCount += 1
+            }
+
+            // Schedule on player — completion fires when THIS buffer finishes
+            self.playerNode.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.scheduledBufferCount -= 1
+                    // Only fire playbackFinished when ALL queued buffers are done
+                    if self.scheduledBufferCount <= 0 && !self.playerNode.isPlaying {
+                        self.scheduledBufferCount = 0
+                        self.isPlaybackActive = false
+                        self.onPlaybackFinished?()
+                    }
                 }
             }
-        }
 
-        if !playerNode.isPlaying { playerNode.play() }
+            if !self.playerNode.isPlaying { self.playerNode.play() }
+        }
     }
 
-    // Mirrors: AudioQueue.clear() — called on barge-in or disconnect
     func clearPlayback() {
         playerNode.stop()
         isPlaybackActive = false
+        scheduledBufferCount = 0
         // Re-prepare player for next playback
-        try? playEngine.start()
+        if !playEngine.isRunning { try? playEngine.start() }
         playerNode.play()
     }
 
@@ -293,5 +303,45 @@ class AudioEngine {
     // Mirrors: const uint8Array = new Uint8Array(pcm16.buffer); btoa(binary)
     private func samplesToBase64(_ samples: [Int16]) -> String {
         samples.withUnsafeBytes { Data($0) }.base64EncodedString()
+    }
+
+    // MARK: - Audio Interruption Handling
+    // Prevents crash when a phone call, Siri, or another app takes audio focus
+    private func setupInterruptionHandling() {
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object:  nil,
+            queue:   .main
+        ) { [weak self] notification in
+            guard let self,
+                  let info = notification.userInfo,
+                  let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+            else { return }
+
+            switch type {
+            case .began:
+                // Phone call / Siri started — pause gracefully
+                print("[AudioEngine] Audio interrupted — pausing")
+                if self.recordEngine.isRunning {
+                    self.recordEngine.pause()
+                }
+                self.playerNode.pause()
+
+            case .ended:
+                // Interruption over — resume
+                print("[AudioEngine] Audio interruption ended — resuming")
+                let options = info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+                if AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume) {
+                    try? AVAudioSession.sharedInstance().setActive(true)
+                    try? self.recordEngine.start()
+                    if !self.playEngine.isRunning { try? self.playEngine.start() }
+                    self.playerNode.play()
+                }
+
+            @unknown default:
+                break
+            }
+        }
     }
 }

@@ -22,18 +22,19 @@ struct OrbView: View {
     var body: some View {
         ZStack {
             // ── Outer glow rings (pulse when listening/speaking) ──────────────
-            ForEach(0..<3, id: \.self) { ring in
+            // Reduced from 3 to 2 rings for iPhone 11 performance
+            ForEach(0..<2, id: \.self) { ring in
                 Circle()
                     .stroke(
-                        state.orbColor.opacity(0.25 - Double(ring) * 0.07),
+                        state.orbColor.opacity(0.25 - Double(ring) * 0.1),
                         lineWidth: 1.5
                     )
-                    .scaleEffect(state.isPulsing ? pulseScale + CGFloat(ring) * 0.18 : 1.0)
+                    .scaleEffect(state.isPulsing ? pulseScale + CGFloat(ring) * 0.2 : 1.0)
                     .opacity(state.isPulsing ? 1.0 : 0.0)
                     .animation(
                         .easeInOut(duration: 1.4)
                             .repeatForever(autoreverses: true)
-                            .delay(Double(ring) * 0.22),
+                            .delay(Double(ring) * 0.25),
                         value: pulseScale
                     )
             }
@@ -66,8 +67,8 @@ struct OrbView: View {
                         endRadius:   75
                     )
                 )
-                .shadow(color: state.orbColor.opacity(0.7), radius: 24, x: 0, y: 0)
-                .shadow(color: state.orbColor.opacity(0.3), radius: 48, x: 0, y: 0)
+                // Single shadow instead of dual (saves GPU)
+                .shadow(color: state.orbColor.opacity(0.5), radius: 30, x: 0, y: 0)
 
             // ── Inner highlight (depth illusion) ──────────────────────────────
             Circle()
@@ -85,6 +86,8 @@ struct OrbView: View {
                 .font(.system(size: 28, weight: .light))
                 .foregroundColor(.white.opacity(0.9))
         }
+        // Rasterize into single GPU texture — massive perf win on iPhone 11
+        .drawingGroup()
         .onAppear {
             startAnimations()
         }

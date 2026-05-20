@@ -170,16 +170,9 @@ class SummerClient: ObservableObject {
     // Mirrors: window.liveAPI.startSession(contextPayload) in renderer.js
     // Called after daemon_hello is received
     func startSession() {
-        // Pre-emptively clear any ghost sessions on the server that might be stuck
-        sendJSON(["type": "stop_session"])
-
-        // Give the server a split second to process the stop before starting
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self else { return }
-            var msg: [String: Any] = ["type": "start_session"]
-            for (key, value) in self.lastContextPayload { msg[key] = value }
-            self.sendJSON(msg)
-        }
+        var msg: [String: Any] = ["type": "start_session"]
+        for (key, value) in lastContextPayload { msg[key] = value }
+        sendJSON(msg)
     }
 
     // MARK: - Disconnect (user-initiated)

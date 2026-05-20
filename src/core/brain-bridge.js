@@ -53,21 +53,38 @@ class BrainBridge {
         // Client wants to start a session (with guard against rapid-fire)
         this._handlers.sessionStart = ({ clientId, context }) => {
             if (this._sessionActive) {
-                log.warn(`Session already active — ignoring duplicate start from ${clientId}`);
-                return;
+                // Same owner re-requesting = ignore; different owner = stop old, start new
+                if (this._sessionOwner === clientId) {
+                    log.warn(`Session already active for ${clientId} — ignoring duplicate start.`);
+                    return;
+                }
+                // Different client wants to take over — stop the old session first
+                log.info(`Session takeover: ${this._sessionOwner} → ${clientId}. Stopping old session.`);
+                this._sessionActive = false;
+                this._sessionOwner  = null;
+                this._session.stop();
             }
             this._sessionActive = true;
+            this._sessionOwner  = clientId;
             log.info(`Session start requested by client: ${clientId}`);
             const fakeEvent = this._makeFakeIpcEvent(clientId);
             this._session.start(fakeEvent, context || {});
         };
         bus.on(E.SESSION_START, this._handlers.sessionStart);
 
-        // Client wants to stop a session
-        this._handlers.sessionEnd = ({ clientId }) => {
-            this._sessionActive = false;
-            log.info(`Session stop requested by client: ${clientId}`);
-            this._session.stop();
+        // Client wants to stop a session — only the session owner can stop it
+        this._handlers.sessionEnd = ({ clientId, isDisconnect }) => {
+            if (!this._sessionActive) return; // nothing to stop
+
+            // Allow stop if: (a) this client owns the session, or (b) it's a disconnect cleanup
+            if (this._sessionOwner === clientId || isDisconnect) {
+                log.info(`Session stop requested by client: ${clientId}${isDisconnect ? ' (disconnect cleanup)' : ''}`);
+                this._sessionActive = false;
+                this._sessionOwner  = null;
+                this._session.stop();
+            } else {
+                log.warn(`Client ${clientId} tried to stop session owned by ${this._sessionOwner} — ignored.`);
+            }
         };
         bus.on(E.SESSION_END, this._handlers.sessionEnd);
 
@@ -112,6 +129,7 @@ class BrainBridge {
             this._handlers = null;
         }
         this._sessionActive = false;
+        this._sessionOwner  = null;
         log.info('BrainBridge destroyed — event bus listeners removed.');
     }
 
