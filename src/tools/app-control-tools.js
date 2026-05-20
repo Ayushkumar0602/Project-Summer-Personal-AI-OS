@@ -90,7 +90,58 @@ function resolveAppName(input) {
     return APP_NAME_MAP[lower] || input;
 }
 
+// ── Platform detection ─────────────────────────────────────────────
+const IS_MAC = process.platform === 'darwin';
+
+/**
+ * Delegate a shell/AppleScript command to the connected Mac client
+ * when the Brain is running on a non-macOS server (e.g., Render).
+ */
+function delegateToClient(action, args, timeoutMs = 15000) {
+    return new Promise((resolve, reject) => {
+        try {
+            const { encode } = require('../core/transport/protocol');
+            const registry = require('../core/transport/client-registry');
+            const bus = _getBus();
+
+            const requestId = `delegate_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+            const timeout = setTimeout(() => {
+                if (bus) bus.removeListener(bus.EVENTS.CLIENT_ACTION_RESULT, onResult);
+                reject(new Error(`Delegation timeout for ${action} after ${timeoutMs}ms`));
+            }, timeoutMs);
+
+            const onResult = (data) => {
+                if (data?.requestId !== requestId) return;
+                clearTimeout(timeout);
+                if (bus) bus.removeListener(bus.EVENTS.CLIENT_ACTION_RESULT, onResult);
+
+                if (data.result?.status === 'error' || data.result?.error) {
+                    reject(new Error(data.result.error || 'Client action failed'));
+                } else {
+                    resolve(data.result?.output || data.result?.text || data.result?.message || JSON.stringify(data.result || ''));
+                }
+            };
+
+            if (bus) bus.on(bus.EVENTS.CLIENT_ACTION_RESULT, onResult);
+
+            // Prefer Mac/Electron client for OS commands
+            const macClient = registry.getAllClients().find(c => c.platform === 'electron');
+            if (macClient) {
+                registry.send(macClient.id, encode('client_action', { requestId, action, args }));
+            } else {
+                registry.sendToActive(encode('client_action', { requestId, action, args }));
+            }
+        } catch (e) {
+            reject(new Error(`Delegation failed: ${e.message}`));
+        }
+    });
+}
+
 function runShell(cmd, timeoutMs = 15000) {
+    if (!IS_MAC) {
+        return delegateToClient('runShell', { command: cmd }, timeoutMs);
+    }
     return new Promise((resolve, reject) => {
         exec(cmd, { timeout: timeoutMs, maxBuffer: 5 * 1024 * 1024 }, (err, stdout, stderr) => {
             if (err) reject(new Error(stderr || err.message));
@@ -100,6 +151,9 @@ function runShell(cmd, timeoutMs = 15000) {
 }
 
 function runAppleScript(script, timeoutMs = 15000) {
+    if (!IS_MAC) {
+        return delegateToClient('runAppleScript', { script }, timeoutMs);
+    }
     return runShell(`osascript -e '${script.replace(/'/g, "'\\''")}'`, timeoutMs);
 }
 

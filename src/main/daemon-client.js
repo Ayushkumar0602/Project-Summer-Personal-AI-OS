@@ -237,42 +237,97 @@ class DaemonClient {
     // ── Client actions (requires_client results from platform adapter) ────────
 
     _handleClientAction(msg) {
-        const { action, args } = msg;
+        const { action, args, requestId } = msg;
         const { clipboard, Notification, shell } = this._safeElectron();
         const win = this._getMainWindow();
+
+        const sendResult = (result) => {
+            this.send(encode('client_action_result', {
+                requestId: requestId || null,
+                action,
+                result,
+            }));
+        };
 
         switch (action) {
             case 'readClipboard': {
                 const text = clipboard ? clipboard.readText() : '';
-                this.send(encode('client_action_result', { action, result: { status: 'success', text } }));
+                sendResult({ status: 'success', text });
                 break;
             }
             case 'writeClipboard':
                 if (clipboard) clipboard.writeText(args?.text || '');
+                sendResult({ status: 'success' });
                 break;
 
             case 'showNotification':
                 this._showNotification(args?.title || 'Summer', args?.body || '');
+                sendResult({ status: 'success' });
                 break;
 
             case 'openUrl':
-                if (shell && args?.url) shell.openExternal(args.url);
+                if (shell && args?.url) {
+                    shell.openExternal(args.url);
+                    sendResult({ status: 'success' });
+                } else {
+                    sendResult({ status: 'error', error: 'No shell or URL' });
+                }
                 break;
 
             case 'openFileOrFolder':
-                if (shell && args?.path) shell.openPath(args.path);
+                if (shell && args?.path) {
+                    shell.openPath(args.path);
+                    sendResult({ status: 'success' });
+                } else {
+                    sendResult({ status: 'error', error: 'No shell or path' });
+                }
                 break;
+
+            // ── Shell/AppleScript delegation from cloud Brain ────────────────
+            case 'runShell': {
+                const { exec } = require('child_process');
+                const cmd = args?.command || '';
+                if (!cmd) {
+                    sendResult({ status: 'error', error: 'Empty command' });
+                    break;
+                }
+                exec(cmd, { timeout: 15000, maxBuffer: 5 * 1024 * 1024 }, (err, stdout, stderr) => {
+                    if (err) {
+                        sendResult({ status: 'error', error: stderr || err.message });
+                    } else {
+                        sendResult({ status: 'success', output: stdout.trim() });
+                    }
+                });
+                break;
+            }
+
+            case 'runAppleScript': {
+                const { exec: execAS } = require('child_process');
+                const script = args?.script || '';
+                if (!script) {
+                    sendResult({ status: 'error', error: 'Empty script' });
+                    break;
+                }
+                const safeScript = script.replace(/'/g, "'\\''");
+                execAS(`osascript -e '${safeScript}'`, { timeout: 15000 }, (err, stdout, stderr) => {
+                    if (err) {
+                        sendResult({ status: 'error', error: stderr || err.message });
+                    } else {
+                        sendResult({ status: 'success', output: stdout.trim() });
+                    }
+                });
+                break;
+            }
 
             default: {
                 // Try executing it via the local platform adapter (e.g. MacOSAdapter)
                 const adapter = getPlatformAdapter();
                 if (typeof adapter[action] === 'function') {
                     adapter[action](args).then(result => {
-                        // Send the result back if needed
-                        this.send(encode('client_action_result', { action, result }));
+                        sendResult(result);
                     }).catch(err => {
                         log.error(`Local adapter failed to execute ${action}`, { err: err.message });
-                        this.send(encode('client_action_result', { action, result: { status: 'error', error: err.message } }));
+                        sendResult({ status: 'error', error: err.message });
                     });
                 } else {
                     // Forward to renderer for UI-level handling

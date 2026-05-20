@@ -52,8 +52,73 @@ function sanitize(input) {
     return input.replace(/[^a-zA-Z0-9 .\-_\/]/g, '');
 }
 
+// ── Platform detection ─────────────────────────────────────────────
+const IS_MAC = process.platform === 'darwin';
+
+// ── Client delegation helper (for cloud/headless Brain) ────────────
+/**
+ * When the Brain runs on a non-macOS server (e.g., Render), it cannot
+ * execute osascript/open/pbpaste etc. This function delegates the
+ * command to the connected Mac client via the client_action protocol.
+ */
+function delegateToClient(action, args, timeoutMs = 15000) {
+    return new Promise((resolve, reject) => {
+        try {
+            const { encode } = require('../core/transport/protocol');
+            const registry = require('../core/transport/client-registry');
+            const bus = _getBus();
+
+            const requestId = `delegate_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+            const timeout = setTimeout(() => {
+                if (bus) bus.removeListener(bus.EVENTS.CLIENT_ACTION_RESULT, onResult);
+                reject(new Error(`Delegation timeout for ${action} after ${timeoutMs}ms`));
+            }, timeoutMs);
+
+            const onResult = (data) => {
+                if (data?.requestId !== requestId) return;
+                clearTimeout(timeout);
+                if (bus) bus.removeListener(bus.EVENTS.CLIENT_ACTION_RESULT, onResult);
+
+                if (data.result?.status === 'error' || data.result?.error) {
+                    reject(new Error(data.result.error || 'Client action failed'));
+                } else {
+                    resolve(data.result?.output || data.result?.text || data.result?.message || JSON.stringify(data.result || ''));
+                }
+            };
+
+            if (bus) {
+                bus.on(bus.EVENTS.CLIENT_ACTION_RESULT, onResult);
+            }
+
+            // Send to the Mac client (prefer electron platform)
+            const macClient = registry.getAllClients().find(c => c.platform === 'electron');
+            if (macClient) {
+                registry.send(macClient.id, encode('client_action', {
+                    requestId,
+                    action,
+                    args,
+                }));
+            } else {
+                // Try sending to any active client
+                registry.sendToActive(encode('client_action', {
+                    requestId,
+                    action,
+                    args,
+                }));
+            }
+        } catch (e) {
+            reject(new Error(`Delegation failed: ${e.message}`));
+        }
+    });
+}
+
 // ── Shell helper (safe, timeout-bounded) ───────────────────────────
 function runShell(cmd, timeoutMs = 10000) {
+    // If we're NOT on macOS, delegate to the connected Mac client
+    if (!IS_MAC) {
+        return delegateToClient('runShell', { command: cmd }, timeoutMs);
+    }
     return new Promise((resolve, reject) => {
         exec(cmd, { timeout: timeoutMs, maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
             if (err) reject(new Error(stderr || err.message));
@@ -64,6 +129,10 @@ function runShell(cmd, timeoutMs = 10000) {
 
 // ── AppleScript helper ─────────────────────────────────────────────
 function runAppleScript(script, timeoutMs = 10000) {
+    // If we're NOT on macOS, delegate to the connected Mac client
+    if (!IS_MAC) {
+        return delegateToClient('runAppleScript', { script }, timeoutMs);
+    }
     return runShell(`osascript -e '${script.replace(/'/g, "'\\''")}'`, timeoutMs);
 }
 
