@@ -208,7 +208,7 @@ class DaemonClient {
 
             // ── Session ────────────────────────────────────────────────────────
             case MSG.SESSION_STARTED:    fwd('session-started');                        break;
-            case MSG.SESSION_ENDED:      fwd('session-ended');                          break;
+            case MSG.SESSION_ENDED:      fwd('session-ended', msg);                     break;
 
             // ── Audio / text ───────────────────────────────────────────────────
             case MSG.AUDIO_RESPONSE:     fwd('agent-audio', msg.data);                  break;

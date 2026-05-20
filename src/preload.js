@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('liveAPI', {
     sendTextCommand: (text) => ipcRenderer.send('send-text-command', text),
     
     onSessionStarted: (callback) => ipcRenderer.on('session-started', () => callback()),
-    onSessionEnded: (callback) => ipcRenderer.on('session-ended', () => callback()),
+    onSessionEnded: (callback) => ipcRenderer.on('session-ended', (event, payload) => callback(payload)),
     onAgentAudio: (callback) => ipcRenderer.on('agent-audio', (event, base64Audio) => callback(base64Audio)),
     onAgentText: (callback) => ipcRenderer.on('agent-text', (event, text) => callback(text)),
     onUserText: (callback) => ipcRenderer.on('user-text', (event, text) => callback(text)),

@@ -62,6 +62,7 @@ class BrainBridge {
                 log.info(`Session takeover: ${this._sessionOwner} → ${clientId}. Stopping old session.`);
                 this._sessionActive = false;
                 this._sessionOwner  = null;
+                this._isTakeover    = true; // Flag for SESSION_ENDED broadcast
                 this._session.stop();
             }
             this._sessionActive = true;
@@ -172,7 +173,8 @@ class BrainBridge {
 
             case 'session-ended':
                 this._sessionActive = false;
-                bus.broadcast(encode(MSG.SESSION_ENDED));
+                bus.broadcast(encode(MSG.SESSION_ENDED, { takeover: !!this._isTakeover }));
+                this._isTakeover = false; // Reset the flag
                 break;
 
             case 'agent-audio':

@@ -244,7 +244,8 @@ class SummerClient: ObservableObject {
             case "session_ended":
                 self.audioEngine.stopRecording()
                 self.audioEngine.clearPlayback()
-                if self.userDisconnected {
+                let isTakeover = json["takeover"] as? Bool ?? false
+                if self.userDisconnected || isTakeover {
                     self.sessionState = .idle
                 } else {
                     self.scheduleAutoReconnect()

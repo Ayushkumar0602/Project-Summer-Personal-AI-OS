@@ -70,6 +70,8 @@ class AudioEngine {
     // MARK: - Recording Setup
     // Mirrors: async function startRecording() in vad-recorder.js
     func startRecording() {
+        guard !recordEngine.isRunning else { return }
+        
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playAndRecord,
@@ -101,6 +103,9 @@ class AudioEngine {
         }
         inputConverter = converter
 
+        // Ensure clean state to prevent AVFoundation crash on duplicate taps
+        inputNode.removeTap(onBus: 0)
+        
         // Process audio on dedicated queue — NOT the main thread (fixes lag)
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
             self?.audioProcessingQueue.async {
@@ -257,6 +262,7 @@ class AudioEngine {
                 }
             }
 
+            if !self.playEngine.isRunning { try? self.playEngine.start() }
             if !self.playerNode.isPlaying { self.playerNode.play() }
         }
     }

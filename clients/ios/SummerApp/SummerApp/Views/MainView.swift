@@ -37,19 +37,6 @@ struct MainView: View {
 
                 Spacer()
 
-                // ── User transcript ───────────────────────────────────────────
-                // Mirrors: updateUserSubtitle(text) in session-events.js
-                if !client.userText.isEmpty {
-                    Text(client.userText)
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(.white.opacity(0.5))
-                        .italic()
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                        .padding(.bottom, 16)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-
                 // ── The Orb ───────────────────────────────────────────────────
                 // Mirrors: document.querySelector('.orb-container').addEventListener('click', ...)
                 OrbView(state: client.sessionState)
