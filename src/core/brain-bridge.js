@@ -47,41 +47,72 @@ class BrainBridge {
     _wireEventBus() {
         const E = bus.EVENTS;
 
-        // Client wants to start a session
-        bus.on(E.SESSION_START, ({ clientId, context }) => {
+        // Store handler refs for cleanup (Bug #6 fix — listener leak prevention)
+        this._handlers = {};
+
+        // Client wants to start a session (with guard against rapid-fire)
+        this._handlers.sessionStart = ({ clientId, context }) => {
+            if (this._sessionActive) {
+                log.warn(`Session already active — ignoring duplicate start from ${clientId}`);
+                return;
+            }
+            this._sessionActive = true;
             log.info(`Session start requested by client: ${clientId}`);
             const fakeEvent = this._makeFakeIpcEvent(clientId);
             this._session.start(fakeEvent, context || {});
-        });
+        };
+        bus.on(E.SESSION_START, this._handlers.sessionStart);
 
         // Client wants to stop a session
-        bus.on(E.SESSION_END, ({ clientId }) => {
+        this._handlers.sessionEnd = ({ clientId }) => {
+            this._sessionActive = false;
             log.info(`Session stop requested by client: ${clientId}`);
             this._session.stop();
-        });
+        };
+        bus.on(E.SESSION_END, this._handlers.sessionEnd);
 
         // Audio chunk from active client's mic
-        bus.on(E.AUDIO_CHUNK_IN, ({ data }) => {
+        this._handlers.audioIn = ({ data }) => {
             this._session.sendAudio(data);
-        });
+        };
+        bus.on(E.AUDIO_CHUNK_IN, this._handlers.audioIn);
 
         // VAD silence / push-to-talk release
-        bus.on(E.TURN_COMPLETE, () => {
+        this._handlers.turnComplete = () => {
             this._session.sendTurnComplete();
-        });
+        };
+        bus.on(E.TURN_COMPLETE, this._handlers.turnComplete);
 
         // Text command from client
-        bus.on(E.BRAIN_TEXT_IN, ({ text }) => {
+        this._handlers.textIn = ({ text }) => {
             this._session.sendTextCommand(text);
-        });
+        };
+        bus.on(E.BRAIN_TEXT_IN, this._handlers.textIn);
 
         // Agent killed (cancel)
-        bus.on(E.AGENT_KILLED, ({ reason }) => {
+        this._handlers.agentKilled = ({ reason }) => {
             log.info(`Agents killed: ${reason}`);
             // LiveSessionManager will handle via orchestrator
-        });
+        };
+        bus.on(E.AGENT_KILLED, this._handlers.agentKilled);
 
         log.info('Event bus subscriptions registered.');
+    }
+
+    /** Clean up event bus listeners to prevent leaks. */
+    destroy() {
+        const E = bus.EVENTS;
+        if (this._handlers) {
+            if (this._handlers.sessionStart) bus.removeListener(E.SESSION_START, this._handlers.sessionStart);
+            if (this._handlers.sessionEnd)   bus.removeListener(E.SESSION_END, this._handlers.sessionEnd);
+            if (this._handlers.audioIn)      bus.removeListener(E.AUDIO_CHUNK_IN, this._handlers.audioIn);
+            if (this._handlers.turnComplete) bus.removeListener(E.TURN_COMPLETE, this._handlers.turnComplete);
+            if (this._handlers.textIn)       bus.removeListener(E.BRAIN_TEXT_IN, this._handlers.textIn);
+            if (this._handlers.agentKilled)  bus.removeListener(E.AGENT_KILLED, this._handlers.agentKilled);
+            this._handlers = null;
+        }
+        this._sessionActive = false;
+        log.info('BrainBridge destroyed — event bus listeners removed.');
     }
 
     /**
@@ -122,6 +153,7 @@ class BrainBridge {
                 break;
 
             case 'session-ended':
+                this._sessionActive = false;
                 bus.broadcast(encode(MSG.SESSION_ENDED));
                 break;
 

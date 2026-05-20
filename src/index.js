@@ -85,8 +85,33 @@ function connectToDaemon() {
         getMemoryWindow:() => windows.getMemoryWindow(),
     });
 
-    // Give the daemon a moment to bind its port before connecting
-    setTimeout(() => daemonClient.connect(), 1200);
+    if (process.env.REMOTE_DAEMON_URL) {
+        // Remote mode — connect immediately, reconnect logic handles retries
+        daemonClient.connect();
+    } else {
+        // Local mode — wait for daemon to bind its port before connecting
+        // Retry up to 10 times, 500ms apart (total max 5s wait)
+        let attempts = 0;
+        const tryConnect = () => {
+            attempts++;
+            const net = require('net');
+            const probe = net.createConnection({ port: DAEMON_PORT, host: '127.0.0.1' }, () => {
+                probe.destroy();
+                console.log(`[Electron] Daemon port ${DAEMON_PORT} ready after ${attempts} probe(s).`);
+                daemonClient.connect();
+            });
+            probe.on('error', () => {
+                probe.destroy();
+                if (attempts < 10) {
+                    setTimeout(tryConnect, 500);
+                } else {
+                    console.warn('[Electron] Daemon port not ready after 5s — connecting anyway (reconnect will handle).');
+                    daemonClient.connect();
+                }
+            });
+        };
+        setTimeout(tryConnect, 300); // Give the fork a brief head start
+    }
 }
 
 // ── 3. Electron app lifecycle ─────────────────────────────────────────────────

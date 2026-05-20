@@ -46,6 +46,9 @@ class DaemonClient {
         this._ws             = null;
         this._reconnectDelay = RECONNECT_DELAY_MS;
         this._stopping       = false;
+        this._connecting     = false;     // Guard: prevent concurrent connect() calls
+        this._reconnectTimer = null;      // Track pending reconnect to cancel it
+        this._pingInterval   = null;      // Client-side keepalive timer
         this._readyCallbacks = [];
     }
 
@@ -53,19 +56,30 @@ class DaemonClient {
 
     connect() {
         if (this._stopping) return;
+        if (this._connecting) {
+            log.warn('connect() called while already connecting — skipping.');
+            return;
+        }
+        this._connecting = true;
+
+        // ── CRITICAL: close any existing WebSocket first (Bug #1 fix) ────────
+        this._destroyCurrentWs();
+
         const url = this._url || `ws://localhost:${this._port}`;
         log.info(`Connecting to daemon → ${url}`);
 
-        this._ws = new WebSocket(url);
+        const ws = new WebSocket(url);
+        this._ws = ws;
 
-        this._ws.on('open', () => {
+        ws.on('open', () => {
+            this._connecting = false;
             this._reconnectDelay = RECONNECT_DELAY_MS;
             log.info('Connected to Summer Core Daemon ✅');
 
             const tk = this._getPairingToken();
             log.info('Sending pairing token length: ' + tk.length);
             // Identify ourselves as the Mac Electron body
-            this._ws.send(encode(MSG.CLIENT_HELLO, {
+            ws.send(encode(MSG.CLIENT_HELLO, {
                 platform:   'electron',
                 deviceName: `Mac (${os.hostname()})`,
                 hasMic:     true,
@@ -73,24 +87,31 @@ class DaemonClient {
                 token:      tk,
             }));
 
+            // ── Start client-side PING keepalive (Bug #2 fix) ────────────────
+            this._startPing();
+
             // Flush any queued callbacks
-            this._readyCallbacks.forEach(cb => cb(this._ws));
+            this._readyCallbacks.forEach(cb => cb(ws));
             this._readyCallbacks = [];
         });
 
-        this._ws.on('message', (raw) => {
+        ws.on('message', (raw) => {
             const msg = decode(raw);
             if (msg) this._routeMessage(msg);
         });
 
-        this._ws.on('close', (code) => {
+        ws.on('close', (code) => {
+            this._connecting = false;
+            this._stopPing();
+
             if (this._stopping) return;
+
             log.warn(`Daemon connection closed (${code}). Reconnecting in ${this._reconnectDelay}ms...`);
-            setTimeout(() => this.connect(), this._reconnectDelay);
-            this._reconnectDelay = Math.min(this._reconnectDelay * 1.5, MAX_RECONNECT_DELAY_MS);
+            this._scheduleReconnect();
         });
 
-        this._ws.on('error', (err) => {
+        ws.on('error', (err) => {
+            this._connecting = false;
             log.warn(`Daemon connection error: ${err.message}`);
             // 'close' event will trigger reconnect
         });
@@ -98,19 +119,74 @@ class DaemonClient {
 
     stop() {
         this._stopping = true;
-        if (this._ws) this._ws.close();
+        if (this._reconnectTimer) {
+            clearTimeout(this._reconnectTimer);
+            this._reconnectTimer = null;
+        }
+        this._stopPing();
+        this._destroyCurrentWs();
     }
 
     /** Send an encoded protocol message to the daemon. */
     send(encoded) {
-        if (this._ws && this._ws.readyState === WebSocket.OPEN) {
+        if (this.isReady()) {
             this._ws.send(encoded);
         }
+    }
+
+    /** Check if the WebSocket is open and ready to send. */
+    isReady() {
+        return this._ws && this._ws.readyState === WebSocket.OPEN;
     }
 
     /** Get the live WebSocket (for session-ipc.js). */
     getWs() {
         return this._ws;
+    }
+
+    // ── Internal helpers ─────────────────────────────────────────────────────
+
+    /** Safely close and null-out the current WebSocket. */
+    _destroyCurrentWs() {
+        if (this._ws) {
+            const old = this._ws;
+            this._ws = null;
+            // Remove all listeners to prevent ghost callbacks
+            old.removeAllListeners();
+            try {
+                if (old.readyState === WebSocket.OPEN || old.readyState === WebSocket.CONNECTING) {
+                    old.close(1000, 'Client reconnecting');
+                }
+            } catch (_) {}
+        }
+    }
+
+    /** Schedule a reconnect with exponential backoff. */
+    _scheduleReconnect() {
+        if (this._reconnectTimer) clearTimeout(this._reconnectTimer);
+        this._reconnectTimer = setTimeout(() => {
+            this._reconnectTimer = null;
+            this.connect();
+        }, this._reconnectDelay);
+        this._reconnectDelay = Math.min(this._reconnectDelay * 1.5, MAX_RECONNECT_DELAY_MS);
+    }
+
+    /** Start client-side PING keepalive (prevents Render idle timeout). */
+    _startPing() {
+        this._stopPing();
+        this._pingInterval = setInterval(() => {
+            if (this.isReady()) {
+                this._ws.send(encode(MSG.PING));
+            }
+        }, 20_000);
+    }
+
+    /** Stop the PING interval. */
+    _stopPing() {
+        if (this._pingInterval) {
+            clearInterval(this._pingInterval);
+            this._pingInterval = null;
+        }
     }
 
     // ── Message routing: Daemon → Electron renderer ───────────────────────────

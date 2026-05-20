@@ -58,7 +58,8 @@ class WsTransportServer {
         this._skipAuth = opts.skipAuth ?? false;
         this._token    = _loadOrCreateToken();
         this._wss      = null;
-        this._pingTimers = new Map(); // clientId → intervalId
+        this._pingTimers    = new Map(); // clientId → intervalId
+        this._clientSockets = new Map(); // clientId → ws  (for force-close on duplicate device)
     }
 
     start() {
@@ -103,6 +104,10 @@ class WsTransportServer {
 
         log.debug(`Raw WebSocket connection: ${clientId} (auth pending: ${!authenticated})`);
 
+        // Track pong responses for dead-socket detection
+        ws._isAlive = true;
+        ws.on('pong', () => { ws._isAlive = true; });
+
         // ── Message handler ───────────────────────────────────────────
         ws.on('message', (raw) => {
             const msg = decode(raw);
@@ -111,8 +116,7 @@ class WsTransportServer {
                 return;
             }
 
-            // client_hello ALWAYS handled first — registers the client regardless of skipAuth
-            // client_hello ALWAYS handled first — registers the client regardless of skipAuth
+            // client_hello ALWAYS handled first — registers the client
             if (msg.type === MSG.CLIENT_HELLO) {
                 if (this._skipAuth || msg.token === this._token) {
                     authenticated = true;
@@ -143,11 +147,7 @@ class WsTransportServer {
 
         ws.on('close', (code, reason) => {
             log.info(`Client disconnected: ${clientId} (${code})`);
-            registry.unregister(clientId);
-            if (this._pingTimers.has(clientId)) {
-                clearInterval(this._pingTimers.get(clientId));
-                this._pingTimers.delete(clientId);
-            }
+            this._cleanupClient(clientId);
         });
 
         ws.on('error', (err) => {
@@ -158,8 +158,8 @@ class WsTransportServer {
         if (!this._skipAuth) {
             setTimeout(() => {
                 if (!authenticated) {
-                    log.warn(`${clientId} failed to authenticate — closing.`);
-                    ws.close();
+                    log.warn(`${clientId} failed to authenticate within 10s — closing.`);
+                    ws.close(1008, 'Authentication timeout');
                 }
             }, 10_000);
         }
@@ -175,10 +175,27 @@ class WsTransportServer {
             supportedActions: msg.supportedActions || null, // null = supports everything
         };
 
+        // ── ONE DEVICE = ONE CONNECTION ──────────────────────────────────────
+        // If the same platform+deviceName is already connected, close the OLD one.
+        // This prevents duplicate ghost connections from reconnect races.
+        const existingClients = registry.getAllClients();
+        for (const existing of existingClients) {
+            if (existing.id !== clientId &&
+                existing.platform === capabilities.platform &&
+                existing.deviceName === capabilities.deviceName) {
+                log.warn(`Duplicate device detected: [${existing.platform}] ${existing.deviceName} (old: ${existing.id}). Closing old connection.`);
+                // Close old client's WebSocket
+                this._closeAndCleanup(existing.id);
+            }
+        }
+
         // Register with a send function that wraps this ws instance
         registry.register(clientId, capabilities, (encoded) => {
             if (ws.readyState === WebSocket.OPEN) ws.send(encoded);
         });
+
+        // Store the ws for force-close capability
+        this._clientSockets.set(clientId, ws);
 
         // Reply with daemon hello
         ws.send(encode(MSG.DAEMON_HELLO, {
@@ -187,17 +204,51 @@ class WsTransportServer {
             message: 'Summer Core Daemon — connected.',
         }));
 
-        // Start keepalive
+        // ── Start server-side PING keepalive (Bug #3 fix: PING not PONG) ─────
         const pingTimer = setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
-                ws.send(encode(MSG.PONG));
+                if (!ws._isAlive) {
+                    // No pong received since last ping — connection is dead
+                    log.warn(`Client ${clientId} failed pong check — terminating.`);
+                    ws.terminate();
+                    return;
+                }
+                ws._isAlive = false;
+                ws.ping(); // WebSocket-level ping (triggers 'pong' event)
+                ws.send(encode(MSG.PING)); // Application-level ping for client keepalive
             } else {
                 clearInterval(pingTimer);
             }
         }, PING_INTERVAL_MS);
         this._pingTimers.set(clientId, pingTimer);
 
-        log.info(`Client authenticated: [${capabilities.platform}] ${capabilities.deviceName}`);
+        log.info(`Client authenticated: [${capabilities.platform}] ${capabilities.deviceName} (${clientId})`);
+    }
+
+    /** Clean up a client by ID — timer, registry, socket ref. */
+    _cleanupClient(clientId) {
+        registry.unregister(clientId);
+        this._clientSockets.delete(clientId);
+        if (this._pingTimers.has(clientId)) {
+            clearInterval(this._pingTimers.get(clientId));
+            this._pingTimers.delete(clientId);
+        }
+    }
+
+    /** Force-close a client's WebSocket and clean up. Used for duplicate device eviction. */
+    _closeAndCleanup(clientId) {
+        const oldWs = this._clientSockets.get(clientId);
+        if (oldWs) {
+            try {
+                // Send a goodbye before closing
+                oldWs.send(encode(MSG.ERROR, { message: 'Another device with the same identity connected. Closing this session.' }));
+                oldWs.close(1000, 'Replaced by new connection');
+            } catch (_) {
+                // If send fails, force terminate
+                try { oldWs.terminate(); } catch (_) {}
+            }
+        }
+        this._cleanupClient(clientId);
     }
 
     // ── Route incoming client messages → event bus ────────────────────────────

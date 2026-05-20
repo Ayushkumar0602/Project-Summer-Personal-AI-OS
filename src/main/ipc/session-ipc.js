@@ -27,23 +27,35 @@ const log = createLogger('SessionIPC');
  */
 function registerSessionIpc(ipcMain, getDaemonWs, getMainWindow) {
 
+    let _lastSessionStartTime = 0;
+    const SESSION_START_DEBOUNCE_MS = 2000; // Ignore rapid-fire starts within 2s
+
     function sendToDaemon(encoded) {
         const ws = getDaemonWs();
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(encoded);
+            return true;
         } else {
             log.warn('Cannot send to daemon — WebSocket not ready');
+            return false;
         }
     }
 
     // ── Renderer → Daemon ─────────────────────────────────────────────────────
     ipcMain.on('start-session', (_, contextPayload) => {
+        const now = Date.now();
+        if (now - _lastSessionStartTime < SESSION_START_DEBOUNCE_MS) {
+            log.warn(`start-session debounced (${now - _lastSessionStartTime}ms since last). Ignoring.`);
+            return;
+        }
+        _lastSessionStartTime = now;
         log.info('start-session IPC received');
         sendToDaemon(encode(MSG.START_SESSION, { context: contextPayload || {} }));
     });
 
     ipcMain.on('stop-session', () => {
         log.info('stop-session IPC received');
+        _lastSessionStartTime = 0; // Reset debounce on intentional stop
         sendToDaemon(encode(MSG.STOP_SESSION));
     });
 
