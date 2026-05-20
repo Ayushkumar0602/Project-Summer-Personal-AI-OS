@@ -147,6 +147,8 @@ class WsTransportServer {
 
         ws.on('close', (code, reason) => {
             log.info(`Client disconnected: ${clientId} (${code})`);
+            // Fix: Notify BrainBridge that this client disconnected so it drops any active session
+            bus.emit(bus.EVENTS.SESSION_END, { clientId });
             this._cleanupClient(clientId);
         });
 

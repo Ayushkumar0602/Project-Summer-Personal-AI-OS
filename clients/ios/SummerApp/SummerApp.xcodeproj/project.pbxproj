@@ -1,0 +1,406 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4B0000004B00000004B00001 /* SummerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B0000001B00000001B00001 /* SummerApp.swift */; };
+		4C0000004C00000004C00001 /* SummerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0000001C00000001C00001 /* SummerClient.swift */; };
+		4D0000004D00000004D00001 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0000001D00000001D00001 /* AudioEngine.swift */; };
+		4E0000004E00000004E00001 /* ContextBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0000001E00000001E00001 /* ContextBuilder.swift */; };
+		4F0000004F00000004F00001 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F0000001F00000001F00001 /* MainView.swift */; };
+		5A0000005A00000005A00001 /* OrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000002A00000002A00001 /* OrbView.swift */; };
+		5B0000005B00000005B00001 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0000002B00000002B00001 /* SetupView.swift */; };
+		5C0000005C00000005C00001 /* SummerIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0000002C00000002C00001 /* SummerIntent.swift */; };
+		5D0000005D00000005D00001 /* LocationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0000002D00000002D00001 /* LocationHelper.swift */; };
+		5E0000005E00000005E00001 /* PairingHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E0000002E00000002E00001 /* PairingHelper.swift */; };
+		5F0000005F00000005F00001 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F0000002F00000002F00001 /* Extensions.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A0000001A00000001A00001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1B0000001B00000001B00001 /* SummerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerApp.swift; sourceTree = "<group>"; };
+		1C0000001C00000001C00001 /* SummerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerClient.swift; sourceTree = "<group>"; };
+		1D0000001D00000001D00001 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		1E0000001E00000001E00001 /* ContextBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextBuilder.swift; sourceTree = "<group>"; };
+		1F0000001F00000001F00001 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		2A0000002A00000002A00001 /* OrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbView.swift; sourceTree = "<group>"; };
+		2B0000002B00000002B00001 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
+		2C0000002C00000002C00001 /* SummerIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerIntent.swift; sourceTree = "<group>"; };
+		2D0000002D00000002D00001 /* LocationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationHelper.swift; sourceTree = "<group>"; };
+		2E0000002E00000002E00001 /* PairingHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingHelper.swift; sourceTree = "<group>"; };
+		2F0000002F00000002F00001 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		3A0000003A00000003A00001 /* SummerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SummerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9F0000009F00000009F00001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7B0000007B00000007B00001 /* SummerApp */ = {
+			isa = PBXGroup;
+			children = (
+				7D0000007D00000007D00001 /* App */,
+				7E0000007E00000007E00001 /* Core */,
+				7F0000007F00000007F00001 /* Views */,
+				8A0000008A00000008A00001 /* Shortcuts */,
+				8B0000008B00000008B00001 /* Helpers */,
+				1A0000001A00000001A00001 /* Info.plist */,
+			);
+			path = SummerApp;
+			sourceTree = "<group>";
+		};
+		7C0000007C00000007C00001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3A0000003A00000003A00001 /* SummerApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7D0000007D00000007D00001 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				1B0000001B00000001B00001 /* SummerApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		7E0000007E00000007E00001 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				1C0000001C00000001C00001 /* SummerClient.swift */,
+				1D0000001D00000001D00001 /* AudioEngine.swift */,
+				1E0000001E00000001E00001 /* ContextBuilder.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		7F0000007F00000007F00001 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				1F0000001F00000001F00001 /* MainView.swift */,
+				2A0000002A00000002A00001 /* OrbView.swift */,
+				2B0000002B00000002B00001 /* SetupView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		8A0000008A00000008A00001 /* Shortcuts */ = {
+			isa = PBXGroup;
+			children = (
+				2C0000002C00000002C00001 /* SummerIntent.swift */,
+			);
+			path = Shortcuts;
+			sourceTree = "<group>";
+		};
+		8B0000008B00000008B00001 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				2D0000002D00000002D00001 /* LocationHelper.swift */,
+				2E0000002E00000002E00001 /* PairingHelper.swift */,
+				2F0000002F00000002F00001 /* Extensions.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		8C0000008C00000008C00001 = {
+			isa = PBXGroup;
+			children = (
+				7B0000007B00000007B00001 /* SummerApp */,
+				7C0000007C00000007C00001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA000000AA000000AA000001 /* SummerApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DD000000DD000000DD000001 /* Build configuration list for PBXNativeTarget "SummerApp" */;
+			buildPhases = (
+				9D0000009D00000009D00001 /* Sources */,
+				9F0000009F00000009F00001 /* Frameworks */,
+				9E0000009E00000009E00001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SummerApp;
+			productName = SummerApp;
+			productReference = 3A0000003A00000003A00001 /* SummerApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BB000000BB000000BB000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					AA000000AA000000AA000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = DD000000DD000000DD000002 /* Build configuration list for PBXProject "SummerApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 8C0000008C00000008C00001;
+			productRefGroup = 7C0000007C00000007C00001 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA000000AA000000AA000001 /* SummerApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9E0000009E00000009E00001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9D0000009D00000009D00001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4B0000004B00000004B00001 /* SummerApp.swift in Sources */,
+				4C0000004C00000004C00001 /* SummerClient.swift in Sources */,
+				4D0000004D00000004D00001 /* AudioEngine.swift in Sources */,
+				4E0000004E00000004E00001 /* ContextBuilder.swift in Sources */,
+				4F0000004F00000004F00001 /* MainView.swift in Sources */,
+				5A0000005A00000005A00001 /* OrbView.swift in Sources */,
+				5B0000005B00000005B00001 /* SetupView.swift in Sources */,
+				5C0000005C00000005C00001 /* SummerIntent.swift in Sources */,
+				5D0000005D00000005D00001 /* LocationHelper.swift in Sources */,
+				5E0000005E00000005E00001 /* PairingHelper.swift in Sources */,
+				5F0000005F00000005F00001 /* Extensions.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		CC000000CC000000CC000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 27R89ZUSVW;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SummerApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ayush.summer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		CC000000CC000000CC000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 27R89ZUSVW;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SummerApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ayush.summer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		CC000000CC000000CC000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLES = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CC000000CC000000CC000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLES = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DD000000DD000000DD000001 /* Build configuration list for PBXNativeTarget "SummerApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC000000CC000000CC000001 /* Debug */,
+				CC000000CC000000CC000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DD000000DD000000DD000002 /* Build configuration list for PBXProject "SummerApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC000000CC000000CC000003 /* Debug */,
+				CC000000CC000000CC000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BB000000BB000000BB000001 /* Project object */;
+}

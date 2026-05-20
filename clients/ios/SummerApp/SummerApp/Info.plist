@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- ── App Identity ───────────────────────────────────── -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+
+	<key>CFBundleDisplayName</key>
+	<string>Summer</string>
+
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+
+	<key>CFBundleVersion</key>
+	<string>1</string>
+
+	<!-- ── Supported Orientations ─────────────────────────── -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+
+	<!-- ── Privacy Permissions (Required) ────────────────────
+	     These MUST be present or iOS will crash on permission request.
+	     The strings are shown to the user in the system permission dialog. -->
+
+	<!-- Microphone: needed for voice input (vad-recorder.js equivalent) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Summer uses your microphone to hear your voice commands and stream them to your AI assistant.</string>
+
+	<!-- Location: needed for weather context (replaces ip-api.com fetch) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Summer uses your location to provide accurate weather information as context for your AI assistant.</string>
+
+	<!-- ── Background Audio ───────────────────────────────────
+	     Required for audio playback to continue if the screen dims.
+	     Also keeps the WebSocket alive while app is in background. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+
+	<!-- ── App Transport Security ────────────────────────────
+	     Allows ws:// (non-TLS) WebSocket to local network daemon.
+	     Summer daemon runs on ws://192.168.x.x:8765 (not wss://).
+	     Without this, iOS blocks non-HTTPS/non-WSS connections. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<!-- Fallback for any local IP range -->
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+
+	<!-- ── Local Network Permission ──────────────────────────
+	     iOS 14+ requires this key + entitlement for local network access -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Summer connects to your Mac's AI daemon on your local Wi-Fi network to process voice commands.</string>
+
+	<!-- ── Bonjour Services (optional, for future mDNS discovery) -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_summer._tcp</string>
+	</array>
+
+	<!-- ── Scene Configuration ───────────────────────────────── -->
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+
+
+
+</dict>
+</plist>
