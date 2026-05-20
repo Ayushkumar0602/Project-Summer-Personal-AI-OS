@@ -423,7 +423,7 @@ class DaemonClient {
         // 1. Check local pre-approved permissions first (so it works with cloud brain)
         let isGrantedLocally = false;
         try {
-            const { isPermissionGranted } = require('../../settings/permissions-store');
+            const { isPermissionGranted } = require('../settings/permissions-store');
             isGrantedLocally = isPermissionGranted(toolName);
         } catch (_) {}
 
@@ -460,7 +460,7 @@ class DaemonClient {
         // 2. Save locally if user selected "Always Allow"
         if (alwaysAllow) {
             try {
-                const { grantPermission } = require('../../settings/permissions-store');
+                const { grantPermission } = require('../settings/permissions-store');
                 grantPermission(toolName, actionLabel || description);
             } catch (e) {
                 log.error(`[Permissions] Failed to save locally: ${e.message}`);
