@@ -36,6 +36,22 @@ class LiveSessionManager {
         this.lastShadowImagePushTime = 0;
         this.lastShadowImageIds = new Set();
         this._toolContext = null;
+        this._inactivityTimer = null;
+    }
+
+    _startInactivityTimer() {
+        this._clearInactivityTimer();
+        this._inactivityTimer = setTimeout(() => {
+            console.log('[LiveSession] Session inactive for 10 minutes — auto-closing.');
+            this.stop();
+        }, 10 * 60 * 1000);
+    }
+
+    _clearInactivityTimer() {
+        if (this._inactivityTimer) {
+            clearTimeout(this._inactivityTimer);
+            this._inactivityTimer = null;
+        }
     }
 
     _getMainWindow() {
@@ -62,7 +78,13 @@ class LiveSessionManager {
     }
 
     async start(event, contextPayload) {
-        if (this.ws) this.ws.close();
+        if (this.ws) {
+            try { this.ws.close(); } catch {}
+            this.ws = null;
+            await new Promise(r => setTimeout(r, 100));
+        }
+
+        this._startInactivityTimer();
 
         this.currentSessionContextPayload = contextPayload || {};
 
@@ -149,6 +171,7 @@ class LiveSessionManager {
         ws.on('message', (data) => {
             try {
                 const response = JSON.parse(data.toString());
+                this._startInactivityTimer();
 
                 if (response.setupComplete) {
                     console.log("Setup complete received from Gemini.");
@@ -385,16 +408,21 @@ class LiveSessionManager {
             }
 
             this._resumeWakeWordAfterClose();
+            this._clearInactivityTimer();
         });
     }
 
     stop() {
-        if (this.ws) this.ws.close();
+        this._clearInactivityTimer();
+        if (this.ws) {
+            try { this.ws.close(); } catch {}
+        }
         this.ws = null;
         this._resumeWakeWordAfterClose();
     }
 
     sendAudio(base64Audio) {
+        this._startInactivityTimer();
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
         this.ws.send(JSON.stringify({
             realtimeInput: {
@@ -429,6 +457,7 @@ class LiveSessionManager {
     }
 
     sendTextCommand(text) {
+        this._startInactivityTimer();
         if (orchestrator.cancelIfUserSaysStop(text)) {
             this.deps.emitAgentEvent('agent-killed', { reason: 'user_cancel' });
         } else if (orchestrator.matchAgentIntent(text)) {

@@ -77,20 +77,25 @@ class WsTransportServer {
         });
 
         // ── Bridge event bus → clients ────────────────────────────────
-        bus.on(bus.EVENTS.CLIENT_SEND, ({ clientId, message }) => {
+        this._clientSendHandler = ({ clientId, message }) => {
             const encoded = typeof message === 'string' ? message : JSON.stringify(message);
             if (clientId === 'all') {
                 registry.broadcast(encoded);
             } else {
                 registry.send(clientId, encoded);
             }
-        });
+        };
+        bus.on(bus.EVENTS.CLIENT_SEND, this._clientSendHandler);
 
         log.info('WsTransportServer started.');
         return this;
     }
 
     stop() {
+        if (this._clientSendHandler) {
+            bus.removeListener(bus.EVENTS.CLIENT_SEND, this._clientSendHandler);
+            this._clientSendHandler = null;
+        }
         for (const [, timer] of this._pingTimers) clearInterval(timer);
         this._pingTimers.clear();
         if (this._wss) this._wss.close(() => log.info('WsTransportServer stopped.'));
@@ -246,7 +251,7 @@ class WsTransportServer {
             try {
                 // Send a goodbye before closing
                 oldWs.send(encode(MSG.ERROR, { message: 'Another device with the same identity connected. Closing this session.' }));
-                oldWs.close(1000, 'Replaced by new connection');
+                oldWs.close(4001, 'Replaced by new connection');
             } catch (_) {
                 // If send fails, force terminate
                 try { oldWs.terminate(); } catch (_) {}
@@ -270,10 +275,8 @@ class WsTransportServer {
                 break;
 
             case MSG.SEND_AUDIO:
-                // Only active client can send audio
-                if (registry.isClientActive(clientId)) {
-                    bus.dispatch(E.AUDIO_CHUNK_IN, { clientId, data: msg.data, sampleRate: msg.sampleRate || 16000 });
-                }
+                // Any client with an active session can send audio (verified by brain-bridge later)
+                bus.dispatch(E.AUDIO_CHUNK_IN, { clientId, data: msg.data, sampleRate: msg.sampleRate || 16000 });
                 break;
 
             case MSG.SEND_TURN_COMPLETE:

@@ -127,12 +127,14 @@ struct OrbView: View {
             glowOpacity  = state.isPulsing ? 0.7  : 0.3
         }
 
-        // Continuous rotation for the shimmer ring
-        withAnimation(
-            .linear(duration: 4.0)
-                .repeatForever(autoreverses: false)
-        ) {
-            rotationAngle = 360
+        // Continuous rotation for the shimmer ring - only start once
+        if rotationAngle == 0.0 {
+            withAnimation(
+                .linear(duration: 4.0)
+                    .repeatForever(autoreverses: false)
+            ) {
+                rotationAngle = 360
+            }
         }
     }
 }

@@ -60,15 +60,12 @@ function initSessionEvents(deps) {
         }, 500);
     });
 
-    window.liveAPI.onSessionEnded((msg) => {
+    window.liveAPI.onSessionEnded(() => {
         if (setIsConnecting) setIsConnecting(false);
         if (window.liveAPI.setWakeWordEnabled) window.liveAPI.setWakeWordEnabled(true);
-        
-        const isTakeover = msg && msg.takeover;
-
-        if (getUserDisconnected() || isTakeover) {
+        if (getUserDisconnected()) {
             setIsConnected(false);
-            setOrbState('idle', isTakeover ? 'Session Transferred' : 'Click Orb to Connect');
+            setOrbState('idle', 'Click Orb to Connect');
             stopRecording();
             audioQueue.clear();
             setWakeWordIndicator('listening');

@@ -77,19 +77,22 @@ async function start() {
     // 3. Create the agent event emitter (platform-agnostic replacement for createEmitAgentEvent)
     const emitAgentEvent = createAgentEventEmitter();
 
-    // 4. Create the LiveSessionManager with a NULL main window (no Electron)
+    // 4. Create the LiveSessionManager factory with a NULL main window (no Electron)
     //    callBrowser now routes through renderer-bridge → WebSocket → client
-    const liveSessionManager = new LiveSessionManager({
-        getMainWindow:     () => null,
-        getMemoryWindow:   () => null,
-        getWakeWordEngine: () => null,
-        callBrowser:       _daemonCallBrowser,
-        emitAgentEvent,
-    });
+    const sessionFactory = (clientId) => {
+        return new LiveSessionManager({
+            getMainWindow:     () => null,
+            getMemoryWindow:   () => null,
+            getWakeWordEngine: () => null,
+            callBrowser:       _daemonCallBrowser,
+            emitAgentEvent,
+            clientId,
+        });
+    };
 
     // 5. Wire the Brain to the event bus via BrainBridge
     brainBridge = new BrainBridge();
-    brainBridge.init(liveSessionManager);
+    brainBridge.init(sessionFactory);
 
     // 6. Wire orchestrator agent events to the event bus
     //    (orchestrator emits events that need to reach clients)

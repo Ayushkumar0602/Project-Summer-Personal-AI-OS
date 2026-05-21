@@ -28,10 +28,17 @@ class LocationHelper: NSObject, ObservableObject {
 
     // Async wrapper — mirrors: const ipRes = await fetch('http://ip-api.com/json/')
     func getCurrentLocation() async -> LocationResult? {
+        if continuation != nil {
+            return nil // Already fetching
+        }
+        
         // Request permission if needed
         let status = manager.authorizationStatus
-        if status == .notDetermined { manager.requestWhenInUseAuthorization() }
-        guard status == .authorizedWhenInUse || status == .authorizedAlways else { return nil }
+        if status == .notDetermined {
+            manager.requestWhenInUseAuthorization()
+        }
+        
+        guard status == .authorizedWhenInUse || status == .authorizedAlways || status == .notDetermined else { return nil }
 
         let clLocation: CLLocation? = await withCheckedContinuation { cont in
             self.continuation = cont
@@ -57,16 +64,20 @@ class LocationHelper: NSObject, ObservableObject {
 extension LocationHelper: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
-            self.continuation?.resume(returning: locations.first)
-            self.continuation = nil
+            if let cont = self.continuation {
+                cont.resume(returning: locations.first)
+                self.continuation = nil
+            }
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("[LocationHelper] Failed: \(error.localizedDescription)")
         Task { @MainActor in
-            self.continuation?.resume(returning: nil)
-            self.continuation = nil
+            if let cont = self.continuation {
+                cont.resume(returning: nil)
+                self.continuation = nil
+            }
         }
     }
 

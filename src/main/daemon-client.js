@@ -106,6 +106,16 @@ class DaemonClient {
 
             if (this._stopping) return;
 
+            // Don't reconnect on intentional server-side closes
+            if (code === 1008) {
+                log.error('Authentication failed — not reconnecting.');
+                return;
+            }
+            if (code === 4001) {
+                log.info('Server replaced this connection (dedup) — reconnecting immediately.');
+                this._reconnectDelay = RECONNECT_DELAY_MS;
+            }
+
             log.warn(`Daemon connection closed (${code}). Reconnecting in ${this._reconnectDelay}ms...`);
             this._scheduleReconnect();
         });
@@ -208,7 +218,7 @@ class DaemonClient {
 
             // ── Session ────────────────────────────────────────────────────────
             case MSG.SESSION_STARTED:    fwd('session-started');                        break;
-            case MSG.SESSION_ENDED:      fwd('session-ended', msg);                     break;
+            case MSG.SESSION_ENDED:      fwd('session-ended');                          break;
 
             // ── Audio / text ───────────────────────────────────────────────────
             case MSG.AUDIO_RESPONSE:     fwd('agent-audio', msg.data);                  break;

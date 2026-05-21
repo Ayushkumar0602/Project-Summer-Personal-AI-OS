@@ -28,18 +28,18 @@ class BrainBridge {
     constructor(deps = {}) {
         // These are injected by the daemon so we don't hardcode Electron deps here
         this._deps     = deps;
-        this._session  = null; // LiveSessionManager instance
-        this._started  = false;
+        this._sessions = new Map(); // clientId → { lsm: LiveSessionManager, active: boolean, fakeEvent: object }
+        this._sessionFactory = null; // (clientId) => LiveSessionManager
     }
 
     /**
-     * Initialize with the LiveSessionManager and wire all event bus subscriptions.
-     * @param {object} liveSessionManager - instance of LiveSessionManager
+     * Initialize with the session factory and wire all event bus subscriptions.
+     * @param {Function} sessionFactory - (clientId) => LiveSessionManager
      */
-    init(liveSessionManager) {
-        this._session = liveSessionManager;
+    init(sessionFactory) {
+        this._sessionFactory = sessionFactory;
         this._wireEventBus();
-        log.info('BrainBridge initialized — Gemini session wired to event bus.');
+        log.info('BrainBridge initialized — Gemini sessions wired to event bus.');
     }
 
     // ── Event bus wiring ──────────────────────────────────────────────────────
@@ -51,59 +51,62 @@ class BrainBridge {
         this._handlers = {};
 
         // Client wants to start a session (with guard against rapid-fire)
+        // Client wants to start a session
         this._handlers.sessionStart = ({ clientId, context }) => {
-            if (this._sessionActive) {
-                // Same owner re-requesting = ignore; different owner = stop old, start new
-                if (this._sessionOwner === clientId) {
-                    log.warn(`Session already active for ${clientId} — ignoring duplicate start.`);
-                    return;
-                }
-                // Different client wants to take over — stop the old session first
-                log.info(`Session takeover: ${this._sessionOwner} → ${clientId}. Stopping old session.`);
-                this._sessionActive = false;
-                this._sessionOwner  = null;
-                this._isTakeover    = true; // Flag for SESSION_ENDED broadcast
-                this._session.stop();
+            let sessionObj = this._sessions.get(clientId);
+
+            if (sessionObj && sessionObj.active) {
+                log.warn(`Session already active for ${clientId} — stopping old session first.`);
+                sessionObj.lsm.stop();
+                sessionObj.active = false;
             }
-            this._sessionActive = true;
-            this._sessionOwner  = clientId;
+
+            if (!sessionObj) {
+                // Instantiate a new LiveSessionManager for this client
+                const lsm = this._sessionFactory(clientId);
+                sessionObj = {
+                    lsm,
+                    active: false,
+                    fakeEvent: this._makeFakeIpcEvent(clientId)
+                };
+                this._sessions.set(clientId, sessionObj);
+            }
+
+            sessionObj.active = true;
             log.info(`Session start requested by client: ${clientId}`);
-            const fakeEvent = this._makeFakeIpcEvent(clientId);
-            this._session.start(fakeEvent, context || {});
+            sessionObj.lsm.start(sessionObj.fakeEvent, context || {});
         };
         bus.on(E.SESSION_START, this._handlers.sessionStart);
 
         // Client wants to stop a session — only the session owner can stop it
         this._handlers.sessionEnd = ({ clientId, isDisconnect }) => {
-            if (!this._sessionActive) return; // nothing to stop
+            const sessionObj = this._sessions.get(clientId);
+            if (!sessionObj || !sessionObj.active) return; // nothing to stop
 
-            // Allow stop if: (a) this client owns the session, or (b) it's a disconnect cleanup
-            if (this._sessionOwner === clientId || isDisconnect) {
-                log.info(`Session stop requested by client: ${clientId}${isDisconnect ? ' (disconnect cleanup)' : ''}`);
-                this._sessionActive = false;
-                this._sessionOwner  = null;
-                this._session.stop();
-            } else {
-                log.warn(`Client ${clientId} tried to stop session owned by ${this._sessionOwner} — ignored.`);
-            }
+            log.info(`Session stop requested by client: ${clientId}${isDisconnect ? ' (disconnect cleanup)' : ''}`);
+            sessionObj.active = false;
+            sessionObj.lsm.stop();
         };
         bus.on(E.SESSION_END, this._handlers.sessionEnd);
 
         // Audio chunk from active client's mic
-        this._handlers.audioIn = ({ data }) => {
-            this._session.sendAudio(data);
+        this._handlers.audioIn = ({ clientId, data }) => {
+            const sessionObj = this._sessions.get(clientId);
+            if (sessionObj && sessionObj.active) sessionObj.lsm.sendAudio(data);
         };
         bus.on(E.AUDIO_CHUNK_IN, this._handlers.audioIn);
 
         // VAD silence / push-to-talk release
-        this._handlers.turnComplete = () => {
-            this._session.sendTurnComplete();
+        this._handlers.turnComplete = ({ clientId }) => {
+            const sessionObj = this._sessions.get(clientId);
+            if (sessionObj && sessionObj.active) sessionObj.lsm.sendTurnComplete();
         };
         bus.on(E.TURN_COMPLETE, this._handlers.turnComplete);
 
         // Text command from client
-        this._handlers.textIn = ({ text }) => {
-            this._session.sendTextCommand(text);
+        this._handlers.textIn = ({ clientId, text }) => {
+            const sessionObj = this._sessions.get(clientId);
+            if (sessionObj && sessionObj.active) sessionObj.lsm.sendTextCommand(text);
         };
         bus.on(E.BRAIN_TEXT_IN, this._handlers.textIn);
 
@@ -129,8 +132,10 @@ class BrainBridge {
             if (this._handlers.agentKilled)  bus.removeListener(E.AGENT_KILLED, this._handlers.agentKilled);
             this._handlers = null;
         }
-        this._sessionActive = false;
-        this._sessionOwner  = null;
+        for (const sessionObj of this._sessions.values()) {
+            if (sessionObj.active) sessionObj.lsm.stop();
+        }
+        this._sessions.clear();
         log.info('BrainBridge destroyed — event bus listeners removed.');
     }
 
@@ -167,58 +172,59 @@ class BrainBridge {
         switch (channel) {
 
             case 'session-started':
-                bus.broadcast(encode(MSG.SESSION_STARTED));
-                log.info('Gemini session started → broadcast to all clients.');
+                registry.send(clientId, encode(MSG.SESSION_STARTED));
+                log.info(`Gemini session started → sent to client: ${clientId}`);
                 break;
 
             case 'session-ended':
-                this._sessionActive = false;
-                bus.broadcast(encode(MSG.SESSION_ENDED, { takeover: !!this._isTakeover }));
-                this._isTakeover = false; // Reset the flag
+                if (this._sessions.has(clientId)) {
+                    this._sessions.get(clientId).active = false;
+                }
+                registry.send(clientId, encode(MSG.SESSION_ENDED));
                 break;
 
             case 'agent-audio':
-                // Audio response — only send to active client (they play it)
-                registry.sendToActive(encode(MSG.AUDIO_RESPONSE, { data: payload }));
+                // Send to the session owner
+                registry.send(clientId, encode(MSG.AUDIO_RESPONSE, { data: payload }));
                 break;
 
             case 'agent-text':
-                bus.dispatch(E.AGENT_TEXT, { text: payload });
-                bus.broadcast(encode(MSG.TEXT_RESPONSE, { text: payload, role: 'agent' }));
+                bus.dispatch(E.AGENT_TEXT, { text: payload, clientId });
+                registry.send(clientId, encode(MSG.TEXT_RESPONSE, { text: payload, role: 'agent' }));
                 break;
 
             case 'user-text':
-                bus.dispatch(E.USER_TEXT, { text: payload });
-                bus.broadcast(encode(MSG.USER_TRANSCRIPT, { text: payload }));
+                bus.dispatch(E.USER_TEXT, { text: payload, clientId });
+                registry.send(clientId, encode(MSG.USER_TRANSCRIPT, { text: payload }));
                 break;
 
             case 'agent-turn-complete':
-                bus.broadcast(encode(MSG.TURN_COMPLETE));
+                registry.send(clientId, encode(MSG.TURN_COMPLETE));
                 break;
 
             case 'agent-interrupted':
-                bus.broadcast(encode(MSG.AGENT_INTERRUPTED));
+                registry.send(clientId, encode(MSG.AGENT_INTERRUPTED));
                 break;
 
             case 'agent-error':
-                bus.broadcast(encode(MSG.ERROR, { message: payload }));
-                log.error('Gemini session error', { message: payload });
+                registry.send(clientId, encode(MSG.ERROR, { message: payload }));
+                log.error(`Gemini session error for ${clientId}`, { message: payload });
                 break;
 
             case 'agent-tool-call':
-                bus.dispatch(E.TOOL_STARTED, payload);
-                bus.broadcast(encode(MSG.TOOL_CALL, { name: payload?.name, args: payload?.args }));
+                bus.dispatch(E.TOOL_STARTED, { ...payload, clientId });
+                registry.send(clientId, encode(MSG.TOOL_CALL, { name: payload?.name, args: payload?.args }));
                 break;
 
             case 'agent-tool-complete':
-                bus.dispatch(E.TOOL_COMPLETE, payload);
-                bus.broadcast(encode(MSG.TOOL_COMPLETE, { name: payload?.name }));
+                bus.dispatch(E.TOOL_COMPLETE, { ...payload, clientId });
+                registry.send(clientId, encode(MSG.TOOL_COMPLETE, { name: payload?.name }));
                 break;
 
             case 'show-hud-widget': {
-                bus.dispatch(E.HUD_UPDATE, payload);
+                bus.dispatch(E.HUD_UPDATE, { ...payload, clientId });
                 const { type, ...state } = payload || {};
-                bus.broadcast(encode(MSG.HUD_UPDATE, { widget: type, state }));
+                registry.send(clientId, encode(MSG.HUD_UPDATE, { widget: type, state }));
                 break;
             }
 

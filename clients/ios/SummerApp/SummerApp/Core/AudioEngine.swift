@@ -67,11 +67,17 @@ class AudioEngine {
         setupInterruptionHandling()
     }
 
+    deinit {
+        recordEngine.stop()
+        playEngine.stop()
+        silenceWorkItem?.cancel()
+        NotificationCenter.default.removeObserver(self)
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
     // MARK: - Recording Setup
     // Mirrors: async function startRecording() in vad-recorder.js
     func startRecording() {
-        guard !recordEngine.isRunning else { return }
-        
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playAndRecord,
@@ -103,9 +109,6 @@ class AudioEngine {
         }
         inputConverter = converter
 
-        // Ensure clean state to prevent AVFoundation crash on duplicate taps
-        inputNode.removeTap(onBus: 0)
-        
         // Process audio on dedicated queue — NOT the main thread (fixes lag)
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
             self?.audioProcessingQueue.async {
@@ -202,10 +205,14 @@ class AudioEngine {
         guard recordEngine.isRunning else { return }
         recordEngine.inputNode.removeTap(onBus: 0)
         recordEngine.stop()
-        silenceWorkItem?.cancel()
-        silenceWorkItem = nil
-        isSpeakingToAgent       = false
-        consecutiveVoiceBuffers = 0
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.silenceWorkItem?.cancel()
+            self?.silenceWorkItem = nil
+            self?.isSpeakingToAgent       = false
+            self?.consecutiveVoiceBuffers = 0
+        }
+        
         // Deactivate audio session so iOS doesn't kill us for holding it
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         print("[AudioEngine] Recording stopped")
@@ -239,8 +246,11 @@ class AudioEngine {
                 frameCapacity: AVAudioFrameCount(floatSamples.count)
             ) else { return }
             buffer.frameLength = buffer.frameCapacity
+            
+            guard let floatChannelData = buffer.floatChannelData else { return }
+            
             floatSamples.withUnsafeBufferPointer {
-                buffer.floatChannelData![0].update(from: $0.baseAddress!, count: floatSamples.count)
+                floatChannelData[0].update(from: $0.baseAddress!, count: floatSamples.count)
             }
 
             DispatchQueue.main.async {
@@ -262,18 +272,33 @@ class AudioEngine {
                 }
             }
 
-            if !self.playEngine.isRunning { try? self.playEngine.start() }
             if !self.playerNode.isPlaying { self.playerNode.play() }
         }
     }
 
     func clearPlayback() {
-        playerNode.stop()
-        isPlaybackActive = false
-        scheduledBufferCount = 0
-        // Re-prepare player for next playback
-        if !playEngine.isRunning { try? playEngine.start() }
-        playerNode.play()
+        audioProcessingQueue.async { [weak self] in
+            guard let self else { return }
+            self.playerNode.stop()
+            DispatchQueue.main.async {
+                self.isPlaybackActive = false
+                self.scheduledBufferCount = 0
+            }
+            // Re-prepare player for next playback
+            if !self.playEngine.isRunning { try? self.playEngine.start() }
+            self.playerNode.play()
+        }
+    }
+    
+    func clearPlaybackForShutdown() {
+        audioProcessingQueue.async { [weak self] in
+            guard let self else { return }
+            self.playerNode.stop()
+            DispatchQueue.main.async {
+                self.isPlaybackActive = false
+                self.scheduledBufferCount = 0
+            }
+        }
     }
 
     // MARK: - VAD Helpers (exact mirrors of vad-recorder.js functions)

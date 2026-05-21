@@ -23,6 +23,8 @@ struct MainView: View {
 
     @State private var isBuilding = false   // context is being fetched
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         ZStack {
             // ── Background ────────────────────────────────────────────────────
@@ -36,6 +38,19 @@ struct MainView: View {
                     .padding(.top, 16)
 
                 Spacer()
+
+                // ── User transcript ───────────────────────────────────────────
+                // Mirrors: updateUserSubtitle(text) in session-events.js
+                if !client.userText.isEmpty {
+                    Text(client.userText)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.white.opacity(0.5))
+                        .italic()
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                        .padding(.bottom, 16)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 // ── The Orb ───────────────────────────────────────────────────
                 // Mirrors: document.querySelector('.orb-container').addEventListener('click', ...)
@@ -79,6 +94,14 @@ struct MainView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: client.agentText)
         .animation(.easeInOut(duration: 0.2), value: client.toolName)
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .background {
+                if client.sessionState != .idle {
+                    print("[MainView] Backgrounding: disconnecting session.")
+                    client.disconnect()
+                }
+            }
+        }
         .onAppear {
             // Auto-start from Back Tap / Siri Shortcut
             if autoStart {

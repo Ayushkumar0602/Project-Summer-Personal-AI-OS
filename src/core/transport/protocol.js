@@ -63,6 +63,8 @@ const MSG = Object.freeze({
     MEMORY_OP_RESULT:    'memory_op_result',     // { success, ... }
     ERROR:               'error',                // { message }
     PONG:                'pong',                 // Keepalive reply
+    SESSION_OWNERSHIP:   'session_ownership',    // { isOwner: bool, ownerDeviceName }
+    CLIENT_ACTION:       'client_action',        // { action, args, requestId }
 });
 
 /**
@@ -72,7 +74,9 @@ const MSG = Object.freeze({
  * @returns {string} JSON string ready to send over WebSocket
  */
 function encode(type, payload = {}) {
-    return JSON.stringify({ type, ...payload, _ts: Date.now() });
+    // Ensure 'type' and '_ts' cannot be overwritten by payload contents
+    const { type: _discarded, _ts: _discarded2, ...safePayload } = payload;
+    return JSON.stringify({ type, ...safePayload, _ts: Date.now() });
 }
 
 /**

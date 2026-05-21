@@ -24,6 +24,19 @@ enum PairingError: LocalizedError {
 }
 
 class PairingHelper {
+    private class Resolver {
+        private var isResolved = false
+        private let lock = NSLock()
+        
+        func resolve(with value: PairingError?, continuation: CheckedContinuation<PairingError?, Never>, task: URLSessionWebSocketTask) {
+            lock.lock()
+            defer { lock.unlock() }
+            if isResolved { return }
+            isResolved = true
+            task.cancel()
+            continuation.resume(returning: value)
+        }
+    }
 
     /// Test a connection to the daemon and verify the token.
     /// Returns nil on success, or a PairingError on failure.
@@ -31,8 +44,7 @@ class PairingHelper {
         guard let url = URL(string: "ws://\(ip):8765") else { return .invalidURL }
 
         return await withCheckedContinuation { continuation in
-            var resolved = false
-
+            let resolver = Resolver()
             let session  = URLSession(configuration: .default)
             let task     = session.webSocketTask(with: url)
             task.resume()
@@ -53,46 +65,37 @@ class PairingHelper {
                 let data   = try? JSONSerialization.data(withJSONObject: hello),
                 let string = String(data: data, encoding: .utf8)
             else {
-                continuation.resume(returning: .networkError("Could not encode handshake"))
+                resolver.resolve(with: .networkError("Could not encode handshake"), continuation: continuation, task: task)
                 return
             }
 
             task.send(.string(string)) { error in
                 if let error {
-                    if !resolved { resolved = true; task.cancel() }
-                    continuation.resume(returning: .networkError(error.localizedDescription))
+                    resolver.resolve(with: .networkError(error.localizedDescription), continuation: continuation, task: task)
                     return
                 }
 
                 // Wait for daemon_hello
                 task.receive { result in
-                    guard !resolved else { return }
-                    resolved = true
-                    task.cancel(with: .normalClosure, reason: nil)
-
                     switch result {
                     case .success(let message):
                         if case .string(let text) = message,
                            let data = text.data(using: .utf8),
                            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                            json["type"] as? String == "daemon_hello" {
-                            continuation.resume(returning: nil) // SUCCESS
+                            resolver.resolve(with: nil, continuation: continuation, task: task) // SUCCESS
                         } else {
-                            continuation.resume(returning: .authFailed)
+                            resolver.resolve(with: .authFailed, continuation: continuation, task: task)
                         }
                     case .failure(let error):
-                        continuation.resume(returning: .networkError(error.localizedDescription))
+                        resolver.resolve(with: .networkError(error.localizedDescription), continuation: continuation, task: task)
                     }
                 }
             }
 
             // 10 second timeout
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-                if !resolved {
-                    resolved = true
-                    task.cancel()
-                    continuation.resume(returning: .timeout)
-                }
+                resolver.resolve(with: .timeout, continuation: continuation, task: task)
             }
         }
     }

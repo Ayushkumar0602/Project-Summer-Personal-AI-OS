@@ -144,8 +144,14 @@ class ClientRegistry {
         const incomingPriority = PLATFORM_PRIORITY[incoming.platform  || 'unknown'] || 0;
 
         if (incomingPriority > currentPriority) {
+            const oldId = this._activeClientId;
             this._activeClientId = newClientId;
             log.info(`Session ownership upgraded: ${current?.platform} → ${incoming.platform}`);
+            bus.dispatch(bus.EVENTS.OWNERSHIP_CHANGED, {
+                newOwnerId: newClientId,
+                oldOwnerId: oldId,
+                newPlatform: incoming.platform,
+            });
         }
     }
 
@@ -165,7 +171,14 @@ class ClientRegistry {
             }
         }
         this._activeClientId = bestId;
-        if (bestId) log.info(`New session owner elected: ${bestId}`);
+        if (bestId) {
+            log.info(`New session owner elected: ${bestId}`);
+            bus.dispatch(bus.EVENTS.OWNERSHIP_CHANGED, {
+                newOwnerId: bestId,
+                oldOwnerId: null,
+                reason: 'previous_owner_disconnected',
+            });
+        }
     }
 
     // ── Sending ───────────────────────────────────────────────────────────────
@@ -220,7 +233,9 @@ class ClientRegistry {
             if (!this._offlineQueue.has(platform)) {
                 this._offlineQueue.set(platform, []);
             }
-            this._offlineQueue.get(platform).push(encodedMessage);
+            const queue = this._offlineQueue.get(platform);
+            queue.push(encodedMessage);
+            if (queue.length > 50) queue.shift(); // Cap queue length
         }
     }
 

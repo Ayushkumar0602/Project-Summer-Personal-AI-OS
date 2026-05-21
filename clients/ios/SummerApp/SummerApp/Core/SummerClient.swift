@@ -56,6 +56,7 @@ enum SessionState: Equatable {
 }
 
 // MARK: - SummerClient
+@MainActor
 class SummerClient: ObservableObject {
 
     // ── Published state (SwiftUI observes these) ──────────────────────────────
@@ -63,7 +64,7 @@ class SummerClient: ObservableObject {
     @Published var agentText:    String       = ""   // text_response
     @Published var userText:     String       = ""   // user_transcript
     @Published var toolName:     String?      = nil  // tool_call name
-    private(set) var isConnectedToDaemon = false
+    @Published private(set) var isConnectedToDaemon = false
 
     // ── Internal ──────────────────────────────────────────────────────────────
     private var webSocketTask:   URLSessionWebSocketTask?
@@ -120,20 +121,56 @@ class SummerClient: ObservableObject {
         return engine
     }()
 
+    // MARK: - State Machine Guard
+    private func transitionTo(_ newState: SessionState) {
+        let validTransitions: [String: Set<String>] = [
+            "idle":       ["connecting", "error"],
+            "connecting": ["listening", "error", "idle"],
+            "listening":  ["thinking", "speaking", "idle", "error"],
+            "thinking":   ["speaking", "listening", "idle", "error"],
+            "speaking":   ["listening", "thinking", "idle", "error"],
+            "error":      ["connecting", "idle"],
+        ]
+        
+        let currentKey = stateKey(sessionState)
+        let newKey = stateKey(newState)
+        
+        guard let allowed = validTransitions[currentKey], allowed.contains(newKey) else {
+            print("[SummerClient] ⚠️ Blocked invalid transition: \(currentKey) → \(newKey)")
+            return
+        }
+        
+        sessionState = newState
+    }
+
+    private func stateKey(_ state: SessionState) -> String {
+        switch state {
+        case .idle: return "idle"
+        case .connecting: return "connecting"
+        case .listening: return "listening"
+        case .thinking: return "thinking"
+        case .speaking: return "speaking"
+        case .error: return "error"
+        }
+    }
+
     // MARK: - Connect
     // Mirrors: renderer.js orb click (not connected branch)
     //   → buildContextPayload() → liveAPI.startSession(contextPayload)
     //   We split that into connect() + startSession() to mirror the two-step Mac flow.
     func connect(url: String, token: String, contextPayload: [String: Any]) {
+        cleanup()
+
         daemonURL    = url
         pairingToken = token
         lastContextPayload = contextPayload
         userDisconnected   = false
+        reconnectAttempts  = 0
 
-        DispatchQueue.main.async { self.sessionState = .connecting }
+        transitionTo(.connecting)
 
         guard let wsUrl = URL(string: url) else {
-            DispatchQueue.main.async { self.sessionState = .error("Invalid URL: \\(url)") }
+            transitionTo(.error("Invalid URL: \\(url)"))
             return
         }
 
@@ -182,30 +219,29 @@ class SummerClient: ObservableObject {
         userDisconnected = true
         sendJSON(["type": "stop_session"])
         cleanup()
-        DispatchQueue.main.async {
-            self.sessionState = .idle
-            self.agentText    = ""
-            self.userText     = ""
-            self.toolName     = nil
-        }
+        transitionTo(.idle)
+        agentText    = ""
+        userText     = ""
+        toolName     = nil
     }
 
     // MARK: - Message Receive Loop
     // Mirrors: ws.on('message', (raw) => { ... }) in ws-server.js (client side)
     private func receiveLoop() {
         webSocketTask?.receive { [weak self] result in
-            guard let self else { return }
-            switch result {
-            case .success(let message):
-                if case .string(let text) = message {
-                    self.handleMessage(text)
-                }
-                // Keep listening — mirror of ws 'message' event persisting
-                self.receiveLoop()
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                switch result {
+                case .success(let message):
+                    if case .string(let text) = message {
+                        self.handleMessage(text)
+                    }
+                    self.receiveLoop()
 
-            case .failure(let error):
-                print("[SummerClient] WebSocket receive error: \(error.localizedDescription)")
-                self.handleUnexpectedDisconnect()
+                case .failure(let error):
+                    print("[SummerClient] WebSocket receive error: \(error.localizedDescription)")
+                    self.handleUnexpectedDisconnect()
+                }
             }
         }
     }
@@ -220,101 +256,73 @@ class SummerClient: ObservableObject {
             let type = json["type"] as? String
         else { return }
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
+        switch type {
 
-            switch type {
+        case "daemon_hello":
+            print("[SummerClient] Authenticated. Starting session...")
+            self.startSession()
 
-            // ── Mirrors: _onClientHello reply in ws-server.js ────────────────
-            // daemon_hello means auth passed. Now start the Gemini session.
-            case "daemon_hello":
-                print("[SummerClient] Authenticated. Starting session...")
-                self.startSession()
+        case "session_started":
+            self.reconnectAttempts = 0
+            self.transitionTo(.listening)
+            self.audioEngine.startRecording()
+            print("[SummerClient] Session started — mic active")
 
-            // ── Mirrors: window.liveAPI.onSessionStarted() ───────────────────
-            //   setIsConnected(true) + setOrbState('listening') + startRecording()
-            case "session_started":
-                self.reconnectAttempts = 0
-                self.sessionState      = .listening
-                self.audioEngine.startRecording()
-                print("[SummerClient] Session started — mic active")
-
-            // ── Mirrors: window.liveAPI.onSessionEnded() ─────────────────────
-            //   if userDisconnected → go idle, else → auto-reconnect (1.5s)
-            case "session_ended":
-                self.audioEngine.stopRecording()
-                self.audioEngine.clearPlayback()
-                let isTakeover = json["takeover"] as? Bool ?? false
-                if self.userDisconnected || isTakeover {
-                    self.sessionState = .idle
-                } else {
-                    self.scheduleAutoReconnect()
-                }
-
-            // ── Mirrors: window.liveAPI.onAgentAudio() ───────────────────────
-            //   audioQueue.addAudioData(base64Audio)
-            case "audio_response":
-                if let base64 = json["data"] as? String {
-                    self.sessionState = .speaking
-                    self.audioEngine.playAudio(base64: base64)
-                }
-
-            // ── Mirrors: window.liveAPI.onAgentText() ────────────────────────
-            //   updateSubtitle(text)
-            case "text_response":
-                if let text = json["text"] as? String {
-                    self.agentText = text
-                }
-
-            // ── Mirrors: window.liveAPI.onUserText() ─────────────────────────
-            //   updateUserSubtitle(text) + state → thinking (user done talking)
-            case "user_transcript":
-                if let text = json["text"] as? String {
-                    self.userText     = text
-                    self.sessionState = .thinking
-                }
-
-            // ── Mirrors: window.liveAPI.onAgentTurnComplete() ────────────────
-            //   console.log("Agent finished turn.") → back to listening
-            case "turn_complete":
-                if self.sessionState != .idle {
-                    self.sessionState = .listening
-                }
-
-            // ── Mirrors: window.liveAPI.onAgentInterrupted() ─────────────────
-            //   audioQueue.clear() + setOrbState('listening')
-            case "agent_interrupted":
-                self.audioEngine.clearPlayback()
-                self.sessionState = .listening
-
-            // ── Mirrors: window.liveAPI.onToolCall({ name, args }) ────────────
-            //   floatingTool.textContent = `⚙️ ${name}...`
-            case "tool_call":
-                self.toolName = json["name"] as? String
-
-            // ── Mirrors: window.liveAPI.onToolComplete({ name }) ──────────────
-            //   Start dissolve countdown → hide floatingTool
-            case "tool_complete":
-                // Brief delay matching Mac's 2s dissolve before hiding
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    self.toolName = nil
-                }
-
-            // ── Mirrors: window.liveAPI.onError() ────────────────────────────
-            //   setUserDisconnected(true) + setOrbState('idle', 'Error Connecting')
-            case "error":
-                let msg = json["message"] as? String ?? "An error occurred"
-                self.sessionState    = .error(msg)
-                self.userDisconnected = true
-                self.cleanup()
-                print("[SummerClient] Error from daemon: \(msg)")
-
-            case "pong":
-                break  // keepalive confirmed — mirrors ws.on('pong') handler
-
-            default:
-                print("[SummerClient] Unhandled message type: \(type)")
+        case "session_ended":
+            self.audioEngine.stopRecording()
+            self.audioEngine.clearPlaybackForShutdown()
+            if self.userDisconnected {
+                self.transitionTo(.idle)
+            } else {
+                self.scheduleAutoReconnect()
             }
+
+        case "audio_response":
+            if let base64 = json["data"] as? String {
+                self.transitionTo(.speaking)
+                self.audioEngine.playAudio(base64: base64)
+            }
+
+        case "text_response":
+            if let text = json["text"] as? String {
+                self.agentText = text
+            }
+
+        case "user_transcript":
+            if let text = json["text"] as? String {
+                self.userText     = text
+                self.transitionTo(.thinking)
+            }
+
+        case "turn_complete":
+            if self.sessionState != .idle {
+                self.transitionTo(.listening)
+            }
+
+        case "agent_interrupted":
+            self.audioEngine.clearPlayback()
+            self.transitionTo(.listening)
+
+        case "tool_call":
+            self.toolName = json["name"] as? String
+
+        case "tool_complete":
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.toolName = nil
+            }
+
+        case "error":
+            let msg = json["message"] as? String ?? "An error occurred"
+            self.transitionTo(.error(msg))
+            self.userDisconnected = true
+            self.cleanup()
+            print("[SummerClient] Error from daemon: \(msg)")
+
+        case "pong":
+            break
+
+        default:
+            print("[SummerClient] Unhandled message type: \(type)")
         }
     }
 
@@ -323,22 +331,19 @@ class SummerClient: ObservableObject {
     private func scheduleAutoReconnect() {
         reconnectAttempts += 1
 
-        // Mirrors: if recentReconnectCount > 3 → give up
         guard reconnectAttempts <= 3 else {
-            sessionState = .error("Connection lost. Tap to retry.")
+            transitionTo(.error("Connection lost. Tap to retry."))
             print("[SummerClient] Too many reconnect attempts. Giving up.")
             return
         }
 
-        sessionState = .connecting
+        transitionTo(.connecting)
         print("[SummerClient] Session dropped. Auto-reconnecting in 1.5s (attempt \(reconnectAttempts)/3)...")
 
-        // Mirrors: setTimeout(() => liveAPI.startSession(reconnectPayload), 1500)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             guard let self, !self.userDisconnected else { return }
-            var reconnectPayload = self.lastContextPayload
-            reconnectPayload["isAutoReconnect"] = true
-            self.startSession()
+            self.lastContextPayload["isAutoReconnect"] = true
+            self.connect(url: self.daemonURL, token: self.pairingToken, contextPayload: self.lastContextPayload)
         }
     }
 
@@ -346,10 +351,8 @@ class SummerClient: ObservableObject {
     private func handleUnexpectedDisconnect() {
         guard isConnectedToDaemon else { return }
         isConnectedToDaemon = false
-        DispatchQueue.main.async {
-            if !self.userDisconnected {
-                self.scheduleAutoReconnect()
-            }
+        if !self.userDisconnected {
+            self.scheduleAutoReconnect()
         }
     }
 
@@ -369,9 +372,11 @@ class SummerClient: ObservableObject {
     // Mirrors: setInterval(() => ws.send(PING), 20_000)
     private func startPingTimer() {
         pingTimer?.invalidate()
-        pingTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 20, repeats: true) { [weak self] _ in
             self?.sendJSON(["type": "ping"])
         }
+        RunLoop.main.add(timer, forMode: .common)
+        pingTimer = timer
     }
 
     // MARK: - Cleanup
@@ -379,9 +384,11 @@ class SummerClient: ObservableObject {
         pingTimer?.invalidate()
         pingTimer = nil
         audioEngine.stopRecording()
-        audioEngine.clearPlayback()
+        audioEngine.clearPlaybackForShutdown()
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask      = nil
+        urlSession?.invalidateAndCancel()
+        urlSession          = nil
         isConnectedToDaemon = false
     }
 }
