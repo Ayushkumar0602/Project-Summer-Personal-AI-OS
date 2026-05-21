@@ -9,6 +9,7 @@ const { isAuthenticated } = require('../../src/auth/google-auth');
 
 async function formatAndSave(outputs, topic, sdk) {
     sdk.reportProgress(86, 'Parsing research outputs...');
+    const safeTopic = topic.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
     let markdownContent = `# Deep Research Report: ${topic}\n\n`;
     let imageCounter = 1;
 
@@ -24,7 +25,7 @@ async function formatAndSave(outputs, topic, sdk) {
                 const mimeType = out.mime_type || 'image/png';
                 
                 // Save image file to temp directory
-                const imgName = `${topic.replace(/[^a-zA-Z0-9]/g, '_')}_chart_${imageCounter}.png`;
+                const imgName = `${safeTopic}_chart_${imageCounter}.png`;
                 const imgPath = path.join(os.tmpdir(), imgName);
                 await fs.writeFile(imgPath, Buffer.from(out.data, 'base64'));
                 sdk.reportProgress(87, `Saved chart ${imageCounter}: ${imgName}`);
@@ -44,7 +45,7 @@ async function formatAndSave(outputs, topic, sdk) {
         throw new Error("No structured output found in the research results.");
     }
 
-    const docName = `${topic.replace(/[^a-zA-Z0-9]/g, '_')}_Report`;
+    const docName = `${safeTopic}_Report`;
     const mdPath = path.join(os.tmpdir(), `${docName}.md`);
     const pdfPath = path.join(os.tmpdir(), `${docName}.pdf`);
     
@@ -52,7 +53,7 @@ async function formatAndSave(outputs, topic, sdk) {
     let mdForFile = markdownContent;
     for (const img of embeddedImages) {
         const chartNum = img.tag.match(/__EMBEDDED_IMG_(\d+)__/)[1];
-        const imgName = `${topic.replace(/[^a-zA-Z0-9]/g, '_')}_chart_${chartNum}.png`;
+        const imgName = `${safeTopic}_chart_${chartNum}.png`;
         const imgPath = path.join(os.tmpdir(), imgName);
         mdForFile = mdForFile.replace(img.tag, `file://${imgPath}`);
     }
