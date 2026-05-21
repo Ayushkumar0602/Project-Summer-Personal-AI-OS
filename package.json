@@ -16,7 +16,8 @@
     "daemon:dev": "node summer-daemon.js --skip-auth --no-wake-word",
     "daemon:verbose": "LOG_LEVEL=DEBUG node summer-daemon.js --skip-auth --no-wake-word",
     "test:daemon": "node scripts/test-daemon-client.js",
-    "ios:pair": "node scripts/show-pairing-qr.js"
+    "ios:pair": "node scripts/show-pairing-qr.js",
+    "postinstall": "npx playwright install chromium"
   },
   "keywords": [],
   "author": "ayushjaiswal",
