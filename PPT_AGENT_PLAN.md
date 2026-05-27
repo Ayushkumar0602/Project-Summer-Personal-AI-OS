@@ -1,9 +1,9 @@
-# PPT Editor Agent: Design & Implementation Plan
+x# PPT Editor Agent: Design & Implementation Plan
 
 **Agent ID:** `ppt_editor_v1` | **Runtime:** Node.js | **Status:** DRAFT
 
 ---
-
+xx
 ## 1. Overview
 
 The PPT Editor is Summer's first Domain Agent plug-in — the architectural proof-of-concept for the entire Socket & Plug system. It is a **blind specialist**: it receives a structured JSON payload from Tier 2, produces a `.pptx` file, and reports progress via the AgentSDK. It has zero awareness of the user or Summer's conversation.
