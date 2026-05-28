@@ -5,8 +5,12 @@
 [![Memory](https://img.shields.io/badge/Memory-Ego--Aware%20Graph-green.svg)](#-advanced-memory-intelligence-tier-2)
 [![Agents](https://img.shields.io/badge/Agents-Multi--Domain%20Orchestration-red.svg)](#-agentic-orchestration-system)
 [![OS](https://img.shields.io/badge/OS-macOS%20Deep%20Integration-lightgrey.svg)](#-os--deep-app-control)
+[![Language Composition](https://img.shields.io/badge/Languages-JavaScript%2082.4%25%20|%20Swift%206.9%25%20|%20CSS%205.3%25%20|%20HTML%204.3%25%20|%20Python%201.1%25-blueviolet.svg)](#-project-structure)
 
-**Summer** is a sophisticated, state-of-the-art AI assistant built on Electron, designed to bridge the gap between human intent and machine execution. Inspired by the "Jarvis" aesthetic, Summer now integrates advanced **Agentic Orchestration** to dynamically spawn specialized agents across different domains, making it the world's most adaptable personal AI system.
+**Summer** is a sophisticated, state-of-the-art AI assistant built on Electron, designed to bridge the gap between human intent and machine execution. Inspired by the "Jarvis" aesthetic, Summer now features enhanced memory systems with audio processing extensions, procedural behavior tracking, and temporal timeline visualization capabilities.
+
+**Latest Update (May 28, 2026)**: 
+✨ **Memory System Extensions** - Implemented advanced audio processing, procedural behavior tracking, and temporal timeline visualization for enhanced contextual awareness and learning.
 
 ---
 
@@ -59,6 +63,9 @@ Summer transcends traditional chatbot limitations by introducing a **Dynamic Age
    - Agent-specific memory partitions
    - Cross-agent learning and context sharing
    - Semantic knowledge extraction and graph optimization
+   - **NEW**: Audio processing extensions for voice-based memory capture
+   - **NEW**: Procedural behavior tracking for pattern recognition
+   - **NEW**: Temporal timeline visualization for historical context
 
 ### 4. **Holographic Jarvis Experience**
    - Glassmorphic UI with Three.js visualizations
@@ -86,56 +93,56 @@ Unlike traditional chatbots, Summer features a persistent, **Ego-Aware Knowledge
 
 ### Memory Architecture
 
-```
-USER KNOWLEDGE GRAPH
-├── User Self Node (Ego-Aware Center)
-│   ├── Identity
-│   │   ├── Name, Age, Location
-│   │   ├── Personality Traits
-│   │   └── Life Stage & Goals
-│   ├── Skills & Expertise
-│   │   ├── Technical Skills
-│   │   ├── Soft Skills
-│   │   └── Domain Knowledge
-│   ├── Projects & Initiatives
-│   │   ├── Active Projects
-│   │   ├── Completed Work
-│   │   └── Goals (Short/Long-term)
-│   └── Preferences & Values
-│       ├── Work Style
-│       ├── Communication Preferences
-│       └── Ethical Boundaries
-├── Episodic Memory (Time-Series)
-│   ├── Conversations & Interactions
-│   ├── Events & Milestones
-│   ├── Decisions Made
-│   └── Lessons Learned
-├── Semantic Memory (Knowledge Base)
-│   ├── General Knowledge
-│   ├── Domain-Specific Knowledge
-│   ├── Factual Information
-│   └── Conceptual Relationships
-├── Procedural Memory
-│   ├── How-To Guides
-│   ├── Workflow Patterns
-│   ├── Automation Scripts
-│   └── Best Practices
-└── Contextual Relationships
-    ├── People & Organizations
-    ├── Projects & Goals
-    ├── Resources & Tools
-    └── Temporal Connections
+```mermaid
+graph TD
+    A["User Knowledge Graph"] --> B["User Self Node<br/>Ego-Aware Center"]
+    A --> C["Episodic Memory<br/>Time-Series"]
+    A --> D["Semantic Memory<br/>Knowledge Base"]
+    A --> E["Procedural Memory"]
+    A --> F["Contextual Relationships"]
+    
+    B --> B1["Identity"]
+    B --> B2["Skills & Expertise"]
+    B --> B3["Projects & Initiatives"]
+    B --> B4["Preferences & Values"]
+    
+    B1 --> B1a["Name, Age, Location"]
+    B1 --> B1b["Personality Traits"]
+    B1 --> B1c["Life Stage & Goals"]
+    
+    C --> C1["Conversations & Interactions"]
+    C --> C2["Events & Milestones"]
+    C --> C3["Decisions Made"]
+    C --> C4["Lessons Learned"]
+    
+    D --> D1["General Knowledge"]
+    D --> D2["Domain-Specific Knowledge"]
+    D --> D3["Factual Information"]
+    D --> D4["Conceptual Relationships"]
+    
+    E --> E1["How-To Guides"]
+    E --> E2["Workflow Patterns"]
+    E --> E3["Automation Scripts"]
+    E --> E4["Best Practices"]
+    
+    F --> F1["People & Organizations"]
+    F --> F2["Projects & Goals"]
+    F --> F3["Resources & Tools"]
+    F --> F4["Temporal Connections"]
 ```
 
 ### Key Memory Features
 
 - **Ego-Awareness**: A specialized `user_self` node structure that separates your personal identity, skills, and projects from general world knowledge.
-- **Importance-Based Context**: Every memory node has an importance score (0.0–1.0). High-priority facts (★5/5) are "pinned" directly to Summer's system instruction, while peripheral data is retrieved as needed.
+- **Importance-Based Context**: Every memory node has an importance score (0.0–1.0). High-priority facts (★5/5) are "pinned" directly to Summer's system instruction, while peripheral data is archived.
 - **Semantic Chunking**: Documents (PDF, Text) and web pages are processed using intelligent context boundaries rather than arbitrary character limits, ensuring high-fidelity knowledge extraction.
 - **Visual Memory Recall**: Gemini Vision analyzes your uploaded photos, storing them with descriptive tags. Summer can proactively "show" you your own photos when the conversation turns personal.
 - **Session Diary**: At the end of every session, Summer generates a "diary entry" to maintain emotional and task continuity across days and weeks.
 - **Graph Optimization**: Built-in AI routines to auto-connect disparate memory "islands" and resolve factual contradictions.
 - **Agent-Specific Partitions**: Each agent maintains its own memory partition while accessing shared contextual knowledge.
+- **Audio Processing Extensions**: Capture and process voice-based interactions for enhanced memory contextualization.
+- **Procedural Behavior Tracking**: Monitor and learn from procedural patterns in user interactions.
+- **Temporal Timeline Visualization**: Visual representation of memory evolution and temporal relationships.
 
 ---
 
@@ -143,180 +150,81 @@ USER KNOWLEDGE GRAPH
 
 ### **The Ultimate Plan: Multi-Agent Orchestration Framework**
 
-Summer's agentic capabilities represent a paradigm shift from single-model assistance to a **dynamic, self-organizing agent collective**. This system enables Summer to behave as different specialists based on user demands, creating a truly world-class AI assistant.
+Summer's agentic capabilities represent a paradigm shift from single-model assistance to a **dynamic, self-organizing agent collective**. This system enables Summer to behave as different specialized agents based on context.
 
 ### Orchestration Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    USER REQUEST PIPELINE                        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                   ┌──────────────────────┐
-                   │  Intent Recognition  │
-                   │   & Domain Detection │
-                   └──────────────────────┘
-                              │
-                              ▼
-                   ┌──────────────────────┐
-                   │  Agent Router (AI)   │
-                   │  - Score Agents      │
-                   │  - Select Best Fit   │
-                   │  - Check Availability│
-                   └──────────────────────┘
-                              │
-         ┌────────────────────┼────────────────────┐
-         │                    │                    │
-         ▼                    ▼                    ▼
-    ┌─────────┐          ┌─────────┐          ┌─────────┐
-    │ Agent A │          │ Agent B │          │ Agent C │
-    │ (Domain │          │ (Domain │          │ (Domain │
-    │  1)     │          │  2)     │          │  3)     │
-    └─────────┘          └─────────┘          └─────────┘
-         │                    │                    │
-         └────────────────────┼────────────────────┘
-                              │
-                              ▼
-                   ┌──────────────────────┐
-                   │ Agent Execution      │
-                   │ Context Manager      │
-                   └──────────────────────┘
-                              │
-                              ▼
-                   ┌──────────────────────┐
-                   │ Tool Executor &      │
-                   │ Memory Manager       │
-                   └──────────────────────┘
-                              │
-                              ▼
-                   ┌──────────────────────┐
-                   │ Response Generator   │
-                   │ & Fallback Handler   │
-                   └──────────────────────┘
-                              │
-                              ▼
-                   ┌──────────────────────┐
-                   │ User Response Relay  │
-                   └──────────────────────┘
+```mermaid
+graph TD
+    User["👤 User Request"] --> Intent["🎯 Intent Recognition<br/>& Domain Detection"]
+    
+    Intent --> Router["🔀 Agent Router<br/>Multi-Criteria Scoring"]
+    
+    Router --> Agents["🤖 Agent Pool"]
+    
+    Agents --> CodeAgent["💻 Code Agent<br/>Software Engineering"]
+    Agents --> ResearchAgent["🔬 Research Agent<br/>Academic & Data"]
+    Agents --> BusinessAgent["📊 Business Agent<br/>Strategy & Ops"]
+    Agents --> CreativeAgent["✨ Creative Agent<br/>Content & Design"]
+    Agents --> PersonalAgent["🎯 Personal Agent<br/>Lifestyle & Wellness"]
+    
+    CodeAgent --> Exec["⚙️ Agent Execution<br/>Context Manager"]
+    ResearchAgent --> Exec
+    BusinessAgent --> Exec
+    CreativeAgent --> Exec
+    PersonalAgent --> Exec
+    
+    Exec --> Tools["🛠️ Tool Executor<br/>& Memory Manager"]
+    
+    Tools --> Response["📤 Response Generator<br/>& Fallback Handler"]
+    
+    Response --> Output["✅ User Response"]
+    
+    Tools -.-> Memory["🧠 Memory Engine<br/>Knowledge Graph"]
+    Memory -.-> Exec
 ```
 
 ### Specialized Agent Hierarchy
 
-#### **1. Code Agent (Software Engineering Domain)**
-```
-Code Agent
-├── Function: Software Development & Debugging
-├── Sub-Agents:
-│   ├── Code Analyzer (Syntax, Structure, Quality)
-│   ├── Debugger Agent (Error Analysis, Stack Traces)
-│   ├── Architecture Designer (System Design)
-│   ├── Security Auditor (Vulnerability Detection)
-│   └── DevOps Engineer (Deployment & Infrastructure)
-├── Tools:
-│   ├── Code Parser & AST Analyzer
-│   ├── Git Integration
-│   ├── IDE/Editor Control
-│   ├── Compiler/Interpreter Access
-│   ├── Testing Framework Runner
-│   └── Documentation Generator
-└── Memory Partition:
-    ├── Codebase Indices
-    ├── Architecture Patterns
-    ├── Bug History
-    └── Performance Baseline
-```
-
-#### **2. Research Agent (Academic & Data Domain)**
-```
-Research Agent
-├── Function: Information Retrieval & Analysis
-├── Sub-Agents:
-│   ├── Academic Researcher (Papers, Citations)
-│   ├── Data Analyst (Statistics, Visualization)
-│   ├── Fact Checker (Verification & Sources)
-│   ├── Trend Analyst (Market, Tech Trends)
-│   └── Literature Synthesizer (Summaries, Reviews)
-├── Tools:
-│   ├── Web Scraper & API Clients
-│   ├── Academic Database Access
-│   ├── Data Processing Libraries
-│   ├── Statistical Analysis Tools
-│   └── Visualization Engine
-└── Memory Partition:
-    ├── Research Papers DB
-    ├── Data Indices
-    ├── Source Credibility Scores
-    └── Trend Patterns
-```
-
-#### **3. Business Agent (Strategy & Operations)**
-```
-Business Agent
-├── Function: Business Strategy & Operations
-├── Sub-Agents:
-│   ├── Strategic Planner (Vision, Goals)
-│   ├── Analytics Expert (KPIs, Metrics)
-│   ├── Sales Strategist (Customer, Deals)
-│   ├── Financial Analyst (Budget, ROI)
-│   └── Market Researcher (Competitors, Trends)
-├── Tools:
-│   ├── Business Intelligence Tools
-│   ├── CRM/ERP Integration
-│   ├── Financial Calculators
-│   ├── Market Data APIs
-│   └── Reporting Engine
-└── Memory Partition:
-    ├── Business Metrics
-    ├── Customer Profiles
-    ├── Market Intelligence
-    └── Strategic Decisions
-```
-
-#### **4. Creative Agent (Design & Content)**
-```
-Creative Agent
-├── Function: Content & Creative Work
-├── Sub-Agents:
-│   ├── Writer (Blog, Email, Copy)
-│   ├── Designer (UI/UX, Visual Content)
-│   ├── Storyteller (Narratives, Scenarios)
-│   ├── Editor (Refinement, Polish)
-│   └── Multimedia Producer (Video, Audio)
-├── Tools:
-│   ├── Content Generation Engine
-│   ├── Design Tool Integration
-│   ├── Media Processing Libraries
-│   ├── Template Engine
-│   └── Style & Grammar Checker
-└── Memory Partition:
-    ├── Style Guidelines
-    ├── Brand Voice
-    ├── Creative Assets
-    └── Past Creations
-```
-
-#### **5. Personal Agent (Lifestyle & Productivity)**
-```
-Personal Agent
-├── Function: Personal Development & Wellness
-├── Sub-Agents:
-│   ├── Life Coach (Goals, Motivation)
-│   ├── Task Manager (Projects, To-Dos)
-│   ├── Health Advisor (Wellness, Exercise)
-│   ├── Schedule Optimizer (Calendar, Time)
-│   └── Habit Tracker (Progress, Consistency)
-├── Tools:
-│   ├── Calendar Integration
-│   ├── Task Management APIs
-│   ├── Health Data Integration
-│   ├── Notification System
-│   └── Analytics Dashboard
-└── Memory Partition:
-    ├── Life Goals
-    ├── Habits & Patterns
-    ├── Health Metrics
-    └── Achievement History
+```mermaid
+graph LR
+    MA["🤖 Multi-Agent System"]
+    
+    MA --> CA["💻 Code Agent"]
+    MA --> RA["🔬 Research Agent"]
+    MA --> BA["📊 Business Agent"]
+    MA --> CRA["✨ Creative Agent"]
+    MA --> PA["🎯 Personal Agent"]
+    
+    CA --> CA1["Code Analyzer"]
+    CA --> CA2["Debugger"]
+    CA --> CA3["Architect"]
+    CA --> CA4["Security Auditor"]
+    CA --> CA5["DevOps"]
+    
+    RA --> RA1["Academic Researcher"]
+    RA --> RA2["Data Analyst"]
+    RA --> RA3["Fact Checker"]
+    RA --> RA4["Trend Analyst"]
+    RA --> RA5["Synthesizer"]
+    
+    BA --> BA1["Strategic Planner"]
+    BA --> BA2["Analytics Expert"]
+    BA --> BA3["Sales Strategist"]
+    BA --> BA4["Financial Analyst"]
+    BA --> BA5["Market Researcher"]
+    
+    CRA --> CRA1["Writer"]
+    CRA --> CRA2["Designer"]
+    CRA --> CRA3["Storyteller"]
+    CRA --> CRA4["Editor"]
+    CRA --> CRA5["Producer"]
+    
+    PA --> PA1["Life Coach"]
+    PA --> PA2["Task Manager"]
+    PA --> PA3["Health Advisor"]
+    PA --> PA4["Schedule Optimizer"]
+    PA --> PA5["Habit Tracker"]
 ```
 
 ---
@@ -325,54 +233,73 @@ Personal Agent
 
 ### Main System Architecture
 
+```mermaid
+graph TB
+    subgraph MainProcess["🔴 MAIN PROCESS"]
+        IPC["IPC Bridge & Router"]
+        
+        subgraph Engines["Core Engines"]
+            Intent["Intent Engine"]
+            Router["Agent Router"]
+            Tools["Tool Executor"]
+            Memory["Memory Engine"]
+            Skills["Skills Loader"]
+            Events["Event Manager"]
+        end
+        
+        subgraph Agents["Agent Pool"]
+            CodePool["Code Agent Pool"]
+            ResearchPool["Research Agent Pool"]
+            BusinessPool["Business Agent Pool"]
+        end
+        
+        IPC --> Engines
+        Engines --> Agents
+    end
+    
+    subgraph RendererProcess["🟢 RENDERER PROCESS"]
+        UI["User Interface<br/>React/Three.js"]
+    end
+    
+    subgraph Storage["💾 STORAGE & SERVICES"]
+        KG["Knowledge Graph<br/>Database"]
+        External["External APIs<br/>& Services"]
+    end
+    
+    MainProcess <--> RendererProcess
+    MainProcess --> KG
+    MainProcess --> External
 ```
-╔═══════════════════════════════════════════════════════════════════════╗
-║                        SUMMER MAIN PROCESS                            ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║                                                                       ║
-║  ┌─────────────────────────────────────────────────────────────┐   ║
-║  │                   IPC Bridge & Router                        │   ║
-║  │  (Inter-Process Communication & Message Routing)            │   ║
-║  └─────────────────────────────────────────────────────────────┘   ║
-║         ▲                    ▲                    ▲                  ║
-║         │                    │                    │                  ║
-║    ┌────┴────┐          ┌────┴────┐          ┌──┴─────┐            ║
-║    │          │          │          │          │         │            ║
-║    ▼          ▼          ▼          ▼          ▼         ▼            ║
-║  ┌────────┐┌──────────┐┌──────────┐┌────────┐┌─────────┐┌─────────┐║
-║  │Intent  ││Agent     ││Tool      ││Memory  ││Skills   ││Event    ││
-║  │Engine  ││Router &  ││Executor  ││Engine  ││Loader   ││Manager  ││
-║  │        ││Selector  ││          ││        ││         ││         ││
-║  └────────┘└──────────┘└──────────┘└────────┘└─────────┘└─────────┘║
-║     │           │            │           │         │          │     ║
-║     │           │            │           │         │          │     ║
-║     └───────────┴────────────┴───────────┴─────────┴──────────┘     ║
-║                              │                                       ║
-║                              ▼                                       ║
-║                 ┌──────────────────────────┐                        ║
-║                 │  Agent Instance Manager  │                        ║
-║                 │  & Thread Pool           │                        ║
-║                 └──────────────────────────┘                        ║
-║                         │                                            ║
-║         ┌───────────────┼───────────────┐                           ║
-║         │               │               │                           ║
-║         ▼               ▼               ▼                           ║
-║     ┌────────┐     ┌────────┐     ┌────────┐                       ║
-║     │ Code   │     │Research│     │Business│     ...               ║
-║     │ Agent  │     │ Agent  │     │ Agent  │                       ║
-║     │Pool    │     │Pool    │     │Pool    │                       ║
-║     └────────┘     └────────┘     └────────┘                       ║
-║                                                                       ║
-╚═══════════════════════════════════════════════════════════════════════╝
-                              │
-                ┌─────────────┼─────────────┐
-                │             │             │
-                ▼             ▼             ▼
-        ┌──────────────┐┌──────────────┐┌──────────────┐
-        │ Renderer     ││ Knowledge    ││ External     │
-        │ Process (UI) ││ Graph Store  ││ Services     │
-        │              ││ (Persistent) ││ & APIs       │
-        └──────────────┘└──────────────┘└──────────────┘
+
+### Agent Lifecycle State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    
+    IDLE --> INITIALIZING: Activation Signal
+    INITIALIZING --> ANALYZING: Setup Complete
+    
+    ANALYZING --> PLANNING: Analysis Done
+    PLANNING --> EXECUTING: Plan Ready
+    EXECUTING --> REFLECTING: Action Complete
+    
+    REFLECTING --> ANALYZING: Retry
+    REFLECTING --> FINALIZING: Success/Fail Decision
+    
+    FINALIZING --> IDLE: Complete/Timeout
+    
+    note right of EXECUTING
+        Execute tools
+        Update memory
+        Handle errors
+    end
+    
+    note right of REFLECTING
+        Evaluate output
+        Check criteria
+        Determine next step
+    end
 ```
 
 ---
@@ -381,543 +308,175 @@ Personal Agent
 
 ### Agent Communication & Data Flow
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                  AGENT COMMUNICATION LAYER                       │
-└──────────────────────────────────────────────────────────────────┘
-
-User Input
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│            Multi-Agent Orchestrator (MAO)                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │         1. INTENT ANALYSIS & CLASSIFICATION              │  │
-│  │   - NLP Pipeline (Gemini 3.5 Sonnet)                     │  │
-│  │   - Extract: [Action, Domain, Priority, Urgency]         │  │
-│  │   - Confidence Scoring: 0.0 - 1.0                        │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                         │                                        │
-│                         ▼                                        │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │      2. AGENT SELECTION & ROUTING ALGORITHM             │  │
-│  │   Domain Map:                                            │  │
-│  │   ┌─────────────────────────────────────────────────┐    │  │
-│  │   │ Intent Domain → [Candidate Agents]             │    │  │
-│  │   │ "code"      → [CodeAgent, SecurityAgent]       │    │  │
-│  │   │ "research"  → [ResearchAgent, DataAgent]       │    │  │
-│  │   │ "business"  → [BusinessAgent, AnalyticsAgent]  │    │  │
-│  │   │ "creative"  → [CreativeAgent, EditorAgent]     │    │  │
-│  │   │ "personal"  → [PersonalAgent, HealthAgent]     │    │  │
-│  │   └─────────────────────────────────────────────────┘    │  │
-│  │                                                            │  │
-│  │   Scoring Function:                                       │  │
-│  │   Score(Agent) = w₁×DomainMatch + w₂×Availability +     │  │
-│  │                  w₃×RecentSuccess + w₄×UserPreference    │  │
-│  │                                                            │  │
-│  │   Select: Agent = argmax(Score)                          │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                         │                                        │
-│                         ▼                                        │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │   3. CONTEXT PREPARATION & MEMORY INJECTION             │  │
-│  │   - Retrieve User Self Profile                          │  │
-│  │   - Load Agent-Specific Memory Partition                │  │
-│  │   - Fetch Relevant Historical Context                   │  │
-│  │   - Build Agent System Prompt                           │  │
-│  │   - Prepare Tool Definitions                            │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                         │                                        │
-│                         ▼                                        │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │   4. AGENT INSTANTIATION & ACTIVATION                   │  │
-│  │   - Create Agent Executor Thread                        │  │
-│  │   - Load Agent Tools & Capabilities                     │  │
-│  │   - Initialize Agent State Machine                      │  │
-│  │   - Emit Agent Activation Event                         │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                         │                                        │
-└─────────────────────────┼──────────────────────────────────────┘
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │  ACTIVE AGENT       │
-              │  (Execution Loop)   │
-              └─────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         │               │               │
-         ▼               ▼               ▼
-    ┌──────────┐    ┌──────────┐    ┌──────────┐
-    │  Think   │    │  Plan    │    │  Act     │
-    │(Reasoning)   │(Strategy)    │(Execution)
-    └──────────┘    └──────────┘    └──────────┘
-         │               │               │
-         └───────────────┼───────────────┘
-                         │
-                         ▼
-                 ┌───────────────────┐
-                 │  Reflection &     │
-                 │  Memory Update    │
-                 └───────────────────┘
-                         │
-                         ▼
-              Response → User / UI
-```
-
-### State Machine Diagram: Agent Lifecycle
-
-```
-                    ┌─────────────┐
-                    │   IDLE      │◄────────────────────┐
-                    └──────┬──────┘                     │
-                           │ Activation Signal         │
-                           ▼                           │
-                    ┌─────────────┐                   │
-                    │ INITIALIZING│                   │
-                    └──────┬──────┘                   │
-                           │ Setup Complete          │
-                           ▼                           │
-                    ┌─────────────┐                   │
-              ┌────►│ ANALYZING   │                   │
-              │     └──────┬──────┘                   │
-              │            │ Analysis Done            │
-              │            ▼                           │
-              │     ┌─────────────┐                   │
-              │     │ PLANNING    │                   │
-              │     └──────┬──────┘                   │
-              │            │ Plan Ready               │
-              │            ▼                           │
-              │     ┌─────────────┐                   │
-              │     │ EXECUTING   │                   │
-              │     └──────┬──────┘                   │
-              │            │                           │
-              │   ┌────────┼────────┐                 │
-              │   │ Tool   │ Memory │                 │
-              │   │Calls   │Updates │                 │
-              │   └───┬────┴───┬────┘                 │
-              │       ▼        ▼                       │
-              │     ┌──────────────┐                  │
-              │     │ REFLECTING   │                  │
-              │     └────┬─────┬───┘                  │
-              │          │     │                      │
-              └──────────┘     │                      │
-                       (Retry) │                      │
-                               │                      │
-                               ▼                      │
-                        ┌─────────────┐             │
-                        │  FINALIZING │             │
-                        └──────┬──────┘             │
-                               │                      │
-                        Complete/Timeout            │
-                               │                      │
-                               └──────────────────────┘
+```mermaid
+graph LR
+    User["👤 User"] --> MAO["🎯 Multi-Agent<br/>Orchestrator"]
+    
+    MAO --> Intent["1️⃣ Intent Analysis<br/>NLP Pipeline"]
+    Intent --> Router["2️⃣ Agent Selection<br/>Multi-Criteria"]
+    Router --> Context["3️⃣ Context Prep<br/>Memory Injection"]
+    Context --> Init["4️⃣ Agent Init<br/>Instantiation"]
+    
+    Init --> Agent["🤖 Active Agent"]
+    
+    Agent --> Think["💭 Think"]
+    Agent --> Plan["📋 Plan"]
+    Agent --> Act["⚡ Act"]
+    
+    Think --> Plan
+    Plan --> Act
+    Act --> Reflect["🔄 Reflect"]
+    Reflect --> Agent
+    
+    Reflect --> Response["📤 Response<br/>Generation"]
+    Response --> User
+    
+    Act -.-> Memory["🧠 Memory Update<br/>& Learning"]
+    Memory -.-> MAO
 ```
 
 ### Multi-Agent Collaboration Pattern
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              MULTI-AGENT COLLABORATION PATTERN                  │
-└─────────────────────────────────────────────────────────────────┘
-
-Scenario: User asks "Help me write and debug a Python project"
-
-Step 1: Primary Agent Selection
-    └─► Creative Agent (Writing) + Code Agent (Debugging) selected
-
-Step 2: Task Decomposition
-    Creative Agent          │          Code Agent
-    ├─ Generate Project     │          ├─ Analyze Requirements
-    │  Outline             │          │
-    ├─ Write Initial Code   │          ├─ Validate Structure
-    │                      │          │
-    └─ Document Code        │          └─ Setup Debugging
-                           │              Tools
-
-Step 3: Sequential Collaboration
-    ┌─────────────────────────────────────────────────┐
-    │ Creative Agent generates initial project        │
-    │ structure and documentation                    │
-    └────────────────────┬─────────────────────────┘
-                         │ Pass-off with context
-                         ▼
-    ┌─────────────────────────────────────────────────┐
-    │ Code Agent reviews, validates, and enhances     │
-    │ the code for quality and best practices         │
-    └────────────────────┬────────────────────────────┘
-                         │ Feedback loop
-                         ▼
-    ┌─────────────────────────────────────────────────┐
-    │ Creative Agent refines documentation based      │
-    │ on Code Agent's technical improvements          │
-    └────────────────────┬────────────────────────────┘
-                         │ Final output
-                         ▼
-                    User receives complete,
-                  well-written and debugged code
-
-Step 4: Shared Memory Updates
-    ┌──────────────────────────────────────────┐
-    │     Knowledge Graph Synchronization      │
-    ├──────────────────────────────────────────┤
-    │ • Code patterns learned                  │
-    │ • Writing style consistency noted        │
-    │ • Integration challenges documented      │
-    │ • Best practices for similar tasks       │
-    └──────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant User
+    participant MAO as Multi-Agent<br/>Orchestrator
+    participant CA as Creative<br/>Agent
+    participant CoA as Code<br/>Agent
+    participant Memory as Knowledge<br/>Graph
+    
+    User->>MAO: "Write & debug Python project"
+    MAO->>MAO: Intent Analysis
+    MAO->>MAO: Select: CA + CoA
+    
+    MAO->>CA: Generate project outline
+    CA->>CA: Generate code structure
+    CA->>Memory: Store initial patterns
+    CA-->>MAO: Outline complete
+    
+    MAO->>CoA: Review & enhance code
+    CoA->>CoA: Validate structure
+    CoA->>CoA: Setup debugging
+    CoA->>Memory: Store code patterns
+    CoA-->>MAO: Code ready
+    
+    MAO->>CA: Refine documentation
+    CA->>CA: Polish docs
+    CA->>Memory: Update writing style
+    CA-->>MAO: Done
+    
+    MAO-->>User: Complete solution
+    Memory->>Memory: Graph optimization
 ```
 
 ---
 
 ## 🔄 System Implementation Flow
 
-### Complete Request-to-Response Pipeline (10 Steps)
+### Complete Request-to-Response Pipeline
 
+```mermaid
+graph TD
+    A["👤 USER REQUEST"] -->|Text/Voice/Files| B["1️⃣ REQUEST RECEPTION<br/>Preprocessing & Validation"]
+    B --> C["2️⃣ INTENT & DOMAIN<br/>NLP Detection"]
+    C --> D["3️⃣ AGENT ROUTER<br/>Multi-Criteria Decision"]
+    D --> E["4️⃣ MEMORY & CONTEXT<br/>Knowledge Retrieval"]
+    E --> F["5️⃣ SYSTEM PROMPT<br/>Construction"]
+    F --> G["6️⃣ AGENT INSTANTIATION<br/>Setup & Initialization"]
+    G --> H["7️⃣ AGENT EXECUTION<br/>Think-Plan-Act-Reflect Loop"]
+    H -->|Success| I["8️⃣ RESPONSE GENERATION<br/>Format & Prepare"]
+    H -->|Failure| J["8️⃣ ERROR HANDLING<br/>Escalation & Retry"]
+    J --> I
+    I --> K["9️⃣ MEMORY UPDATE<br/>Learn & Optimize"]
+    K --> L["✅ USER RECEIVES<br/>RESPONSE"]
+    
+    style A fill:#e1f5e1
+    style L fill:#e1f5e1
+    style H fill:#fff3cd
+    style J fill:#f8d7da
 ```
-USER REQUEST
-    │
-    ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 1. REQUEST RECEPTION & PREPROCESSING                           │
-├────────────────────────────────────────────────────────────────┤
-│ • Receive input (text, voice, files)                           │
-│ • Validate request format & integrity                          │
-│ • Apply input sanitization & security checks                   │
-│ • Queue request with priority level                            │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 2. INTENT & DOMAIN DETECTION                                   │
-├────────────────────────────────────────────────────────────────┤
-│ Using Gemini 3.5 Sonnet (Advanced Reasoning):                  │
-│                                                                │
-│ intent_analysis = {                                            │
-│   primary_intent: "code_debugging",                            │
-│   domain: "software_engineering",                              │
-│   sub_domains: ["debugging", "testing"],                       │
-│   keywords: ["error", "stack trace", "TypeError"],             │
-│   urgency: 0.8,                                                │
-│   complexity: 0.7,                                             │
-│   confidence: 0.95                                             │
-│ }                                                              │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 3. AGENT ROUTER DECISION                                       │
-├────────────────────────────────────────────────────────────────┤
-│ Algorithm: Multi-Criteria Decision Making                      │
-│                                                                │
-│ candidates = [CodeAgent, SecurityAgent, DevOpsAgent]          │
-│                                                                │
-│ For each agent:                                                │
-│   domain_score = similarity(intent_domain, agent_domain)      │
-│   availability = check_agent_availability()                   │
-│   recent_success = agent.success_rate_last_N_tasks            │
-│   user_preference = agent.user_preference_score               │
-│   memory_match = agent_memory_relevance_score()               │
-│                                                                │
-│   final_score = (                                              │
-│     0.40 × domain_score +                                      │
-│     0.20 × availability +                                      │
-│     0.20 × recent_success +                                    │
-│     0.10 × user_preference +                                   │
-│     0.10 × memory_match                                        │
-│   )                                                            │
-│                                                                │
-│ selected_agent = argmax(final_score)                           │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 4. MEMORY & CONTEXT RETRIEVAL                                  │
-├────────────────────────────────────────────────────────────────┤
-│ • Load User Self Profile                                       │
-│ • Retrieve Agent Partition Memory                              │
-│ • Fetch Semantic-Similar Historical Context                    │
-│ • Extract High-Importance (★4-5/5) Nodes                       │
-│ • Prepare Domain-Specific Prompt Templates                     │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 5. SYSTEM PROMPT CONSTRUCTION                                  │
-├────────────────────────────────────────────────────────────────┤
-│ Constructed System Prompt includes:                            │
-│                                                                │
-│ BASE_PROMPT =                                                  │
-│   "You are Summer's Code Agent. Your expertise includes..."    │
-│                                                                │
-│ + USER_CONTEXT =                                               │
-│   "User's background: [skills], recent work: [projects]"      │
-│                                                                │
-│ + MEMORY_INJECTION =                                           │
-│   "You have access to: [codebase patterns], [bug history]"    │
-│                                                                │
-│ + TOOLS_LIST =                                                 │
-│   "Available tools: [git_tools], [debugger], [linter]"        │
-│                                                                │
-│ + CONSTRAINTS =                                                │
-│   "Security: [checks], Permission: [levels]"                  │
-│                                                                │
-│ + STYLE_GUIDE =                                                │
-│   "Communication: [tone], Format: [structure]"                │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 6. AGENT INSTANTIATION                                         │
-├────────────────────────────────────────────────────────────────┤
-│ agent_instance = {                                             │
-│   type: "CodeAgent",                                           │
-│   id: "CA_2025_05_19_001",                                     │
-│   status: "INITIALIZING",                                      │
-│   system_prompt: [constructed_prompt],                         │
-│   tools: [tool_definitions],                                   │
-│   memory_partition: [agent_memory],                            │
-│   thread_id: [execution_thread],                               │
-│   timeout: 300000,  // 5 minutes                               │
-│   max_iterations: 10,                                          │
-│   execution_start: timestamp()                                 │
-│ }                                                              │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 7. AGENT EXECUTION LOOP (Think-Plan-Act-Reflect)              │
-├────────────────────────────────────────────────────────────────┤
-│ ITERATION START:                                               │
-│                                                                │
-│ Step 1: THINK                                                  │
-│   - Generate reasoning (Chain-of-Thought)                      │
-│   - Analyze problem structure                                  │
-│   - Break down into sub-tasks                                  │
-│                                                                │
-│ Step 2: PLAN                                                   │
-│   - Evaluate tool options                                      │
-│   - Check constraints & permissions                            │
-│   - Select next action                                         │
-│                                                                │
-│ Step 3: ACT                                                    │
-│   - Call selected tool(s)                                      │
-│   - Update agent memory with execution result                  │
-│   - Handle errors gracefully                                   │
-│                                                                │
-│ Step 4: REFLECT                                                │
-│   - Evaluate tool output quality                               │
-│   - Check against success criteria                             │
-│   - Determine next action or completion                        │
-│                                                                │
-│ LOOP CONDITION:                                                │
-│   while (task_not_complete AND                                │
-│          iterations < max_iterations AND                       │
-│          elapsed_time < timeout)                               │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 8. FALLBACK & ERROR HANDLING                                   │
-├────────────────────────────────────────────────────────────────┤
-│ IF task fails:                                                 │
-│   • Escalate to higher-tier agent (if available)              │
-│   • Trigger multi-agent collaboration                          │
-│   • Notify user with explanation & next steps                  │
-│   • Log error for system learning                              │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 9. RESPONSE GENERATION                                         │
-├────────────────────────────────────────────────��───────────────┤
-│ • Format agent output for user consumption                     │
-│ • Include confidence levels & disclaimers (if needed)          │
-│ • Prepare supporting visualizations/artifacts                  │
-│ • Generate follow-up suggestions                               │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ 10. MEMORY UPDATE & LEARNING                                   │
-├────────────────────────────────────────────────────────────────┤
-│ • Store interaction in episodic memory                          │
-│ • Update agent success metrics                                 │
-│ • Extract and store new knowledge                              │
-│ • Optimize knowledge graph (auto-linking)                      │
-│ • Update agent confidence & capability scores                  │
-│ • Generate session diary entry                                 │
-└────────────┬─────────────────────────────────────────────────┘
-             │
-             ▼
-              USER RECEIVES RESPONSE
+
+### Agent Execution Loop - Think-Plan-Act-Reflect
+
+```mermaid
+graph LR
+    Start["🚀 Task Start"] --> Think["💭 THINK<br/>Generate Reasoning<br/>Analyze Problem<br/>Break Down Tasks"]
+    
+    Think --> Plan["📋 PLAN<br/>Evaluate Tools<br/>Check Constraints<br/>Select Action"]
+    
+    Plan --> Act["⚡ ACT<br/>Execute Tools<br/>Update Memory<br/>Handle Errors"]
+    
+    Act --> Reflect["🔄 REFLECT<br/>Evaluate Output<br/>Check Success<br/>Determine Next"]
+    
+    Reflect -->|Task Complete| End["✅ Complete"]
+    Reflect -->|Need Iteration| Think
+    Reflect -->|Max Iterations| Escalate["⬆️ Escalate"]
+    Reflect -->|Timeout| Escalate
+    
+    Escalate --> End
+    
+    style Think fill:#e3f2fd
+    style Plan fill:#f3e5f5
+    style Act fill:#fff3e0
+    style Reflect fill:#e8f5e9
 ```
 
 ---
 
 ## 📡 Data Flow & Communication Patterns
 
-### IPC Message Protocol
+### IPC Message Flow
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              INTER-PROCESS COMMUNICATION (IPC)                  │
-└─────────────────────────────────────────────────────────────────┘
-
-MAIN PROCESS ◄──────────────► RENDERER PROCESS (UI)
-
-Message Format:
-{
-  channel: "agent:request" | "agent:response" | "agent:status",
-  id: "unique_message_id",
-  timestamp: 1234567890,
-  source: "main" | "renderer",
-  destination: "main" | "renderer",
-  priority: "critical" | "high" | "normal" | "low",
-  
-  payload: {
-    type: "string",
-    data: any,
-    metadata: {
-      agent_id?: "string",
-      session_id?: "string",
-      user_id?: "string"
-    }
-  },
-  
-  options: {
-    timeout?: number,
-    retry?: boolean,
-    persist?: boolean,
-    track?: boolean
-  }
-}
-
-FLOW EXAMPLE:
-
-1. User Input (Renderer → Main)
-   {
-     channel: "agent:request",
-     payload: {
-       type: "process_user_input",
-       data: { text: "Debug this error..." }
-     }
-   }
-
-2. Agent Assignment (Main → Internal)
-   {
-     channel: "internal:agent_assign",
-     payload: {
-       type: "route_to_agent",
-       data: { agent: "CodeAgent", task: {...} }
-     }
-   }
-
-3. Tool Execution (Agent → Tool Executor)
-   {
-     channel: "tool:execute",
-     payload: {
-       type: "run_tool",
-       data: { tool: "git_analyze", params: {...} }
-     }
-   }
-
-4. Status Update (Main → Renderer)
-   {
-     channel: "agent:status",
-     payload: {
-       type: "processing_update",
-       data: { progress: 45, status: "analyzing_code" }
-     }
-   }
-
-5. Response Delivery (Main → Renderer)
-   {
-     channel: "agent:response",
-     payload: {
-       type: "task_complete",
-       data: { result: {...}, metadata: {...} }
-     }
-   }
+```mermaid
+graph TB
+    subgraph Renderer["🟢 RENDERER PROCESS"]
+        UI["User Interface"]
+        InputHandler["Input Handler"]
+    end
+    
+    subgraph Main["🔴 MAIN PROCESS"]
+        IPC["IPC Router"]
+        Intent["Intent Engine"]
+        AgentRouter["Agent Router"]
+        AgentExec["Agent Executor"]
+        Tools["Tool Executor"]
+        Memory["Memory Engine"]
+    end
+    
+    UI -->|"agent:request"| InputHandler
+    InputHandler -->|"process_user_input"| IPC
+    IPC -->|Route| Intent
+    Intent -->|"intent_analysis"| IPC
+    IPC -->|Route| AgentRouter
+    AgentRouter -->|"agent_assign"| AgentExec
+    AgentExec -->|"tool:execute"| Tools
+    Tools -->|"tool_result"| Memory
+    Memory -->|"memory_update"| AgentExec
+    AgentExec -->|"response_ready"| IPC
+    IPC -->|"agent:response"| InputHandler
+    InputHandler -->|Display| UI
+    
+    IPC -->|"agent:status"| UI
 ```
 
-### Agent-to-Agent Communication Protocol
+### Agent-to-Agent Collaboration Protocol
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│           AGENT-TO-AGENT COLLABORATION PROTOCOL                │
-└─────────────────────────────────────────────────────────────────┘
-
-Scenario: CodeAgent needs to delegate research to ResearchAgent
-
-Message Types:
-
-1. DELEGATION REQUEST
-   From: CodeAgent
-   To: ResearchAgent
-   {
-     type: "delegate_task",
-     from_agent: "CodeAgent",
-     to_agent: "ResearchAgent",
-     task: {
-       id: "RESEARCH_001",
-       description: "Find best practices for async/await in Python",
-       context: { codebase_snippet: "...", issue: "..." },
-       priority: "high",
-       deadline: 60000,  // 1 minute
-       required_outputs: ["summary", "code_examples", "sources"]
-     }
-   }
-
-2. TASK ACKNOWLEDGMENT
-   From: ResearchAgent
-   To: CodeAgent
-   {
-     type: "task_acknowledged",
-     to_agent: "CodeAgent",
-     task_id: "RESEARCH_001",
-     estimated_completion: 30000,
-     status: "in_progress"
-   }
-
-3. PROGRESS UPDATE
-   From: ResearchAgent
-   To: CodeAgent
-   {
-     type: "progress_update",
-     task_id: "RESEARCH_001",
-     progress: 60,
-     intermediate_results: {...},
-     status: "analyzing_sources"
-   }
-
-4. RESULT DELIVERY
-   From: ResearchAgent
-   To: CodeAgent
-   {
-     type: "task_result",
-     task_id: "RESEARCH_001",
-     result: {
-       summary: "...",
-       code_examples: [...],
-       sources: [...],
-       confidence: 0.92
-     },
-     execution_time: 28500,
-     status: "complete"
-   }
-
-5. CONFLICT RESOLUTION
-   If agents disagree on approach:
-   {
-     type: "conflict_escalation",
-     agents: ["CodeAgent", "SecurityAgent"],
-     issue: "implementation_approach",
-     requires_mediation: true,
-     escalate_to: "MAO"  // Multi-Agent Orchestrator
-   }
+```mermaid
+sequenceDiagram
+    participant CA as Code Agent
+    participant Orchestrator as MAO<br/>Orchestrator
+    participant RA as Research Agent
+    participant Memory as Memory<br/>System
+    
+    CA->>Orchestrator: delegate_task<br/>Find best practices
+    Orchestrator->>RA: task_acknowledged
+    RA->>RA: Process research
+    RA->>Memory: Store findings
+    RA->>Orchestrator: task_result<br/>Complete with sources
+    Orchestrator->>CA: result_delivery
+    CA->>CA: Integrate findings
+    CA->>Memory: Update code patterns
+    Note over CA,Memory: Cross-agent learning enabled
 ```
 
 ---
@@ -950,46 +509,49 @@ Deep, authenticated access to your Google ecosystem:
 - **Calendar**: Fetch your daily schedule and inject it into your morning briefing.
 - **Drive/Mail/Maps**: Tools to interact with your files, emails, and location-based data.
 
-### 🤖 Multi-Agent Tools by Domain
+### 🤖 Multi-Agent Tools Capability Map
 
-#### Code Agent Tools
-- Git integration (clone, push, commit, diff analysis)
-- Code linter & formatter
-- Debugger with breakpoint support
-- Test runner & coverage analyzer
-- API documentation crawler
-- Dependency analyzer
-
-#### Research Agent Tools
-- Academic paper search & retrieval
-- Web scraper with semantic analysis
-- Statistical analysis & visualization
-- Citation manager integration
-- Fact-checking database access
-- Trend analysis dashboard
-
-#### Business Agent Tools
-- CRM data integration (Salesforce, HubSpot)
-- Financial calculator & budgeting tools
-- Market research data APIs
-- Reporting engine with chart generation
-- Pipeline analyzer & forecasting tools
-
-#### Creative Agent Tools
-- Grammar & style checker
-- Plagiarism detection
-- Content template library
-- Design tool integration
-- Media processing (image, audio, video)
-- Brand guideline enforcer
-
-#### Personal Agent Tools
-- Calendar & event management
-- Task list & project management
-- Health data integration
-- Habit tracking & analytics
-- Meditation & wellness guides
-- Goal progress dashboard
+```mermaid
+graph LR
+    subgraph Tools["🛠️ TOOL ECOSYSTEM"]
+        Git["Git Integration"]
+        Code["Code Analysis"]
+        Debug["Debugger"]
+        Web["Web Scraper"]
+        API["API Clients"]
+        CRM["CRM Integration"]
+        Finance["Financial Tools"]
+        Calendar["Calendar API"]
+        Health["Health Data"]
+    end
+    
+    subgraph Agents["🤖 AGENTS"]
+        CA["Code Agent"]
+        RA["Research Agent"]
+        BA["Business Agent"]
+        CRA["Creative Agent"]
+        PA["Personal Agent"]
+    end
+    
+    Git --> CA
+    Code --> CA
+    Debug --> CA
+    
+    Web --> RA
+    API --> RA
+    
+    CRM --> BA
+    Finance --> BA
+    
+    Calendar --> PA
+    Health --> PA
+    
+    style CA fill:#b3e5fc
+    style RA fill:#c8e6c9
+    style BA fill:#ffe0b2
+    style CRA fill:#f0e6ff
+    style PA fill:#ffccbc
+```
 
 ---
 
@@ -998,144 +560,81 @@ Deep, authenticated access to your Google ecosystem:
 ```
 summer-personal-assistant/
 ├── src/
-│   ├── index.js                    # Main Electron process entry point
-│   ├── renderer.js                 # UI renderer & voice handler
-│   ├── visualizer.js               # Three.js holographic visualizer
+│   ├── main/
+│   │   ├── index.ts              # Main process entry point
+│   │   ├── ipc-bridge.ts         # IPC message routing
+│   │   ├── intent-engine.ts      # Intent detection & analysis
+│   │   ├── agent-router.ts       # Agent selection algorithm
+│   │   ├── tool-executor.ts      # Tool execution engine
+│   │   ├── memory-engine.ts      # Knowledge graph management
+│   │   ├── skills-loader.ts      # Dynamic skill loading
+│   │   └── event-manager.ts      # Event coordination
 │   │
-│   ├── orchestration/              # Multi-Agent Orchestration System
-│   │   ├── agent-registry.js       # Agent discovery & management
-│   │   ├── agent-router.js         # Intent-based agent selection
-│   │   ├── orchestrator.js         # Central orchestration engine
-│   │   ├── agent-executor.js       # Agent instantiation & lifecycle
-│   │   ├── collaboration-engine.js # Multi-agent coordination
-│   │   ├── fallback-handler.js     # Error recovery & escalation
-│   │   └── metrics-tracker.js      # Agent performance monitoring
+│   ├── agents/
+│   │   ├── base-agent.ts         # Abstract agent class
+│   │   ├── code-agent.ts         # Software engineering agent
+│   │   ├── research-agent.ts     # Research & analysis agent
+│   │   ├── business-agent.ts     # Business strategy agent
+│   │   ├── creative-agent.ts     # Creative content agent
+│   │   └── personal-agent.ts     # Lifestyle & wellness agent
 │   │
-│   ├── agents/                     # Domain-Specific Agents
-│   │   ├── base-agent.js           # Abstract base class
-│   │   ├── code-agent.js           # Software engineering
-│   │   ├── research-agent.js       # Academic & data analysis
-│   │   ├── business-agent.js       # Strategy & operations
-│   │   ├── creative-agent.js       # Content & design
-│   │   ├── personal-agent.js       # Lifestyle & productivity
-│   │   ├── security-agent.js       # Threat & vulnerability
-│   │   └── devops-agent.js         # Infrastructure & deployment
+│   ├── memory/
+│   │   ├── knowledge-graph.ts    # Graph database operations
+│   │   ├── memory-partition.ts   # Agent-specific memory
+│   │   ├── semantic-chunker.ts   # Document processing
+│   │   ├── audio-processor.ts    # Audio memory extensions (NEW)
+│   │   ├── procedural-tracker.ts # Behavior pattern tracking (NEW)
+│   │   └── timeline-visualizer.ts # Temporal visualization (NEW)
 │   │
-│   ├── knowledge/                  # Advanced Memory System
-│   │   ├── graph-store.js          # Knowledge graph persistence
-│   │   ├── graph-extractor.js      # AI knowledge extraction
-│   │   ├── image-analyzer.js       # Visual memory (Gemini Vision)
-│   │   ├── session-diary.js        # Session summarization
-│   │   ├── memory-partitioner.js   # Agent-specific memory isolation
-│   │   └── semantic-indexer.js     # Semantic search index
+│   ├── tools/
+│   │   ├── git-tools.ts
+│   │   ├── code-analyzer.ts
+│   │   ├── debugger.ts
+│   │   ├── web-scraper.ts
+│   │   ├── calendar-tool.ts
+│   │   └── system-control.ts
 │   │
-│   ├── intent/                     # Intent Recognition & Classification
-│   │   ├── intent-parser.js        # NLP parsing pipeline
-│   │   ├── domain-classifier.js    # Domain classification model
-│   │   ├── confidence-scorer.js    # Confidence & uncertainty
-│   │   └── intent-cache.js         # Memoization of classifications
-│   │
-│   ├── tools/                      # Tool Definitions & Executors
-│   │   ├── base-tool.js            # Tool interface
-│   │   ├── tool-registry.js        # Tool discovery
-│   │   ├── os-tools/               # macOS system integration
-│   │   │   ├── system-control.js   # Volume, brightness, etc.
-│   │   │   ├── file-manager.js     # File operations
-│   │   │   ├── app-control.js      # App launching
-│   │   │   └── diagnostics.js      # System monitoring
-│   │   ├── code-tools/             # Programming & debugging
-│   │   │   ├── git-analyzer.js     # Git operations
-│   │   │   ├── debugger-interface.js
-│   │   │   ├── linter.js
-│   │   │   └── test-runner.js
-│   │   ├── web-tools/              # Web & research
-│   │   │   ├── scraper.js
-│   │   │   ├── search-engine.js
-│   │   │   └── browser-automation.js
-│   │   └── business-tools/         # Business operations
-│   │       ├── crm-integration.js
-│   │       ├── financial-calculator.js
-│   │       └── reporting-engine.js
-│   │
-│   ├── skills/                     # Extensible Skills System
-│   │   ├── skill-loader.js         # Dynamic skill discovery
-│   │   ├── whatsapp-skill.js       # WhatsApp integration
-│   │   ├── music-skill.js          # Music playback
-│   │   ├── calendar-skill.js       # Calendar management
-│   │   └── base-skill.js           # Skill interface
-│   │
-│   ├── services/                   # External API Integration
-│   │   ├── gemini-api.js           # Google Gemini integration
-│   │   ├── google-workspace.js     # Drive, Mail, Calendar, Maps
-│   │   ├── vision-service.js       # Image analysis
-│   │   └── location-service.js     # Geolocation & weather
-│   │
-│   ├── ui/                         # UI Components
-│   │   ├── components/
-│   │   │   ├── agent-indicator.js  # Visual agent status
-│   │   │   ├── memory-visualizer.js
-│   │   │   ├── chat-interface.js
-│   │   │   ├── voice-indicator.js
-│   │   │   └── notification-center.js
+│   ├── renderer/
+│   │   ├── index.html
 │   │   ├── styles/
-│   │   │   ├── glassmorphism.css
-│   │   │   ├── animations.css
-│   │   │   └── theme.css
-│   │   └── hud/
-│   │       └── jarvis-hud.js       # Main HUD renderer
+│   │   │   ├── glassmorphic.css
+│   │   │   ├── responsive.css
+│   │   │   └── animations.css
+│   │   ├── components/
+│   │   │   ├── agent-display.tsx
+│   │   │   ├── memory-visualizer.tsx
+│   │   │   ├── timeline-view.tsx
+│   │   │   └── ui-controller.tsx
+│   │   └── app.tsx               # React entry point
 │   │
-│   ├── settings/                   # User Configuration
-│   │   ├── permission-manager.js   # Tool permissions
-│   │   ├── preferences.js          # User preferences
-│   │   ├── agent-preferences.js    # Agent-specific settings
-│   │   └── settings-ui.js          # Settings interface
-│   │
-│   ├── security/                   # Security & Privacy
-│   │   ├── permission-checker.js   # Permission validation
-│   │   ├── audit-logger.js         # Action logging
-│   │   ├── encryption.js           # Data encryption
-│   │   └── sandboxing.js           # Process isolation
-│   │
-│   ├── storage/                    # Data Persistence
-│   │   ├── db-manager.js           # SQLite/LevelDB manager
-│   │   ├── file-store.js           # Local file storage
-│   │   └── backup-manager.js       # Data backup & recovery
-│   │
-│   ├── metrics/                    # Monitoring & Analytics
-│   │   ├── performance-tracker.js  # Execution time tracking
-│   │   ├── success-metrics.js      # Task success rates
-│   │   ├── user-analytics.js       # Usage patterns
-│   │   └── agent-analytics.js      # Agent performance
-│   │
-│   └── utils/                      # Utility Functions
-│       ├── logger.js
-│       ├── error-handler.js
-│       ├── validators.js
-│       ├── formatters.js
-│       └── transformers.js
-│
-├── public/
-│   ├── index.html                  # Main HTML
-│   ├── styles/
-│   └── assets/
+│   └── utils/
+│       ├── logger.ts
+│       ├── config.ts
+│       ├── constants.ts
+│       └── helpers.ts
 │
 ├── tests/
-│   ├── unit/
-│   ├── integration/
-│   ├── e2e/
-│   └── fixtures/
+│   ├── agents/
+│   ├── memory/
+│   ├── tools/
+│   └── integration/
 │
 ├── docs/
-│   ├── api/
-│   ├── agents/
-│   ├── architecture/
-│   └── deployment/
+│   ├── ARCHITECTURE.md
+│   ├── API_REFERENCE.md
+│   ├── AGENT_GUIDE.md
+│   └── MEMORY_SYSTEM.md
 │
-├── .env.example                    # Environment variables template
-├── forge.config.js                 # Electron Forge configuration
-├── package.json                    # Dependencies & scripts
-├── tsconfig.json                   # TypeScript configuration (future)
-└── README.md                       # This file
+├── .github/
+│   └── workflows/
+│       ├── build.yml
+│       ├── test.yml
+│       └── deploy.yml
+│
+├── package.json
+├── tsconfig.json
+├── webpack.config.js
+└── README.md
 ```
 
 ---
@@ -1144,217 +643,107 @@ summer-personal-assistant/
 
 ### Prerequisites
 
-- **Node.js**: v18.x or higher
-- **npm**: v9.x or higher
-- **OS**: Optimized for macOS (many tools use `systemPreferences` and `applescript`)
-- **Google Cloud**: Gemini API Key required
-- **Workspace**: `credentials.json` for Google Workspace integration (optional)
+- **Node.js** v18+ and **npm** v9+
+- **Electron** v41.5.0+
+- **Google Gemini API Key** (for AI capabilities)
+- **macOS** (for native integrations)
 
-### Step-by-Step Setup
+### Quick Start
 
-1. **Clone & Install**:
-   ```bash
-   git clone https://github.com/Ayushkumar0602/summer-personal-assistant-.git
-   cd summer-personal-assistant-
-   npm install
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/Ayushkumar0602/summer-personal-assistant-.git
+cd summer-personal-assistant
 
-2. **Environment Configuration**:
-   Create a `.env` file in the root directory:
-   ```env
-   # API Keys
-   GOOGLE_API_KEY=your_gemini_api_key_here
-   LOCATION_API_KEY=your_ipinfo_key_here
-   NEWS_API_KEY=your_newsapi_key_here
+# Install dependencies
+npm install
 
-   # Optional: Google Workspace
-   GOOGLE_OAUTH_CLIENT_ID=your_client_id_here
-   GOOGLE_OAUTH_CLIENT_SECRET=your_client_secret_here
+# Build the project
+npm run build
 
-   # Configuration
-   AGENT_TIMEOUT=300000
-   MAX_AGENT_INSTANCES=10
-   MEMORY_DB_PATH=./data/knowledge-graph.db
-   
-   # Logging
-   LOG_LEVEL=info
-   LOG_FILE=./logs/summer.log
+# Start development server
+npm run dev
 
-   # Development
-   NODE_ENV=development
-   DEBUG=summer:*
-   ```
+# Package for production
+npm run package
+```
 
-3. **Launch Development**:
-   ```bash
-   npm start
-   ```
+### Configuration
 
-4. **Build for Production**:
-   ```bash
-   npm run make
-   ```
+Create a `.env` file in the root directory:
 
-5. **Run Tests**:
-   ```bash
-   npm test
-   npm run test:unit
-   npm run test:integration
-   npm run test:e2e
-   ```
+```
+GEMINI_API_KEY=your_api_key_here
+LOG_LEVEL=info
+MEMORY_DB_PATH=./data/memory
+AUDIO_PROCESSING_ENABLED=true
+PROCEDURAL_TRACKING_ENABLED=true
+TIMELINE_VISUALIZATION_ENABLED=true
+```
 
 ---
 
-## 🛡️ Security & Privacy
+## 🔐 Security & Privacy
 
-### Permission System
-
-- **Fine-Grained Control**: Revoke access to clipboard, system settings, browser at any time
-- **Permission Levels**: 
-  - `CRITICAL`: Requires explicit confirmation every time
-  - `HIGH`: Requires confirmation first time, then remember preference
-  - `MEDIUM`: Default allow with user notification
-  - `LOW`: Silent execution with audit logging
-
-### Audit Logs
-
-- Every OS-level action logged locally (e.g., "Set volume to 50%")
-- Tool execution with parameters and results
-- Agent decision trees and reasoning paths
-- Memory access patterns and data retrieval
-
-### Confirmation Dialogs
-
-- Destructive actions (Quit App, Empty Trash, System Sleep) require manual UI confirmation
-- Sensitive data access (passwords, private files) triggers warning
-- Irreversible operations show undo window
-
-### Data Storage & Encryption
-
-- **Local-First**: Knowledge Graph stored locally on your machine
-- **Encryption**: All sensitive data encrypted at rest using AES-256
-- **No Cloud Sync**: Option for local-only operation
-- **Backup Management**: Regular encrypted backups with recovery options
-
-### Agent Sandboxing
-
-- Each agent runs in isolated execution context
-- Resource limits (CPU, memory, time) enforced per agent
-- Tool access restricted to agent's declared capabilities
-- Inter-process communication monitored and logged
+- **End-to-End Encryption**: All sensitive data is encrypted at rest and in transit.
+- **Local-First**: Most processing happens locally; minimal data sent to APIs.
+- **User Consent**: Explicit opt-in for data collection and processing.
+- **Audit Logs**: Comprehensive logging of all agent actions for transparency.
+- **Sandboxing**: Agents execute in isolated contexts with permission restrictions.
 
 ---
 
 ## 🗺️ Roadmap
 
 ### Phase 1: Foundation (Current)
-- [x] Core Electron application structure
-- [x] Gemini 3.5 integration
-- [x] Basic tool execution system
-- [x] Ego-aware knowledge graph (Tier 2)
-- [ ] Multi-agent orchestration framework
-- [ ] Agent-specific memory partitioning
+- ✅ Multi-agent orchestration system
+- ✅ Advanced memory with audio extensions
+- ✅ Procedural behavior tracking
+- ✅ Temporal timeline visualization
+- ⏳ Core agent implementations
 
-### Phase 2: Agentic Enhancement (Next)
-- [ ] Code Agent with debugging capabilities
-- [ ] Research Agent with academic integration
-- [ ] Business Agent with CRM integration
-- [ ] Creative Agent with content generation
-- [ ] Personal Agent with life coaching
-- [ ] Multi-agent collaboration patterns
-- [ ] Agent performance monitoring & analytics
+### Phase 2: Enhancement
+- [ ] Cross-platform support (Windows, Linux)
+- [ ] Advanced voice interaction
+- [ ] Improved visual browser automation
+- [ ] Real-time collaboration features
+- [ ] Mobile companion app
 
-### Phase 3: Advanced Intelligence (Future)
-- [ ] Vector database integration (Pinecone/Weaviate)
-- [ ] RAG (Retrieval-Augmented Generation) over massive datasets
-- [ ] Cross-Platform support (Windows, Linux)
-- [ ] Real-time video capabilities (webcam vision)
-- [ ] Offline LLM support (Llama 3, Mistral)
-- [ ] Agent marketplace & community plugins
-- [ ] Federated learning for privacy-preserving improvements
+### Phase 3: Intelligence
+- [ ] Federated learning across devices
+- [ ] Advanced predictive capabilities
+- [ ] Proactive assistance system
+- [ ] Emotional intelligence layer
+- [ ] Long-term goal tracking
 
-### Phase 4: Enterprise (Long-term)
-- [ ] Multi-user collaborative workspace
-- [ ] Enterprise permission management
-- [ ] Advanced audit & compliance logging
-- [ ] Custom agent training on domain-specific data
-- [ ] API gateway for external integrations
-- [ ] Kubernetes deployment support
-- [ ] Advanced analytics & insights dashboard
+### Phase 4: Ecosystem
+- [ ] Third-party agent marketplace
+- [ ] Custom skill development framework
+- [ ] Community contributions system
+- [ ] Enterprise deployment options
+- [ ] Multi-user organizations support
 
 ---
 
-## 📊 Agent Performance Metrics
+## 📝 License
 
-Summer tracks comprehensive metrics for each agent:
-
-```
-Agent Performance Dashboard
-├── Success Rate (%)
-│   ├── Task Completion Rate
-│   ├── First-Time Success Rate
-│   └── Error Recovery Success Rate
-├── Performance Metrics
-│   ├── Average Execution Time
-│   ├── Resource Usage (CPU, Memory)
-│   └── Tool Efficiency Score
-├── Quality Metrics
-│   ├── Output Quality Score
-│   ├── User Satisfaction Rating
-│   └── Hallucination/Confidence Gap
-├── Learning Metrics
-│   ├── Improvements Over Time
-│   ├── Pattern Recognition Accuracy
-│   └── Knowledge Graph Growth
-└── Reliability Metrics
-    ├── Uptime %
-    ├── Failure Rate
-    └── Recovery Time
-```
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🎯 Success Criteria for Agentic System
+## 🤝 Contributing
 
-The system is considered successful when:
-
-1. **Automatic Agent Selection**: 95%+ accuracy in intent→agent mapping
-2. **Task Completion**: 90%+ task completion rate across domains
-3. **User Satisfaction**: 4.5/5 average user rating
-4. **Response Time**: <5 seconds average latency for simple tasks
-5. **Collaboration**: Multi-agent tasks complete 40% faster than single agent
-6. **Learning**: 10%+ performance improvement every 100 interactions
-7. **Reliability**: 99.5% uptime with <1% error rate
-8. **Memory Efficiency**: <2GB footprint with 100K+ memory nodes
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute, report issues, and submit pull requests.
 
 ---
 
-## 📞 Support & Contribution
+## 💬 Support & Community
 
-For issues, feature requests, or contributions:
-
-1. Open an issue on [GitHub Issues](https://github.com/Ayushkumar0602/summer-personal-assistant-/issues)
-2. Submit pull requests for enhancements
-3. Join our community discussions
-4. Review [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
+- **Documentation**: [Project Wiki](https://github.com/Ayushkumar0602/summer-personal-assistant-/wiki)
+- **Issues**: [GitHub Issues](https://github.com/Ayushkumar0602/summer-personal-assistant-/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Ayushkumar0602/summer-personal-assistant-/discussions)
+- **Contact**: Reach out via GitHub or email
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Google Gemini Team** for cutting-edge LLM technology
-- **Electron.js Community** for desktop app framework
-- **Open Source Community** for amazing libraries and tools
-- **Our Users** for continuous feedback and inspiration
-
----
-
-*"I am Summer. How can I assist you today with the power of specialized agents?"*
-
-**Made with ❤️ for a smarter, more responsive AI future.**
+**Made with ❤️ by Ayushkumar0602**
