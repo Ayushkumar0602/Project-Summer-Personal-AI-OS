@@ -7,7 +7,7 @@
 [![OS](https://img.shields.io/badge/OS-macOS%20Deep%20Integration-lightgrey.svg)](#-os--deep-app-control)
 [![Language Composition](https://img.shields.io/badge/Languages-JavaScript%2082.4%25%20|%20Swift%206.9%25%20|%20CSS%205.3%25%20|%20HTML%204.3%25%20|%20Python%201.1%25-blueviolet.svg)](#-project-structure)
 
-**Summer** is a sophisticated, state-of-the-art AI assistant built on Electron, designed to bridge the gap between human intent and machine execution. Inspired by the "Jarvis" aesthetic, Summer now features enhanced memory systems with audio processing extensions, procedural behavior tracking, and temporal timeline visualization capabilities.
+**Summer** is a sophisticated, state-of-the-art AI assistant built on Electron, designed to bridge the gap between human intent and machine execution. Inspired by the "Jarvis" aesthetic, Summer now features **advanced memory extensions with audio processing, procedural behavior tracking, and temporal timeline visualization** for enhanced contextual awareness and learning.
 
 **Latest Update (May 28, 2026)**: 
 ✨ **Memory System Extensions** - Implemented advanced audio processing, procedural behavior tracking, and temporal timeline visualization for enhanced contextual awareness and learning.
@@ -134,7 +134,7 @@ graph TD
 ### Key Memory Features
 
 - **Ego-Awareness**: A specialized `user_self` node structure that separates your personal identity, skills, and projects from general world knowledge.
-- **Importance-Based Context**: Every memory node has an importance score (0.0–1.0). High-priority facts (★5/5) are "pinned" directly to Summer's system instruction, while peripheral data is archived.
+- **Importance-Based Context**: Every memory node has an importance score (0.0–1.0). High-priority facts (★5/5) are "pinned" directly to Summer's system instruction, while peripheral data is stored in the graph.
 - **Semantic Chunking**: Documents (PDF, Text) and web pages are processed using intelligent context boundaries rather than arbitrary character limits, ensuring high-fidelity knowledge extraction.
 - **Visual Memory Recall**: Gemini Vision analyzes your uploaded photos, storing them with descriptive tags. Summer can proactively "show" you your own photos when the conversation turns personal.
 - **Session Diary**: At the end of every session, Summer generates a "diary entry" to maintain emotional and task continuity across days and weeks.
@@ -150,7 +150,7 @@ graph TD
 
 ### **The Ultimate Plan: Multi-Agent Orchestration Framework**
 
-Summer's agentic capabilities represent a paradigm shift from single-model assistance to a **dynamic, self-organizing agent collective**. This system enables Summer to behave as different specialized agents based on context.
+Summer's agentic capabilities represent a paradigm shift from single-model assistance to a **dynamic, self-organizing agent collective**. This system enables Summer to behave as different specialized experts, seamlessly delegating, collaborating, and learning across domains.
 
 ### Orchestration Architecture Overview
 
@@ -288,12 +288,6 @@ stateDiagram-v2
     REFLECTING --> FINALIZING: Success/Fail Decision
     
     FINALIZING --> IDLE: Complete/Timeout
-    
-    note right of EXECUTING
-        Execute tools
-        Update memory
-        Handle errors
-    end
     
     note right of REFLECTING
         Evaluate output
