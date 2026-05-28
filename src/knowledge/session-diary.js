@@ -102,7 +102,7 @@ ${transcriptText.slice(0, 12000)}`;
     return await withMemoryApiKey(async (key) => {
         const ai = new GoogleGenAI({ apiKey: key });
         const response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite-preview',
+            model: 'gemini-3.1-flash-lite',
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
                 temperature: 0.3,

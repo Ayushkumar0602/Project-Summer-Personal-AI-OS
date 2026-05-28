@@ -140,7 +140,7 @@ Only include edges where confidence >= 0.75. Return [] if unsure. Return ONLY th
         const edges = await withMemoryApiKey(async (key) => {
             const ai = new GoogleGenAI({ apiKey: key });
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite-preview',
+                model: 'gemini-3.1-flash-lite',
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { temperature: 0.05, maxOutputTokens: 512 }
             });
@@ -223,7 +223,7 @@ async function analyzeAndStoreImage(file) {
         analysis = await withMemoryApiKey(async (key) => {
             const ai = new GoogleGenAI({ apiKey: key });
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite-preview',
+                model: 'gemini-3.1-flash-lite',
                 contents: [{
                     parts: [
                         { inlineData: { mimeType: apiMime, data: base64 } },
