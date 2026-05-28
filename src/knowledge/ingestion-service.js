@@ -7,6 +7,8 @@ const { loadGraph, saveGraph, mergeGraph } = require('./graph-store');
 const { extractGraphFromText } = require('./graph-extractor');
 const { semanticChunk } = require('./graph-chunker');
 const { analyzeAndStoreImage, isImageFile } = require('./image-analyzer');
+const { analyzeAndStoreAudio } = require('./audio-analyzer');
+const { isAudioFile } = require('./audio-store');
 const { scrapeWebpage } = require('../tools/web-tools');
 
 async function processUploadedFiles(event, fileDataArray) {
@@ -37,6 +39,24 @@ async function processUploadedFiles(event, fileDataArray) {
                     }
                 } catch (imgErr) {
                     console.error(`  ❌ Image analysis failed for ${file.name}:`, imgErr.message);
+                }
+                continue;
+            }
+
+            if (isAudioFile(file)) {
+                console.log(`  🎵 Audio detected — routing to Audio Memory pipeline...`);
+                event.sender.send('extraction-progress', `Transcribing audio: ${file.name} with Gemini...`);
+                try {
+                    const { node, edges, deduplicated } = await analyzeAndStoreAudio(file);
+                    if (!deduplicated) {
+                        console.log(`  ✅ AudioMemory node: "${node.label}" | Tags: ${node.tags.join(', ')}`);
+                        combinedGraph.nodes.push(node);
+                        if (edges && edges.length) combinedGraph.edges.push(...edges);
+                    } else {
+                        console.log(`  ⚡ Skipped (duplicate audio already in memory)`);
+                    }
+                } catch (audioErr) {
+                    console.error(`  ❌ Audio analysis failed for ${file.name}:`, audioErr.message);
                 }
                 continue;
             }

@@ -450,6 +450,185 @@ body {
     padding: 40px 0;
 }
 
+/* ── Mood Timeline ── */
+.mood-timeline {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+
+.mood-timeline-label {
+    font-size: 0.65rem;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.mood-timeline-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.mood-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    cursor: default;
+    opacity: 0.8;
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+.mood-dot:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* ── Diary Mood Badge ── */
+.diary-mood-badge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    margin-left: 6px;
+    font-weight: 500;
+}
+
+/* ── Diary Location Badge ── */
+.diary-location-row {
+    margin: 2px 0 4px;
+}
+
+.diary-location-badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(96,165,250,0.08);
+    border: 1px solid rgba(96,165,250,0.2);
+    color: #60a5fa;
+    font-weight: 500;
+}
+
+/* ── Timeline Styles ── */
+.timeline-filters {
+    display: flex;
+    gap: 6px;
+    padding: 0 16px 10px;
+    flex-wrap: wrap;
+}
+
+.tl-filter-pill {
+    font-size: 0.68rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.tl-filter-pill:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: #94a3b8;
+}
+
+.tl-filter-pill.active {
+    background: rgba(34,211,238,0.12);
+    border-color: rgba(34,211,238,0.3);
+    color: #22d3ee;
+}
+
+.tl-date-header {
+    font-size: 0.68rem;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 10px 0 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 6px;
+}
+
+.tl-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-left: 3px solid #64748b;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.tl-card:hover {
+    background: rgba(255,255,255,0.04);
+    transform: translateX(2px);
+}
+
+.tl-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.tl-icon {
+    font-size: 0.85rem;
+}
+
+.tl-title {
+    font-size: 0.78rem;
+    color: #e2e8f0;
+    font-weight: 500;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tl-time {
+    font-size: 0.6rem;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.tl-subtitle {
+    font-size: 0.72rem;
+    color: #64748b;
+    line-height: 1.4;
+    max-height: 40px;
+    overflow: hidden;
+}
+
+.tl-badges {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.tl-tags {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.tl-tag {
+    font-size: 0.58rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    color: #475569;
+}
+
 /* ── GRAPH AREA ── */
 .graph-area {
     flex: 1;
@@ -680,6 +859,96 @@ body {
     justify-content: center;
 }
 .nd-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* ── Procedural Memory Styles ── */
+.proc-subtype-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(232,121,249,0.12);
+    border: 1px solid rgba(232,121,249,0.3);
+    color: #e879f9;
+    font-weight: 500;
+}
+
+.proc-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.proc-rule-item {
+    font-size: 0.78rem;
+    color: #cbd5e1;
+    background: rgba(232,121,249,0.06);
+    border-left: 2px solid rgba(232,121,249,0.35);
+    padding: 6px 10px;
+    border-radius: 0 8px 8px 0;
+    line-height: 1.5;
+}
+
+/* ── Audio Memory Styles ── */
+.audio-meta-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 10px;
+}
+
+.audio-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: rgba(34,211,238,0.08);
+    border: 1px solid rgba(34,211,238,0.25);
+    color: #22d3ee;
+    font-weight: 500;
+}
+
+.audio-player-wrap {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(34,211,238,0.15);
+    border-radius: 10px;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+
+.audio-player-wrap audio {
+    filter: hue-rotate(180deg) brightness(0.9);
+}
+
+.audio-transcript {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.6;
+    background: rgba(34,211,238,0.04);
+    border-left: 2px solid rgba(34,211,238,0.3);
+    padding: 8px 12px;
+    border-radius: 0 8px 8px 0;
+    max-height: 150px;
+    overflow-y: auto;
+    user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.audio-key-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.audio-fact-item {
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    background: rgba(34,211,238,0.06);
+    border-left: 2px solid rgba(34,211,238,0.25);
+    padding: 4px 10px;
+    border-radius: 0 6px 6px 0;
+    line-height: 1.5;
+}
 
 /* Scrollbars */
 ::-webkit-scrollbar { width: 4px; }

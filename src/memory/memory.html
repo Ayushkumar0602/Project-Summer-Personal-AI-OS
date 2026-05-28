@@ -51,7 +51,7 @@
             <div id="dropZone" class="drop-zone">
                 <div class="drop-icon">📂</div>
                 <div class="drop-text">Drop files here</div>
-                <div class="drop-sub">Text, PDF, or drop a photo to add to visual memory 📸</div>
+                <div class="drop-sub">Text, PDF, audio, or drop a photo to add to memory 📸🎤</div>
                 <input type="file" id="fileInput" multiple style="display:none" />
                 <button class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse Files</button>
             </div>
@@ -73,12 +73,15 @@
                 <div class="legend-item"><span class="dot document"></span> Document / Chapter</div>
                 <div class="legend-item"><span class="dot formula"></span> Formula / Definition</div>
                 <div class="legend-item"><span class="dot" style="background:#7c2d69; border-color:#a855f7;"></span> 📸 Image Memory</div>
+                <div class="legend-item"><span class="dot" style="background:#1a3a2e; border-color:#22d3ee;"></span> 🎤 Audio Memory</div>
+                <div class="legend-item"><span class="dot" style="background:#2a1a3e; border-color:#e879f9;"></span> 🧠 Learned Behavior</div>
                 <div class="legend-item"><span class="dot other"></span> Other</div>
                 <div class="legend-item"><span class="dot agent"></span> Added by Agent</div>
             </div>
 
             <!-- Action buttons -->
             <button class="diary-btn" onclick="openDiaryTab()">📓 Session Diary</button>
+            <button class="diary-btn" style="background:rgba(34,211,238,0.08); color:#22d3ee; border-color:rgba(34,211,238,0.2); margin-top:8px;" onclick="openTimeline()">🕐 Timeline</button>
             <button class="diary-btn" style="background:#0284c7; color:white; border-color:#0369a1; margin-top:8px;" onclick="openMemoryCommandPalette()">💬 AI Graph Command</button>
             <button class="diary-btn" style="background:#7c3aed; color:white; border-color:#6d28d9; margin-top:8px;" onclick="autoConnectIslands()" id="btnAutoConnect">✨ AI Connect Islands</button>
             <button class="diary-btn" style="display:none; background:transparent; color:#ef4444; border-color:#ef4444; margin-top:8px;" onclick="revertGraph()" id="btnRevertGraph">↩ Revert Connect</button>
@@ -140,6 +143,41 @@
                 <div id="nodeImageCaption" style="font-size:10px; color:#94a3b8; margin-top:4px;"></div>
             </div>
 
+            <!-- Procedural Memory Detail (only shown for ProceduralMemory nodes) -->
+            <div id="nodeProceduralDetail" style="display:none; margin-top:12px;">
+                <div class="nd-section">🧠 Learned Behavior</div>
+                <div id="procSubtypeBadge" class="proc-subtype-badge">🎨 Style Preference</div>
+                <div id="procActiveStatus" style="font-size:0.68rem; margin:6px 0 8px;">⏳ Learning</div>
+                <div style="margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="flex:1; background:rgba(255,255,255,0.06); border-radius:10px; height:6px; overflow:hidden;">
+                            <div id="procConfidenceBar" style="height:100%; width:50%; border-radius:10px; transition:width 0.4s ease;"></div>
+                        </div>
+                        <span id="procConfidenceText" style="font-size:0.68rem; color:#94a3b8; white-space:nowrap;">50%</span>
+                    </div>
+                </div>
+                <div class="nd-section" style="margin-top:8px;">📋 Rules</div>
+                <div id="procRulesList" class="proc-rules-list"></div>
+                <div id="procObservedCount" style="font-size:0.65rem; color:#475569; margin-top:8px;">Observed 1x</div>
+            </div>
+
+            <!-- Audio Memory Detail (only shown for AudioMemory nodes) -->
+            <div id="nodeAudioDetail" style="display:none; margin-top:12px;">
+                <div class="nd-section">🎤 Audio Memory</div>
+                <div class="audio-meta-badges">
+                    <span id="audioMoodBadge" class="audio-badge">😐 neutral</span>
+                    <span id="audioSpeakerBadge" class="audio-badge">🗣️ 1 speaker</span>
+                    <span id="audioDurationBadge" class="audio-badge">⏱️ 0s</span>
+                </div>
+                <div class="audio-player-wrap">
+                    <div id="audioPlayerStatus" style="font-size:0.7rem; color:#475569;"></div>
+                    <audio id="audioPlayerEl" controls style="width:100%; display:none; margin-top:6px; border-radius:8px; height:36px;"></audio>
+                </div>
+                <div class="nd-section" style="margin-top:10px;">📄 Transcript</div>
+                <div id="audioTranscript" class="audio-transcript" style="display:none;"></div>
+                <div id="audioKeyFacts" class="audio-key-facts" style="display:none; margin-top:8px;"></div>
+            </div>
+
             <!-- Description Section -->
             <div class="nd-section" style="margin-top:10px">📖 Description</div>
             <div id="nodeDetailDesc" class="nd-description" style="display:none"></div>
@@ -196,6 +234,24 @@
             <button class="diary-close" onclick="closeDiaryPanel()">✕</button>
         </div>
         <div id="diaryList" class="diary-list"></div>
+    </div>
+
+    <!-- Timeline Panel Overlay -->
+    <div id="timelinePanel" class="diary-panel" style="display:none">
+        <div class="diary-header">
+            <div class="diary-title">🕐 Memory Timeline</div>
+            <div class="diary-subtitle">Everything Summer knows, in chronological order</div>
+            <button class="diary-close" onclick="closeTimelinePanel()">✕</button>
+        </div>
+        <div class="timeline-filters">
+            <button class="tl-filter-pill active" onclick="filterTimeline(null, this)">All</button>
+            <button class="tl-filter-pill" onclick="filterTimeline('text', this)">📝 Text</button>
+            <button class="tl-filter-pill" onclick="filterTimeline('image', this)">📸 Images</button>
+            <button class="tl-filter-pill" onclick="filterTimeline('audio', this)">🎤 Audio</button>
+            <button class="tl-filter-pill" onclick="filterTimeline('procedural', this)">🧠 Learned</button>
+            <button class="tl-filter-pill" onclick="filterTimeline('diary', this)">📓 Diary</button>
+        </div>
+        <div id="timelineList" class="diary-list"></div>
     </div>
 
     <!-- AI Memory Command Palette -->

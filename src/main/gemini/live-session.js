@@ -7,7 +7,9 @@ const { loadGraph, saveGraph, mergeGraph } = require('../../knowledge/graph-stor
 const { extractGraphFromText } = require('../../knowledge/graph-extractor');
 const { buildSystemInstruction } = require('../../knowledge/graph-context');
 const { searchMemory } = require('../../knowledge/graph-search');
-const { summariseSession, appendDiaryEntry } = require('../../knowledge/session-diary');
+const { summariseSession, appendDiaryEntry, getSessionLocation } = require('../../knowledge/session-diary');
+const { extractProceduralPatterns } = require('../../knowledge/procedural-memory');
+const { buildProceduralContext } = require('../../knowledge/context-injector');
 const { findMatchingImageNodes, extractKeywordsFromText, hasVisualIntent } = require('../../knowledge/image-analyzer');
 const { enhanceToolResponse, getSkillSummaries } = require('../../skills/skill-loader');
 const orchestrator = require('../../orchestration/orchestrator');
@@ -116,6 +118,14 @@ class LiveSessionManager {
         let systemInstruction = buildSystemInstruction('', this.currentSessionContextPayload);
         systemInstruction += getSkillSummaries();
         systemInstruction += orchestrator.getPluginsPromptSection();
+
+        // Inject learned procedural rules (Phase 1: Procedural Memory)
+        try {
+            const proceduralCtx = buildProceduralContext();
+            if (proceduralCtx) systemInstruction += proceduralCtx;
+        } catch (e) {
+            console.warn('[LiveSession] Procedural context injection skipped:', e.message);
+        }
         if (contextPayload && contextPayload.weatherContext) {
             systemInstruction += `\n\nCURRENT CONTEXT:\n${contextPayload.weatherContext}`;
         }
@@ -358,18 +368,32 @@ class LiveSessionManager {
                         const existingSummary = this.activeConversationSummary;
                         const timestampToReplace = this.activeConversationTimestamp;
 
-                        const entry = await summariseSession(transcriptText, apiKey, existingSummary);
+                        const result = await summariseSession(transcriptText, apiKey, existingSummary);
+
+                        // Handle both old (string) and new ({ text, emotion }) return formats
+                        const entry = typeof result === 'string' ? result : result.text;
+                        const emotion = typeof result === 'object' ? result.emotion : null;
+
+                        // Fetch location (non-blocking, returns null if unavailable)
+                        let location = null;
+                        try { location = await getSessionLocation(); } catch {}
 
                         if (!entry.includes('No significant facts learned')) {
-                            appendDiaryEntry(entry, timestampToReplace);
+                            appendDiaryEntry(entry, timestampToReplace, emotion, location);
                             this.activeConversationSummary = entry;
-                            console.log(`📓 Diary: "${entry.slice(0, 80)}..."`);
+                            const moodLabel = emotion ? ` [mood: ${emotion}]` : '';
+                            console.log(`📓 Diary${moodLabel}: "${entry.slice(0, 80)}..."`);
                         } else if (existingSummary && timestampToReplace) {
                             appendDiaryEntry(existingSummary, timestampToReplace);
                             console.log('📓 Diary: Kept previous summary, updated timestamp.');
                         } else {
                             console.log('📓 Diary: Nothing significant this session.');
                         }
+
+                        // Fire-and-forget: extract procedural patterns from this session
+                        extractProceduralPatterns(transcriptText).catch(err => {
+                            console.warn('[ProceduralMemory] Background extraction failed (non-critical):', err.message);
+                        });
                     })()
                 ]);
 

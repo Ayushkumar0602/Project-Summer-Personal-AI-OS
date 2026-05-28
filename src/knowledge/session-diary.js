@@ -4,6 +4,7 @@ const fs   = require('fs');
 const Paths = require('../core/utils/paths');
 const { withMemoryApiKey } = require('./memory-api-key');
 const { supabase } = require('../services/supabase-client');
+const { getSessionLocation } = require('./location-tagger');
 
 const DIARY_DIR = path.join(Paths.userData(), 'session-diary');
 const DIARY_PATH = path.join(DIARY_DIR, 'diary.json');
@@ -73,8 +74,10 @@ RULES:
 3. Include any personal details shared (projects, plans, feelings, skills mentioned)
 4. Keep it under 150 words — dense with facts, not narrative fluff
 5. If nothing meaningful happened, write exactly: "No significant facts learned."
+6. On the VERY LAST LINE, add a mood tag in this exact format:
+MOOD: <one of: happy|stressed|frustrated|excited|neutral|focused|sad|curious|casual>
 
-OUTPUT FORMAT: Plain text only. No bullet points, no headers. 2-4 sentences.`;
+OUTPUT FORMAT: Plain text diary entry (2-4 sentences), then a blank line, then the MOOD line.`;
 
 /**
  * Generates a short diary-entry summary of a conversation session.
@@ -106,10 +109,22 @@ ${transcriptText.slice(0, 12000)}`;
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
                 temperature: 0.3,
-                maxOutputTokens: 300
+                maxOutputTokens: 400
             }
         });
-        return response.candidates[0].content.parts[0].text.trim();
+        const rawText = response.candidates[0].content.parts[0].text.trim();
+
+        // Parse mood from last line (MOOD: excited)
+        const lines = rawText.split('\n');
+        const moodLine = lines.find(l => l.trim().toUpperCase().startsWith('MOOD:'));
+        let emotion = 'neutral';
+        if (moodLine) {
+            emotion = moodLine.replace(/^MOOD:\s*/i, '').trim().toLowerCase();
+        }
+        // Remove the MOOD line from the diary text
+        const diaryText = lines.filter(l => !l.trim().toUpperCase().startsWith('MOOD:')).join('\n').trim();
+
+        return { text: diaryText, emotion };
     });
 }
 
@@ -118,7 +133,7 @@ ${transcriptText.slice(0, 12000)}`;
  * @param {string} entry - The diary entry text
  * @param {number} replaceTimestamp - Optional, the timestamp of the entry being updated
  */
-function appendDiaryEntry(entry, replaceTimestamp = null) {
+function appendDiaryEntry(entry, replaceTimestamp = null, emotion = null, location = null) {
     try {
         if (!memoryDiaryCache) loadDiary(); // force load from disk if cache is null
 
@@ -130,6 +145,8 @@ function appendDiaryEntry(entry, replaceTimestamp = null) {
             timestamp: Date.now(),
             date: new Date().toLocaleString(),
             entry,
+            emotion: emotion || null,
+            location: location || null,
             originalTimestamp: replaceTimestamp || null
         };
 
@@ -170,4 +187,4 @@ function loadDiary() {
     return memoryDiaryCache;
 }
 
-module.exports = { initDiaryStore, summariseSession, appendDiaryEntry, loadDiary };
+module.exports = { initDiaryStore, summariseSession, appendDiaryEntry, loadDiary, getSessionLocation };

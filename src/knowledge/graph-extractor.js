@@ -25,7 +25,7 @@ Every node must have an "importance" field (0.0 to 1.0):
 Output ONLY valid JSON in this exact format:
 {
   "nodes": [
-    { "id": "unique_lowercase_id", "label": "Human Readable Label", "type": "Person|Project|Skill|Organization|Concept|Location|Other", "description": "A clear 1-2 sentence description of what this entity is and why it matters.", "importance": 0.8 }
+    { "id": "unique_lowercase_id", "label": "Human Readable Label", "type": "Person|Project|Skill|Organization|Concept|Location|AudioMemory|ProceduralMemory|Other", "description": "A clear 1-2 sentence description of what this entity is and why it matters.", "importance": 0.8 }
   ],
   "edges": [
     { "from": "node_id_1", "to": "node_id_2", "label": "relationship_verb", "confidence": 0.95 }
@@ -88,7 +88,7 @@ Every node MUST include ALL these fields:
 - "id": STABLE lowercase_underscore_id. Use the SAME id every time this entity appears across chunks.
   Examples: "user_self" (always for Ayush), "skill_react", "org_glitch_muj", "project_whizan_ai", "tool_docker"
 - "label": Human Readable Name (title case)
-- "type": Person | Project | Skill | Organization | Concept | Topic | Method | Tool | Formula | Definition | Chapter | Section | Example | Location | Event | Document | Other
+- "type": Person | Project | Skill | Organization | Concept | Topic | Method | Tool | Formula | Definition | Chapter | Section | Example | Location | Event | Document | AudioMemory | ProceduralMemory | Other
 - "description": DETAILED 2-5 sentence description. Must contain the key facts, metrics, definitions, or formulas from the source text. Do NOT write generic descriptions.
 - "importance": 0.0–1.0
   - 1.0 = Core subject/person of document

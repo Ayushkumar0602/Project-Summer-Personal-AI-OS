@@ -18,6 +18,8 @@ const TYPE_COLORS = {
     Location:     { bg: '#1e3a5f', border: '#60a5fa', font: '#dbeafe' },
     Event:        { bg: '#3b1f2a', border: '#f9a8d4', font: '#fce7f3' },
     ImageMemory: { bg: '#2d1b69', border: '#a855f7', font: '#f3e8ff' },
+    AudioMemory:  { bg: '#1a3a2e', border: '#22d3ee', font: '#cffafe' },
+    ProceduralMemory: { bg: '#2a1a3e', border: '#e879f9', font: '#fae8ff' },
     Other:        { bg: '#1e293b', border: '#64748b', font: '#94a3b8' },
 };
 
@@ -70,6 +72,18 @@ function renderGraph(graph) {
         }
 
         // Pinned nodes get a special gold ring
+        // Special styling for ProceduralMemory nodes (sparkle border)
+        if (n.type === 'ProceduralMemory') {
+            borderCol = '#e879f9';
+            borderW = 3;
+        }
+
+        // Special styling for AudioMemory nodes (cyan border)
+        if (n.type === 'AudioMemory') {
+            borderCol = '#22d3ee';
+            borderW = 3;
+        }
+
         if (n.pinned) {
             borderCol = '#f59e0b';
             borderW = 4;
@@ -203,6 +217,119 @@ function showNodeDetail(nodeId) {
     } else {
         imgPreview.style.display = 'none';
         imgEl.src = '';
+    }
+
+    // ── Procedural Memory Detail (only for ProceduralMemory nodes) ──
+    const procDetail = document.getElementById('nodeProceduralDetail');
+    if (node.type === 'ProceduralMemory') {
+        procDetail.style.display = 'block';
+
+        // Subtype badge
+        const subtypeIcons = { style_preference: '🎨', workflow: '⚙️', anti_pattern: '🚫', tool_preference: '🔧' };
+        const subtypeLabels = { style_preference: 'Style Preference', workflow: 'Workflow', anti_pattern: 'Anti-Pattern', tool_preference: 'Tool Preference' };
+        const subtype = node.subtype || 'style_preference';
+        document.getElementById('procSubtypeBadge').textContent = `${subtypeIcons[subtype] || '📝'} ${subtypeLabels[subtype] || subtype}`;
+
+        // Confidence bar
+        const confidence = node.confidence || 0.5;
+        const confPercent = Math.round(confidence * 100);
+        const confBar = document.getElementById('procConfidenceBar');
+        confBar.style.width = confPercent + '%';
+        confBar.style.background = confidence >= 0.7 ? 'linear-gradient(90deg, #34d399, #22d3ee)' :
+                                   confidence >= 0.5 ? 'linear-gradient(90deg, #fbbf24, #fb923c)' :
+                                                       'linear-gradient(90deg, #ef4444, #f97316)';
+        document.getElementById('procConfidenceText').textContent = `${confPercent}% confidence`;
+
+        // Active status
+        const statusEl = document.getElementById('procActiveStatus');
+        if (confidence >= 0.7) {
+            statusEl.textContent = '✅ Active — injected into sessions';
+            statusEl.style.color = '#34d399';
+        } else {
+            statusEl.textContent = '⏳ Learning — needs more reinforcement';
+            statusEl.style.color = '#fbbf24';
+        }
+
+        // Rules list
+        const rulesContainer = document.getElementById('procRulesList');
+        const rules = node.rules || [];
+        rulesContainer.innerHTML = rules.length > 0
+            ? rules.map(r => `<div class="proc-rule-item">• ${r}</div>`).join('')
+            : '<div class="proc-rule-item" style="color:#475569">No rules defined</div>';
+
+        // Observed count
+        document.getElementById('procObservedCount').textContent = `Observed ${node.observedCount || 1}x across sessions`;
+    } else {
+        procDetail.style.display = 'none';
+    }
+
+    // ── Audio Memory Detail (only for AudioMemory nodes) ──
+    const audioDetail = document.getElementById('nodeAudioDetail');
+    if (node.type === 'AudioMemory') {
+        audioDetail.style.display = 'block';
+
+        // Metadata badges
+        const moodEmoji = { neutral: '😐', excited: '🤩', stressed: '😰', happy: '😊', focused: '🎯', casual: '😎', unknown: '❓' };
+        const moodBadge = document.getElementById('audioMoodBadge');
+        moodBadge.textContent = `${moodEmoji[node.mood] || '🎵'} ${node.mood || 'unknown'}`;
+
+        const speakerBadge = document.getElementById('audioSpeakerBadge');
+        speakerBadge.textContent = `🗣️ ${node.speakerCount || 1} speaker${(node.speakerCount || 1) !== 1 ? 's' : ''}`;
+
+        const durationBadge = document.getElementById('audioDurationBadge');
+        const dur = node.durationSec || 0;
+        const mins = Math.floor(dur / 60);
+        const secs = Math.round(dur % 60);
+        durationBadge.textContent = `⏱️ ${mins > 0 ? mins + 'm ' : ''}${secs}s`;
+
+        // Audio player
+        const audioPlayer = document.getElementById('audioPlayerEl');
+        const audioStatus = document.getElementById('audioPlayerStatus');
+        if (node.audioPath) {
+            audioStatus.textContent = 'Loading audio...';
+            audioPlayer.src = '';
+            window.memoryAPI.readLocalAudio(node.audioPath).then(dataUrl => {
+                if (dataUrl) {
+                    audioPlayer.src = dataUrl;
+                    audioStatus.textContent = '';
+                    audioPlayer.style.display = 'block';
+                } else if (node.publicUrl) {
+                    audioPlayer.src = node.publicUrl;
+                    audioStatus.textContent = '';
+                    audioPlayer.style.display = 'block';
+                } else {
+                    audioStatus.textContent = 'Audio file not found locally.';
+                    audioPlayer.style.display = 'none';
+                }
+            }).catch(() => {
+                audioStatus.textContent = 'Could not load audio.';
+                audioPlayer.style.display = 'none';
+            });
+        } else {
+            audioPlayer.style.display = 'none';
+            audioStatus.textContent = 'No audio file available.';
+        }
+
+        // Transcript
+        const transcriptEl = document.getElementById('audioTranscript');
+        if (node.transcript && node.transcript.length > 0) {
+            transcriptEl.textContent = node.transcript;
+            transcriptEl.style.display = 'block';
+        } else {
+            transcriptEl.style.display = 'none';
+        }
+
+        // Key facts
+        const factsEl = document.getElementById('audioKeyFacts');
+        const facts = node.keyFacts || [];
+        if (facts.length > 0) {
+            factsEl.innerHTML = facts.map(f => `<div class="audio-fact-item">💡 ${f}</div>`).join('');
+            factsEl.style.display = 'block';
+        } else {
+            factsEl.style.display = 'none';
+        }
+    } else {
+        audioDetail.style.display = 'none';
     }
 
     // Show source badge
@@ -368,6 +495,99 @@ function closeDiaryPanel() {
     document.getElementById('diaryPanel').style.display = 'none';
 }
 
+// ── Timeline Functions ──────────────────────────────
+
+let currentTimelineFilter = null;
+
+async function openTimeline() {
+    document.getElementById('timelinePanel').style.display = 'flex';
+    await loadTimeline();
+}
+
+function closeTimelinePanel() {
+    document.getElementById('timelinePanel').style.display = 'none';
+}
+
+async function filterTimeline(typeFilter, btn) {
+    currentTimelineFilter = typeFilter;
+    // Update active pill
+    document.querySelectorAll('.tl-filter-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    await loadTimeline();
+}
+
+async function loadTimeline() {
+    const events = await window.memoryAPI.getTimeline({ typeFilter: currentTimelineFilter, limit: 150 });
+    renderTimeline(events);
+}
+
+function renderTimeline(events) {
+    const list = document.getElementById('timelineList');
+    if (!events || events.length === 0) {
+        list.innerHTML = '<div class="diary-empty">🕐 Your timeline will grow as you talk to Summer ✨</div>';
+        return;
+    }
+
+    const MOOD_EMOJI = {
+        happy: '😊', stressed: '😰', frustrated: '😤',
+        excited: '🤩', neutral: '😐', focused: '🎯',
+        sad: '😔', curious: '🤔', casual: '😎'
+    };
+
+    let html = '';
+    let lastDateLabel = '';
+
+    for (const event of events) {
+        const date = new Date(event.timestamp);
+        const dateLabel = getDateLabel(date);
+
+        // Date separator
+        if (dateLabel !== lastDateLabel) {
+            html += `<div class="tl-date-header">${dateLabel}</div>`;
+            lastDateLabel = dateLabel;
+        }
+
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const moodBadge = event.emotion ? `<span class="diary-mood-badge" style="color:#64748b;">${MOOD_EMOJI[event.emotion] || ''} ${event.emotion}</span>` : '';
+        const locationBadge = event.location && event.location.placeName ? `<span class="diary-location-badge">📍 ${event.location.placeName}</span>` : '';
+
+        html += `
+        <div class="tl-card" style="border-left-color:${event.color || '#64748b'};" ${event.nodeId ? `onclick="focusNodeInGraph('${event.nodeId}')"` : ''}>
+            <div class="tl-card-header">
+                <span class="tl-icon">${event.icon}</span>
+                <span class="tl-title">${event.title}</span>
+                <span class="tl-time">${timeStr}</span>
+            </div>
+            <div class="tl-subtitle">${event.subtitle || ''}</div>
+            ${moodBadge || locationBadge ? `<div class="tl-badges">${moodBadge} ${locationBadge}</div>` : ''}
+            ${event.tags && event.tags.length > 0 ? `<div class="tl-tags">${event.tags.slice(0, 4).map(t => `<span class="tl-tag">${t}</span>`).join('')}</div>` : ''}
+        </div>`;
+    }
+
+    list.innerHTML = html;
+}
+
+function getDateLabel(date) {
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return date.toLocaleDateString([], { weekday: 'long' });
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+}
+
+function focusNodeInGraph(nodeId) {
+    closeTimelinePanel();
+    if (network && currentGraph) {
+        const node = currentGraph.nodes.find(n => n.id === nodeId);
+        if (node) {
+            network.focus(nodeId, { scale: 1.5, animation: true });
+            network.selectNodes([nodeId]);
+            showNodeDetail(node);
+        }
+    }
+}
+
 function renderDiary(entries) {
     const list = document.getElementById('diaryList');
     if (!entries || entries.length === 0) {
@@ -376,12 +596,55 @@ function renderDiary(entries) {
     }
     // Newest first
     const sorted = [...entries].reverse();
-    list.innerHTML = sorted.map((e, i) => `
+
+    // Mood emoji mapping
+    const MOOD_EMOJI = {
+        happy: '😊', stressed: '😰', frustrated: '😤',
+        excited: '🤩', neutral: '😐', focused: '🎯',
+        sad: '😔', curious: '🤔', casual: '😎'
+    };
+
+    const MOOD_COLORS = {
+        happy: '#34d399', stressed: '#f87171', frustrated: '#ef4444',
+        excited: '#fbbf24', neutral: '#64748b', focused: '#38bdf8',
+        sad: '#a78bfa', curious: '#f472b6', casual: '#22d3ee'
+    };
+
+    // Build mood timeline (last 20 entries with mood data)
+    const moodEntries = sorted.filter(e => e.emotion).slice(0, 20);
+    let timelineHtml = '';
+    if (moodEntries.length > 0) {
+        timelineHtml = `
+            <div class="mood-timeline">
+                <div class="mood-timeline-label">Recent Mood</div>
+                <div class="mood-timeline-dots">
+                    ${moodEntries.map((e, i) => {
+                        const emoji = MOOD_EMOJI[e.emotion] || '😐';
+                        const color = MOOD_COLORS[e.emotion] || '#64748b';
+                        const dateStr = e.date || new Date(e.timestamp).toLocaleDateString();
+                        return `<span class="mood-dot" style="background:${color};" title="${dateStr}: ${e.emotion}">${emoji}</span>`;
+                    }).join('')}
+                </div>
+            </div>`;
+    }
+
+    // Build diary entries with mood + location badges
+    const entriesHtml = sorted.map((e, i) => {
+        const moodBadge = e.emotion
+            ? `<span class="diary-mood-badge" style="color:${MOOD_COLORS[e.emotion] || '#64748b'};">${MOOD_EMOJI[e.emotion] || '😐'} ${e.emotion}</span>`
+            : '';
+        const locationBadge = e.location && e.location.placeName
+            ? `<span class="diary-location-badge">📍 ${e.location.placeName}</span>`
+            : '';
+        return `
         <div class="diary-entry">
-            <div class="diary-date">${e.date || new Date(e.timestamp).toLocaleString()}</div>
+            <div class="diary-date">${e.date || new Date(e.timestamp).toLocaleString()} ${moodBadge}</div>
+            ${locationBadge ? `<div class="diary-location-row">${locationBadge}</div>` : ''}
             <div class="diary-text">${e.entry}</div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
+
+    list.innerHTML = timelineHtml + entriesHtml;
 }
 function renderNodeTags(node) {
     const container = document.getElementById('nodeTagsContainer');

@@ -9,8 +9,10 @@ const { loadGraph, saveGraph, clearGraph: clearGraphStore } = require('../../kno
 const { getAllTags } = require('../../knowledge/graph-search');
 const { loadDiary } = require('../../knowledge/session-diary');
 const { IMAGE_STORE } = require('../../knowledge/image-analyzer');
+const { AUDIO_STORE, getAudioMimeType } = require('../../knowledge/audio-store');
 const { autoConnectIslands, revertGraph, checkBackupExists, runMemoryCommand } = require('../../knowledge/graph-optimizer');
 const { processUploadedFiles, ingestUrl } = require('../../knowledge/ingestion-service');
+const { buildTimeline, getTimelineStats } = require('../../knowledge/memory-timeline');
 const orchestrator = require('../../orchestration/orchestrator');
 
 function registerMemoryIpc(ipcMain, { getMainWindow }) {
@@ -35,6 +37,22 @@ function registerMemoryIpc(ipcMain, { getMainWindow }) {
             return `data:${mime};base64,${data.toString('base64')}`;
         } catch (e) {
             console.error('[ImageMemory] read-local-image error:', e.message);
+            return null;
+        }
+    });
+
+    ipcMain.handle('read-local-audio', (event, filename) => {
+        try {
+            const audioPath = path.join(AUDIO_STORE, filename);
+            if (!fs.existsSync(audioPath)) {
+                console.warn(`[AudioMemory] File not found: ${filename}`);
+                return null;
+            }
+            const data = fs.readFileSync(audioPath);
+            const mime = getAudioMimeType(filename);
+            return `data:${mime};base64,${data.toString('base64')}`;
+        } catch (e) {
+            console.error('[AudioMemory] read-local-audio error:', e.message);
             return null;
         }
     });
@@ -262,6 +280,8 @@ function registerMemoryIpc(ipcMain, { getMainWindow }) {
 
     ipcMain.handle('upload-files', (event, fileDataArray) => processUploadedFiles(event, fileDataArray));
     ipcMain.handle('ingest-url', (event, url) => ingestUrl(event, url));
+    ipcMain.handle('get-timeline', (event, options) => buildTimeline(options || {}));
+    ipcMain.handle('get-timeline-stats', () => getTimelineStats());
 }
 
 module.exports = { registerMemoryIpc };

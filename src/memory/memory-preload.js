@@ -26,4 +26,7 @@ contextBridge.exposeInMainWorld('memoryAPI', {
     onMemoryConflict: (callback) => ipcRenderer.on('memory-conflict', (_, conflicts) => callback(conflicts)),
     resolveConflict: (resolution) => ipcRenderer.invoke('resolve-conflict', resolution),
     readLocalImage: (filename) => ipcRenderer.invoke('read-local-image', filename),
+    readLocalAudio: (filename) => ipcRenderer.invoke('read-local-audio', filename),
+    getTimeline: (options) => ipcRenderer.invoke('get-timeline', options),
+    getTimelineStats: () => ipcRenderer.invoke('get-timeline-stats'),
 });
