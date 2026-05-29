@@ -275,8 +275,14 @@ class WsTransportServer {
                 break;
 
             case MSG.SEND_AUDIO:
-                // Any client with an active session can send audio (verified by brain-bridge later)
-                bus.dispatch(E.AUDIO_CHUNK_IN, { clientId, data: msg.data, sampleRate: msg.sampleRate || 16000 });
+                // FIX: Only forward audio when the client has an active session.
+                // Previously, audio was forwarded unconditionally. If iOS was slow to stop
+                // recording after sending turn_complete, extra audio chunks arrived while
+                // Gemini was already processing — resetting its turn timer and causing
+                // the "stuck in thinking" freeze. This is the server-side safety gate.
+                if (registry.isClientActive(clientId)) {
+                    bus.dispatch(E.AUDIO_CHUNK_IN, { clientId, data: msg.data, sampleRate: msg.sampleRate || 16000 });
+                }
                 break;
 
             case MSG.SEND_TURN_COMPLETE:

@@ -154,7 +154,9 @@ class LiveSessionManager {
         });
 
         const host = 'generativelanguage.googleapis.com';
-        const model = 'models/gemini-3.1-flash-live-preview';
+        // FIX: Updated model name. gemini-3.1-flash-live-preview was deprecated.
+        // Using gemini-2.0-flash-live-001 which is the stable live API model.
+        const model = process.env.GEMINI_LIVE_MODEL || 'models/gemini-2.0-flash-live-001';
         const url = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
 
         this.ws = new WebSocket(url);
