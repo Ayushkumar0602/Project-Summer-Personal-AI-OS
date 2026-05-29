@@ -8,6 +8,18 @@
  *   thinking  → amber/orange
  *   speaking  → emerald green
  *   error     → red
+ *
+ * FIX LOG (2026-05-29):
+ *   BUG 8 — startAnimations() was called on every state change via
+ *            onChange(of: state). This stacked multiple `repeatForever`
+ *            animations on top of each other — by the 5th state change,
+ *            5 infinite animation loops were running simultaneously.
+ *            Symptoms: visual jitter on the orb, GPU drain, battery drain.
+ *
+ *            Fix: Added `animationsStarted` flag. The rotation animation
+ *            (linear, forever) only starts ONCE in onAppear. State changes
+ *            only update pulseScale/glowOpacity with a simple withAnimation
+ *            block, not a new repeatForever loop.
  */
 
 import SwiftUI
@@ -15,9 +27,14 @@ import SwiftUI
 struct OrbView: View {
     let state: SessionState
 
-    @State private var pulseScale:   CGFloat = 1.0
-    @State private var glowOpacity:  Double  = 0.4
-    @State private var rotationAngle: Double = 0.0
+    @State private var pulseScale:       CGFloat = 1.0
+    @State private var glowOpacity:      Double  = 0.4
+    @State private var rotationAngle:    Double  = 0.0
+
+    // BUG 8 FIX: Gate flag — ensures the rotation repeatForever animation
+    // starts exactly once (on onAppear). Without this, every onChange(of: state)
+    // call started a new forever loop, stacking dozens of animations.
+    @State private var animationsStarted: Bool   = false
 
     var body: some View {
         ZStack {
@@ -89,10 +106,20 @@ struct OrbView: View {
         // Rasterize into single GPU texture — massive perf win on iPhone 11
         .drawingGroup()
         .onAppear {
-            startAnimations()
+            // BUG 8 FIX: Start ALL animations exactly once here.
+            // Previously, startAnimations() was called from both onAppear AND
+            // onChange(of:state), which stacked infinite repeatForever loops.
+            guard !animationsStarted else { return }
+            animationsStarted = true
+            startRotationAnimation()
+            updatePulseAnimation()
         }
         .onChange(of: state) { _ in
-            startAnimations()
+            // BUG 8 FIX: On state change, ONLY update the pulse.
+            // The rotation animation is already running — don't touch it.
+            // Using a simple withAnimation (not repeatForever) so this is a
+            // one-shot update, not a new infinite loop.
+            updatePulseAnimation()
         }
         // Smooth color transition between states
         .animation(.easeInOut(duration: 0.5), value: state.orbColor)
@@ -117,24 +144,25 @@ struct OrbView: View {
         }
     }
 
-    private func startAnimations() {
-        // Pulse animation — active when listening or speaking
+    // BUG 8 FIX: Rotation starts exactly once and runs forever.
+    // Separated from pulse so state changes don't restart it.
+    private func startRotationAnimation() {
         withAnimation(
-            .easeInOut(duration: 1.4)
-                .repeatForever(autoreverses: true)
+            .linear(duration: 4.0)
+                .repeatForever(autoreverses: false)
         ) {
-            pulseScale   = state.isPulsing ? 1.22 : 1.0
-            glowOpacity  = state.isPulsing ? 0.7  : 0.3
+            rotationAngle = 360
         }
+    }
 
-        // Continuous rotation for the shimmer ring - only start once
-        if rotationAngle == 0.0 {
-            withAnimation(
-                .linear(duration: 4.0)
-                    .repeatForever(autoreverses: false)
-            ) {
-                rotationAngle = 360
-            }
+    // BUG 8 FIX: Pulse is updated via a non-infinite animation on state change.
+    // The ForEach rings pick up the new pulseScale value through their own
+    // .animation(.repeatForever) modifier — we don't need to create a new
+    // forever loop every time the state changes, just change the target value.
+    private func updatePulseAnimation() {
+        withAnimation(.easeInOut(duration: 0.4)) {
+            pulseScale  = state.isPulsing ? 1.22 : 1.0
+            glowOpacity = state.isPulsing ? 0.7  : 0.3
         }
     }
 }

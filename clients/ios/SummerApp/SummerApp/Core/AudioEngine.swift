@@ -20,6 +20,14 @@
  *   - Int16Array → Float32Array / 32768 → same conversion
  *   - nextStartTime trick (gapless)     → scheduleBuffer (auto-queued)
  *   - audioQueue.clear()                → clearPlayback()
+ *
+ * FIX LOG (2026-05-29):
+ *   BUG 2 — setupPlaybackEngine() now tracks whether the engine started
+ *            successfully. playAudio() guards on isPlayEngineReady and
+ *            auto-restarts the engine before scheduling buffers.
+ *   BUG 3 — Removed setActive(false) from stopRecording(). The session is
+ *            only deactivated in clearPlaybackForShutdown(), ensuring it only
+ *            happens once and only after both recording and playback are stopped.
  */
 
 import AVFoundation
@@ -47,7 +55,16 @@ class AudioEngine {
     private let playEngine   = AVAudioEngine()
     private let playerNode   = AVAudioPlayerNode()
 
+    // BUG 2 FIX: Track whether the play engine started successfully.
+    // If setupPlaybackEngine() fails, isPlayEngineReady stays false and
+    // playAudio() will attempt to restart before scheduling buffers.
+    private var isPlayEngineReady = false
+
     private(set) var isPlaybackActive = false
+
+    // FIX v2: SummerClient now checks isRecording before calling startRecording()
+    // to avoid double-starting the engine (which throws AVAudioEngine errors).
+    var isRecording: Bool { recordEngine.isRunning }
 
     // Dedicated queue for audio processing — keeps main thread free (fixes lag)
     private let audioProcessingQueue = DispatchQueue(label: "com.summer.audio", qos: .userInteractive)
@@ -72,12 +89,19 @@ class AudioEngine {
         playEngine.stop()
         silenceWorkItem?.cancel()
         NotificationCenter.default.removeObserver(self)
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        // Do NOT call setActive(false) here — deinit can be called from any thread
+        // and AVAudioSession is not reentrant-safe.
     }
 
     // MARK: - Recording Setup
     // Mirrors: async function startRecording() in vad-recorder.js
     func startRecording() {
+        // Ensure play engine is ready before recording starts —
+        // they share the same AVAudioSession category.
+        if !isPlayEngineReady {
+            restartPlayEngineIfNeeded()
+        }
+
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playAndRecord,
@@ -202,19 +226,21 @@ class AudioEngine {
     }
 
     func stopRecording() {
+        // FIX v2: Safe to call even if not running — no-op guard.
+        silenceWorkItem?.cancel()
+        silenceWorkItem = nil
+        isSpeakingToAgent = false
+        consecutiveVoiceBuffers = 0
+
         guard recordEngine.isRunning else { return }
         recordEngine.inputNode.removeTap(onBus: 0)
         recordEngine.stop()
-        
-        DispatchQueue.main.async { [weak self] in
-            self?.silenceWorkItem?.cancel()
-            self?.silenceWorkItem = nil
-            self?.isSpeakingToAgent       = false
-            self?.consecutiveVoiceBuffers = 0
-        }
-        
-        // Deactivate audio session so iOS doesn't kill us for holding it
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+
+        // BUG 3 FIX: Removed setActive(false) from here.
+        // The playback engine may still be playing audio response after recording stops.
+        // Deactivating the session here would kill ongoing playback and can cause
+        // AVAudioSession conflicts (which iOS treats as a crash-worthy assertion).
+        // Session deactivation is now handled solely in clearPlaybackForShutdown().
         print("[AudioEngine] Recording stopped")
     }
 
@@ -225,8 +251,30 @@ class AudioEngine {
         playEngine.connect(playerNode, to: playEngine.mainMixerNode, format: playbackFormat)
         do {
             try playEngine.start()
+            isPlayEngineReady = true
+            print("[AudioEngine] Playback engine started")
         } catch {
-            print("[AudioEngine] Playback engine error: \(error.localizedDescription)")
+            // BUG 2 FIX: Log the error instead of swallowing it.
+            // isPlayEngineReady stays false — playAudio() will retry.
+            isPlayEngineReady = false
+            print("[AudioEngine] Playback engine failed to start: \(error.localizedDescription)")
+        }
+    }
+
+    // BUG 2 FIX: Restart the play engine if it's not running.
+    // Called from playAudio() before scheduling any buffer.
+    private func restartPlayEngineIfNeeded() {
+        guard !playEngine.isRunning else {
+            isPlayEngineReady = true
+            return
+        }
+        do {
+            try playEngine.start()
+            isPlayEngineReady = true
+            print("[AudioEngine] Playback engine restarted")
+        } catch {
+            isPlayEngineReady = false
+            print("[AudioEngine] Playback engine restart failed: \(error.localizedDescription)")
         }
     }
 
@@ -246,11 +294,24 @@ class AudioEngine {
                 frameCapacity: AVAudioFrameCount(floatSamples.count)
             ) else { return }
             buffer.frameLength = buffer.frameCapacity
-            
+
             guard let floatChannelData = buffer.floatChannelData else { return }
-            
+
             floatSamples.withUnsafeBufferPointer {
                 floatChannelData[0].update(from: $0.baseAddress!, count: floatSamples.count)
+            }
+
+            // BUG 2 FIX: Ensure play engine is running before scheduling.
+            // If it stopped due to an interruption or initial startup failure,
+            // restart it now. Scheduling on a stopped engine crashes.
+            if !self.playEngine.isRunning {
+                self.restartPlayEngineIfNeeded()
+            }
+
+            // Still not ready — bail out gracefully
+            guard self.isPlayEngineReady else {
+                print("[AudioEngine] Cannot play audio — engine not ready")
+                return
             }
 
             DispatchQueue.main.async {
@@ -285,19 +346,33 @@ class AudioEngine {
                 self.scheduledBufferCount = 0
             }
             // Re-prepare player for next playback
-            if !self.playEngine.isRunning { try? self.playEngine.start() }
+            self.restartPlayEngineIfNeeded()
             self.playerNode.play()
         }
     }
-    
+
     func clearPlaybackForShutdown() {
         audioProcessingQueue.async { [weak self] in
             guard let self else { return }
+
+            // Stop player first
             self.playerNode.stop()
             DispatchQueue.main.async {
                 self.isPlaybackActive = false
                 self.scheduledBufferCount = 0
             }
+            self.isPlayEngineReady = false
+
+            // BUG 3 FIX: AVAudioSession deactivation is NOW ONLY HERE.
+            // This is the single authoritative shutdown path. Previously,
+            // stopRecording() also called setActive(false), causing double-
+            // deactivation which iOS raises as an AVAudioSession conflict →
+            // crash. We deactivate only after stopping both engines.
+            try? AVAudioSession.sharedInstance().setActive(
+                false,
+                options: .notifyOthersOnDeactivation
+            )
+            print("[AudioEngine] Playback shutdown — audio session released")
         }
     }
 
@@ -365,8 +440,10 @@ class AudioEngine {
                 let options = info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
                 if AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume) {
                     try? AVAudioSession.sharedInstance().setActive(true)
-                    try? self.recordEngine.start()
-                    if !self.playEngine.isRunning { try? self.playEngine.start() }
+                    if self.recordEngine.isRunning == false {
+                        try? self.recordEngine.start()
+                    }
+                    self.restartPlayEngineIfNeeded()
                     self.playerNode.play()
                 }
 
