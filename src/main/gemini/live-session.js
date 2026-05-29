@@ -154,8 +154,7 @@ class LiveSessionManager {
         });
 
         const host = 'generativelanguage.googleapis.com';
-        // Using Gemini 3 Flash Live — overridable via GEMINI_LIVE_MODEL env var
-        const model = process.env.GEMINI_LIVE_MODEL || 'models/gemini-3.0-flash-live-001';
+        const model = process.env.GEMINI_LIVE_MODEL || 'models/gemini-3.1-flash-live-preview';
         const url = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
 
         this.ws = new WebSocket(url);
