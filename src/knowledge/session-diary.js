@@ -105,7 +105,7 @@ ${transcriptText.slice(0, 12000)}`;
     return await withMemoryApiKey(async (key) => {
         const ai = new GoogleGenAI({ apiKey: key });
         const response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
+            model: 'gemini-flash-latest',
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
                 temperature: 0.3,
@@ -173,16 +173,14 @@ function appendDiaryEntry(entry, replaceTimestamp = null, emotion = null, locati
 }
 
 function loadDiary() {
-    if (!memoryDiaryCache) {
-        try {
-            if (fs.existsSync(DIARY_PATH)) {
-                memoryDiaryCache = JSON.parse(fs.readFileSync(DIARY_PATH, 'utf-8'));
-            } else {
-                memoryDiaryCache = [];
-            }
-        } catch {
+    try {
+        if (fs.existsSync(DIARY_PATH)) {
+            memoryDiaryCache = JSON.parse(fs.readFileSync(DIARY_PATH, 'utf-8'));
+        } else if (!memoryDiaryCache) {
             memoryDiaryCache = [];
         }
+    } catch {
+        if (!memoryDiaryCache) memoryDiaryCache = [];
     }
     return memoryDiaryCache;
 }

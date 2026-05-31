@@ -32,11 +32,11 @@ const webToolDeclarations = [
     },
     {
         name: "search_images",
-        description: "Search the internet for relevant images and DISPLAY them visually on screen as a HUD gallery. Use this when the user asks to SEE something — a place, person, product, concept, or event. This is your eyes for the internet. Always use this when you want to visually show something.",
+        description: "Search the internet for highly relevant images and DISPLAY them visually on screen. Use this to visually show the user a place, person, product, concept, or event. Provide highly specific, descriptive search queries to ensure relevance (e.g. 'Apple Vision Pro headset' instead of just 'Apple', or 'Eiffel Tower at night' instead of 'tower').",
         parameters: {
             type: "OBJECT",
             properties: {
-                query: { type: "STRING", description: "What to search images of. Be specific for best results." },
+                query: { type: "STRING", description: "Highly specific, descriptive query to find exactly what the user wants to see." },
                 count: { type: "NUMBER", description: "Number of images to show (default 4, max 8)" }
             },
             required: ["query"]

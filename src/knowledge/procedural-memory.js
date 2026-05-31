@@ -82,7 +82,7 @@ async function extractProceduralPatterns(transcriptText) {
         const result = await withMemoryApiKey(async (key) => {
             const ai = new GoogleGenAI({ apiKey: key });
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
+                model: 'gemini-flash-latest',
                 contents: [{
                     parts: [{
                         text: PROCEDURAL_EXTRACTION_PROMPT +

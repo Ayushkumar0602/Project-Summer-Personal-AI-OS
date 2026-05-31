@@ -155,13 +155,14 @@ class LiveSessionManager {
 
         const host = 'generativelanguage.googleapis.com';
         const model = process.env.GEMINI_LIVE_MODEL || 'models/gemini-3.1-flash-live-preview';
+        const voiceName = process.env.GEMINI_VOICE_NAME || 'Callirrhoe';
         const url = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
 
         this.ws = new WebSocket(url);
         const ws = this.ws;
 
         ws.on('open', () => {
-            console.log("WebSocket connected.");
+            console.log(`WebSocket connected. Voice: ${voiceName}`);
             ws.send(JSON.stringify({
                 setup: {
                     model: model,
@@ -170,7 +171,14 @@ class LiveSessionManager {
                     },
                     tools: getAgentTools(this._toolContext),
                     generationConfig: {
-                        responseModalities: ["AUDIO"]
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: {
+                                    voiceName: voiceName
+                                }
+                            }
+                        }
                     },
                     input_audio_transcription: {},
                     output_audio_transcription: {}

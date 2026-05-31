@@ -62,6 +62,29 @@ function registerSettingsIpc(ipcMain) {
         } catch (e) { /* ignore */ }
         return { token: null };
     });
+
+    ipcMain.handle('get-gemini-voice', () => {
+        return process.env.GEMINI_VOICE_NAME || 'Callirrhoe';
+    });
+
+    ipcMain.handle('set-gemini-voice', (event, voiceName) => {
+        process.env.GEMINI_VOICE_NAME = voiceName;
+        const envPath = path.join(__dirname, '..', '..', '..', '.env');
+        try {
+            if (fs.existsSync(envPath)) {
+                let envContent = fs.readFileSync(envPath, 'utf8');
+                if (envContent.includes('GEMINI_VOICE_NAME=')) {
+                    envContent = envContent.replace(/GEMINI_VOICE_NAME=.*(\r?\n|$)/g, `GEMINI_VOICE_NAME="${voiceName}"\n`);
+                } else {
+                    envContent += `\nGEMINI_VOICE_NAME="${voiceName}"\n`;
+                }
+                fs.writeFileSync(envPath, envContent);
+            }
+        } catch (e) {
+            console.error('[Settings] Failed to update .env for voice:', e.message);
+        }
+        return { success: true };
+    });
 }
 
 module.exports = { registerSettingsIpc, setDaemonStatusCallback };

@@ -181,7 +181,7 @@ async function extractGraphFromText(textContent, apiKey, existingGraph = { nodes
         const parsed = await withMemoryApiKey(async (key) => {
             const ai = new GoogleGenAI({ apiKey: key });
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
+                model: 'gemini-flash-latest',
                 contents: [{ parts: [{ text: finalPrompt }] }],
                 generationConfig: {
                     temperature: isDocument ? 0.0 : 0.1,

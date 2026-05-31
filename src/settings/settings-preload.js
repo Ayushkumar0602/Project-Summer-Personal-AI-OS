@@ -17,4 +17,8 @@ contextBridge.exposeInMainWorld('settingsAPI', {
     // Daemon / Devices
     getDaemonStatus: () => ipcRenderer.invoke('get-daemon-status'),
     getPairingToken: () => ipcRenderer.invoke('get-pairing-token'),
+
+    // Voice Config
+    getGeminiVoice: () => ipcRenderer.invoke('get-gemini-voice'),
+    setGeminiVoice: (voice) => ipcRenderer.invoke('set-gemini-voice', voice),
 });

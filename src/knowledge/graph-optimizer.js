@@ -86,7 +86,7 @@ Ensure every isolated node gets at least one edge connecting it to a main node.`
     console.log(`[Optimizer] Analyzing ${isolatedNodes.length} isolated nodes...`);
     
     const result = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-flash-latest",
         contents: prompt,
         config: {
             temperature: 0.2,
@@ -186,7 +186,7 @@ Return ONLY a valid JSON array of operations. Return empty array if the command 
     console.log(`[Optimizer] Running memory command: "${commandText}"...`);
     
     const result = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-flash-latest",
         contents: prompt,
         config: {
             temperature: 0.1,

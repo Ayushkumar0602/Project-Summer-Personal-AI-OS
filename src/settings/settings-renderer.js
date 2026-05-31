@@ -372,3 +372,24 @@ document.getElementById('refreshDevicesBtn')?.addEventListener('click', () => {
     loadDaemonStatus();
     loadConnectedClients();
 });
+
+// ── Voice Settings ───────────────────────────────────────────────
+const geminiVoiceSelect = document.getElementById('geminiVoiceSelect');
+
+async function loadVoiceSettings() {
+    if (!geminiVoiceSelect) return;
+    try {
+        const voice = await window.settingsAPI.getGeminiVoice();
+        geminiVoiceSelect.value = voice || 'Callirrhoe';
+    } catch (e) {
+        console.error('Failed to load voice setting', e);
+    }
+}
+
+geminiVoiceSelect?.addEventListener('change', async () => {
+    const voice = geminiVoiceSelect.value;
+    await window.settingsAPI.setGeminiVoice(voice);
+});
+
+// Load Voice on init
+loadVoiceSettings();

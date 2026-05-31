@@ -119,7 +119,7 @@ async function analyzeAndStoreAudio(file) {
         analysis = await withMemoryApiKey(async (key) => {
             const ai = new GoogleGenAI({ apiKey: key });
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash',
+                model: 'gemini-flash-latest',
                 contents: [{
                     parts: [
                         { inlineData: { mimeType, data: base64 } },
@@ -253,7 +253,7 @@ Only include edges where confidence >= 0.75. Return ONLY the JSON array.`;
         const edges = await withMemoryApiKey(async (key) => {
             const ai = new GoogleGenAI({ apiKey: key });
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
+                model: 'gemini-flash-latest',
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { temperature: 0.05, maxOutputTokens: 512 }
             });

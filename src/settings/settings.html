@@ -24,7 +24,7 @@
             <button class="tab active" data-tab="permissions">🔒 Permissions</button>
             <button class="tab" data-tab="system-access">🖥️ System Access</button>
             <button class="tab" data-tab="devices">📱 Devices</button>
-            <button class="tab" data-tab="wake-word">🎤 Wake Word</button>
+            <button class="tab" data-tab="wake-word">🗣️ Voice & Audio</button>
             <button class="tab" data-tab="integrations">🔗 Integrations</button>
             <button class="tab" data-tab="audit-log">📋 Audit Log</button>
         </div>
@@ -179,14 +179,33 @@
             </div>
         </div>
 
-        <!-- WAKE WORD TAB -->
+        <!-- VOICE & WAKE WORD TAB -->
         <div class="tab-content" id="tab-wake-word">
             <div class="section-header">
-                <h2>Wake Word Detection</h2>
-                <p>Say <strong>"Hey Summer"</strong> or <strong>"Sama"</strong> to activate Summer hands-free, even when the app is in the background.</p>
+                <h2>Voice & Wake Word</h2>
+                <p>Configure Summer's voice and hands-free activation ("Hey Summer").</p>
             </div>
 
             <div class="access-cards">
+                <!-- Voice Selection Card -->
+                <div class="access-card essential">
+                    <div class="card-icon">🗣️</div>
+                    <h3>AI Voice Persona</h3>
+                    <p>Select the voice Summer will use to speak to you.</p>
+                    <div style="margin-top: 16px;">
+                        <select id="geminiVoiceSelect" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                            <option value="Callirrhoe" style="background: #1e293b;">Callirrhoe (Default)</option>
+                            <option value="Enceladus" style="background: #1e293b;">Enceladus</option>
+                            <option value="Charon" style="background: #1e293b;">Charon</option>
+                            <option value="Rasalgethi" style="background: #1e293b;">Rasalgethi</option>
+                            <option value="Puck" style="background: #1e293b;">Puck</option>
+                            <option value="Aoede" style="background: #1e293b;">Aoede</option>
+                            <option value="Kore" style="background: #1e293b;">Kore</option>
+                            <option value="Fenrir" style="background: #1e293b;">Fenrir</option>
+                        </select>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Changes take effect on your next session.</div>
+                    </div>
+                </div>
                 <div class="access-card essential">
                     <div class="card-icon">🎤</div>
                     <h3>Always-On Listening</h3>

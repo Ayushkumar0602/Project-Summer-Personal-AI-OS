@@ -114,36 +114,50 @@ async function getNews(topic = '') {
 }
 
 /**
- * Searches the web for images using Google (via googlethis) and returns display-ready results.
- * Falls back to Unsplash if Google search fails.
+ * Searches the web for images using Serper API (Google Images) and returns display-ready results.
+ * Falls back to Unsplash if Serper search fails or API key is missing.
  */
 async function searchImages(query, count = 4) {
     const safeCount = Math.min(Math.max(1, count || 4), 8);
     console.log(`[Tools] Searching Google images for: "${query}" (${safeCount} results)`);
 
-    // PRIMARY: Google image search via googlethis
+    // PRIMARY: Google image search via Serper.dev
     try {
-        const googlethis = require('googlethis');
-        const results = await googlethis.image(query, { safe: false });
-        const arr = Object.values(results).filter(r => r && r.url);
+        const SERPER_API_KEY = process.env.SERPER_API_KEY;
+        if (SERPER_API_KEY) {
+            const { data } = await axios.post(
+                'https://google.serper.dev/images',
+                { q: query },
+                {
+                    headers: {
+                        'X-API-KEY': SERPER_API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                }
+            );
 
-        if (arr.length > 0) {
-            const images = arr.slice(0, safeCount).map(r => ({
-                url: r.url,
-                fullUrl: r.url,
-                label: r.title || r.description || query,
-                credit: r.source || 'Google Images',
-                width: r.width,
-                height: r.height
-            }));
-            console.log(`[Tools] Google Images: Found ${images.length} results for "${query}"`);
-            return { images, query, source: 'google' };
+            const arr = data.images || [];
+            if (arr.length > 0) {
+                const images = arr.slice(0, safeCount).map(r => ({
+                    url: r.imageUrl,
+                    fullUrl: r.imageUrl,
+                    label: r.title || query,
+                    credit: r.source || r.domain || 'Google Images',
+                    width: r.imageWidth,
+                    height: r.imageHeight
+                }));
+                console.log(`[Tools] Serper Images: Found ${images.length} results for "${query}"`);
+                return { images, query, source: 'serper' };
+            }
+        } else {
+             console.warn(`[Tools] SERPER_API_KEY not found. Skipping primary image search...`);
         }
-    } catch (googleErr) {
-        console.warn(`[Tools] Google image search failed: ${googleErr.message}. Trying Unsplash fallback...`);
+    } catch (apiErr) {
+        console.warn(`[Tools] Serper image search failed: ${apiErr.message}. Trying Unsplash fallback...`);
     }
 
-    // FALLBACK: Unsplash (if Google fails)
+    // FALLBACK: Unsplash (if Serper fails)
     const UNSPLASH_KEY = process.env.UNSPLASH_ACCESS_KEY;
     if (!UNSPLASH_KEY) {
         return { images: [], query, error: 'Both Google and Unsplash search unavailable.' };
