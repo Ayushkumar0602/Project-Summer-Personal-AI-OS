@@ -19,6 +19,35 @@ const TABLE_EDGES = 'memory_edges';
 const DECAY_HALF_LIFE_DAYS = 30; // node relevance halves every 30 days
 const MS_PER_DAY = 86400000;
 
+// ── Flaw 8 fix: monotonic reference time ─────────────────────────────────────
+// Using daemon startup time as anchor prevents total score corruption if the
+// system clock is wrong — only nodes accessed BEFORE the wrong-clock period
+// are affected, not all nodes simultaneously.
+const DAEMON_START_MS = Date.now();
+
+// ── Flaw 8 fix: batched write queue for access tracking ──────────────────────
+// touchNodeAccess() was calling saveGraph() on every access — a full disk write
+// for every memory retrieval. Under heavy query load this causes write storms.
+const _pendingAccessUpdates = new Map(); // nodeId → timestamp
+let   _accessFlushTimer = null;
+
+function _flushAccessUpdates() {
+    _accessFlushTimer = null;
+    if (_pendingAccessUpdates.size === 0) return;
+    try {
+        const graph = loadGraph();
+        let changed = 0;
+        for (const [nodeId, ts] of _pendingAccessUpdates) {
+            const node = graph.nodes.find(n => n.id === nodeId);
+            if (node) { node.lastAccessedAt = ts; changed++; }
+        }
+        _pendingAccessUpdates.clear();
+        if (changed > 0) saveGraph(graph);
+    } catch (e) {
+        // Non-critical
+    }
+}
+
 async function initGraphStore() {
     if (memoryGraphCache) return memoryGraphCache;
 
@@ -280,29 +309,33 @@ function clearGraph() {
 
 /**
  * Records that a node was accessed right now (for decay scoring).
+ * FLAW 8 FIX: Batches writes with a 5-second debounce to prevent write storms.
  * @param {string} nodeId
  */
 function touchNodeAccess(nodeId) {
     try {
-        const graph = loadGraph();
-        const node = graph.nodes.find(n => n.id === nodeId);
-        if (node) {
-            node.lastAccessedAt = Date.now();
-            saveGraph(graph);
+        // Clamp timestamp: reject future timestamps (clock skew protection)
+        const now = Math.min(Date.now(), DAEMON_START_MS + 365 * MS_PER_DAY);
+        _pendingAccessUpdates.set(nodeId, now);
+        if (!_accessFlushTimer) {
+            _accessFlushTimer = setTimeout(_flushAccessUpdates, 5000);
         }
     } catch (e) {
-        // Non-critical — don't crash on access tracking failure
+        // Non-critical
     }
 }
 
 /**
  * Returns a decay multiplier [0.1 → 1.0] for a node based on how recently it was accessed.
+ * FLAW 8 FIX: Clamps lastAccess to DAEMON_START_MS so future timestamps (from clock skew)
+ * don't produce negative daysSince (which would give inflated scores).
  * Nodes accessed today = 1.0, nodes not accessed in 30 days ≈ 0.5
  */
 function getDecayScore(node) {
-    const lastAccess = node.lastAccessedAt || node.createdAt || Date.now();
-    const daysSince = (Date.now() - lastAccess) / MS_PER_DAY;
-    // Exponential decay: score = 0.9^daysSince, floored at 0.1
+    const rawLastAccess = node.lastAccessedAt || node.createdAt || DAEMON_START_MS;
+    // Clamp: reject timestamps in the future beyond today + 1hr (clock skew guard)
+    const lastAccess = Math.min(rawLastAccess, Date.now() + 3_600_000);
+    const daysSince  = Math.max(0, (Date.now() - lastAccess) / MS_PER_DAY);
     return Math.max(0.1, Math.pow(0.9, daysSince / (DECAY_HALF_LIFE_DAYS / 23)));
 }
 

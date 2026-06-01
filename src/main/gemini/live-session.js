@@ -12,10 +12,12 @@ const { extractProceduralPatterns } = require('../../knowledge/procedural-memory
 const { buildProceduralContext } = require('../../knowledge/context-injector');
 const { findMatchingImageNodes, extractKeywordsFromText, hasVisualIntent } = require('../../knowledge/image-analyzer');
 const { enhanceToolResponse, getSkillSummaries } = require('../../skills/skill-loader');
-const orchestrator = require('../../orchestration/orchestrator');
-const { getAgentTools, executeTool, buildToolContext } = require('../../tools/tool-registry');
-const googleAuth = require('../../auth/google-auth');
-const { sendToRenderer } = require('../../core/utils/renderer-bridge');
+const orchestrator   = require('../../orchestration/orchestrator');
+const statusTracker  = require('../../orchestration/agent-status-tracker');
+const { getAgentTools, getSmartAgentTools, executeTool, buildToolContext } = require('../../tools/tool-registry');
+const googleAuth          = require('../../auth/google-auth');
+const { sendToRenderer }  = require('../../core/utils/renderer-bridge');
+const pendingNotifications = require('../../core/pending-notifications');
 
 // Event bus is optional — falls back to no-op if running before bus is initialized
 let _bus = null;
@@ -39,6 +41,27 @@ class LiveSessionManager {
         this.lastShadowImageIds = new Set();
         this._toolContext = null;
         this._inactivityTimer = null;
+
+        // Listen to orchestrator milestone events (50%, 75%, complete, fail)
+        // and queue them as priority shadow context for the NEXT turn.
+        // Flaw 10 fix: Only process milestones for THIS client's session.
+        this._milestoneHandler = ({ clientId, text }) => {
+            // Accept if: no clientId scoping (null = broadcast) OR clientId matches ours
+            const myClientId = this.deps.clientId || null;
+            if (clientId !== null && myClientId !== null && clientId !== myClientId) return;
+
+            if (text) {
+                this.latestShadowContext = this.latestShadowContext
+                    ? `${text}\n${this.latestShadowContext}`
+                    : text;
+            }
+        };
+        orchestrator.on('agent-milestone', this._milestoneHandler);
+    }
+
+    /** Clean up the milestone listener when session is torn down. */
+    destroy() {
+        orchestrator.removeListener('agent-milestone', this._milestoneHandler);
     }
 
     _startInactivityTimer() {
@@ -89,6 +112,14 @@ class LiveSessionManager {
         this._startInactivityTimer();
 
         this.currentSessionContextPayload = contextPayload || {};
+
+        // Flaw 7 fix: Drain any pending notifications from tasks that completed
+        // while the session was inactive. Inject as first-turn priority shadow context.
+        const drained = pendingNotifications.drainForSession(this.deps.clientId || null);
+        if (drained) {
+            this.latestShadowContext = drained;
+            console.log(`[LiveSession] 📥 Drained ${drained.split('\n').length} pending notification(s) into session start.`);
+        }
 
         if (this.currentSessionContextPayload.isAutoReconnect) {
             console.log("Auto-reconnecting. Preserving session transcript and conversation ID.");
@@ -169,7 +200,7 @@ class LiveSessionManager {
                     system_instruction: {
                         parts: [{ text: systemInstruction }]
                     },
-                    tools: getAgentTools(this._toolContext),
+                    tools: getSmartAgentTools(this._toolContext, contextPayload?.topic || contextPayload?.weatherContext || ''),
                     generationConfig: {
                         responseModalities: ["AUDIO"],
                         speechConfig: {
@@ -271,9 +302,10 @@ class LiveSessionManager {
                         } else if (orchestrator.matchAgentIntent(userText)) {
                             const agentId = orchestrator.matchAgentIntent(userText);
                             const agentEmit = (ev, payload) => this.deps.emitAgentEvent(ev, payload);
-                            orchestrator.handleDelegateRequest({
+                        orchestrator.handleDelegateRequest({
                                 agent_id: agentId,
-                                user_request: userText
+                                user_request: userText,
+                                clientId: this.deps.clientId || null,  // Flaw 10
                             }, agentEmit).then(hint => {
                                 if (hint.status === 'gathering') {
                                     this.latestShadowContext = `[DOMAIN AGENT ${agentId}: ${hint.message} Call delegate_domain_agent with gathered_attributes when the user answers.]`;
@@ -476,12 +508,27 @@ class LiveSessionManager {
             }
         };
 
-        if (this.latestShadowContext) {
+        // Build the final shadow context block:
+        // 1. Start with passive running-task awareness (silent background info)
+        const runningTasksSummary = statusTracker.getRunningStatusSummary();
+
+        // 2. Combine with any milestone / memory context already queued
+        let shadowBlock = null;
+        if (runningTasksSummary && this.latestShadowContext) {
+            // Running tasks are silent background awareness — append below priority milestones
+            shadowBlock = `${this.latestShadowContext}\n${runningTasksSummary}`;
+        } else if (this.latestShadowContext) {
+            shadowBlock = this.latestShadowContext;
+        } else if (runningTasksSummary) {
+            shadowBlock = runningTasksSummary;
+        }
+
+        if (shadowBlock) {
             payload.clientContent.turns.push({
                 role: "user",
-                parts: [{ text: this.latestShadowContext }]
+                parts: [{ text: shadowBlock }]
             });
-            console.log(`📤 Shadow Retrieval: Context injected into turnComplete.`);
+            console.log(`📤 Shadow Context: injected into turnComplete (milestone: ${!!this.latestShadowContext}, running: ${!!runningTasksSummary}).`);
             this.latestShadowContext = null;
         }
 

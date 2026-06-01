@@ -33,6 +33,8 @@ const { getPlatformAdapter }    = require('./src/core/platform/adapter-factory')
 // These are pure Node.js — no Electron
 const { LiveSessionManager }    = require('./src/main/gemini/live-session');
 const orchestrator               = require('./src/orchestration/orchestrator');
+const statusTracker              = require('./src/orchestration/agent-status-tracker');
+const pendingNotifications       = require('./src/core/pending-notifications');
 const rendererBridge             = require('./src/core/utils/renderer-bridge');
 const { initGraphStore }         = require('./src/knowledge/graph-store');
 const { initDiaryStore }         = require('./src/knowledge/session-diary');
@@ -65,6 +67,10 @@ async function start() {
     log.info('Initializing Knowledge Bases...');
     await initGraphStore();
     await initDiaryStore();
+
+    // 2b. Initialize Background Agent Status Tracker (global cross-device process state)
+    log.info('Initializing Agent Status Tracker...');
+    await statusTracker.init();
 
     // 2. Start the WebSocket transport server
     wsServer = new WsTransportServer({ port: PORT, skipAuth: SKIP_AUTH });
@@ -128,14 +134,25 @@ async function start() {
 // ── Orchestrator event wiring ─────────────────────────────────────────────────
 
 function _wireOrchestratorEvents(emitAgentEvent) {
-    // The orchestrator uses EventEmitter internally — listen and forward to bus
-    if (orchestrator.on) {
-        orchestrator.on('agent-progress', (payload) => emitAgentEvent('agent-progress', payload));
-        orchestrator.on('agent-complete', (payload) => emitAgentEvent('agent-complete', payload));
-        orchestrator.on('agent-fail',     (payload) => emitAgentEvent('agent-fail', payload));
-        orchestrator.on('agent-killed',   (payload) => emitAgentEvent('agent-killed', payload));
-        log.info('Orchestrator events wired to event bus.');
-    }
+    // The orchestrator is now an EventEmitter — listen and forward to bus
+    orchestrator.on('agent-progress', (payload) => emitAgentEvent('agent-progress', payload));
+    orchestrator.on('agent-complete', (payload) => emitAgentEvent('agent-complete', payload));
+    orchestrator.on('agent-fail',     (payload) => emitAgentEvent('agent-fail', payload));
+    orchestrator.on('agent-killed',   (payload) => emitAgentEvent('agent-killed', payload));
+
+    // Flaw 7 fix: If a milestone fires and no session is listening, queue it for next startup.
+    // brainBridge._sessions is checked to determine if any live session is active.
+    orchestrator.on('agent-milestone', ({ text, agent_id }) => {
+        if (!brainBridge) return;
+        const hasActiveSession = [...brainBridge._sessions.values()].some(s => s.active);
+        if (!hasActiveSession) {
+            log.info(`No active session — queuing milestone notification for agent "${agent_id}".`);
+            pendingNotifications.push(text);
+        }
+        // If session IS active, LiveSessionManager's own listener handles it
+    });
+
+    log.info('Orchestrator events wired to event bus.');
 }
 
 // ── Daemon-side browser callBrowser ───────────────────────────────────────────

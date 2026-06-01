@@ -9,14 +9,19 @@ function getAgentTools(toolContext) {
     return router.getAgentTools(toolContext);
 }
 
+function getSmartAgentTools(toolContext, intentHint) {
+    return router.getSmartAgentTools(toolContext, intentHint);
+}
+
 async function executeTool(name, args, ctx) {
     return loader.executeTool(name, args, ctx);
 }
 
 module.exports = {
     getAgentTools,
+    getSmartAgentTools,
     executeTool,
-    buildToolContext: router.buildToolContext,
-    getRouterStats: router.getRouterStats,
-    invalidateDeclarationCache: router.invalidateDeclarationCache,
+    buildToolContext:             router.buildToolContext,
+    getRouterStats:              router.getRouterStats,
+    invalidateDeclarationCache:  router.invalidateDeclarationCache,
 };

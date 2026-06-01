@@ -20,7 +20,8 @@ const { gatewayDeclarations, createGatewayHandlers } = require('./integration-ga
 const { loadGraph } = require('../knowledge/graph-store');
 const { searchMemory } = require('../knowledge/graph-search');
 const { findMatchingImageNodes, extractKeywordsFromText } = require('../knowledge/image-analyzer');
-const orchestrator = require('../orchestration/orchestrator');
+const orchestrator    = require('../orchestration/orchestrator');
+const statusTracker   = require('../orchestration/agent-status-tracker');
 const { sendToRenderer } = require('../core/utils/renderer-bridge');
 
 const INTEGRATIONS_DIR = path.join(__dirname, '..', '..', 'integrations');
@@ -173,10 +174,26 @@ function buildBuiltinPacks() {
         delegate_domain_agent: (args, ctx) => {
             const agentEmit = (ev, payload) => ctx.emitAgentEvent(ev, payload);
             return orchestrator.handleDelegateRequest({
-                agent_id: args.agent_id,
-                user_request: args.user_request || '',
+                agent_id:            args.agent_id,
+                user_request:        args.user_request || '',
                 gathered_attributes: args.gathered_attributes || {},
+                clientId:            ctx.clientId || null,  // Flaw 10: scope milestones to initiating client
             }, agentEmit);
+        },
+        get_active_agents_status: (args) => {
+            const filter = args.filter || 'all';
+            let records = statusTracker.getAllStatus();
+            if (filter !== 'all') {
+                records = records.filter(r => r.status === filter);
+            }
+            if (records.length === 0) {
+                return { count: 0, message: 'No background tasks found.', tasks: [] };
+            }
+            return {
+                count: records.length,
+                message: `Found ${records.length} background task(s).`,
+                tasks: records,
+            };
         },
     };
 
