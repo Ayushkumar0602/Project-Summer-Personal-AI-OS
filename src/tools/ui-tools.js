@@ -18,7 +18,7 @@ const declarations = [
             properties: {
                 type: {
                     type: "STRING",
-                    description: "The type of widget to show. Supported: 'calendar', 'emails', 'mermaid'"
+                    description: "The type of widget to show. Supported: 'calendar', 'emails', 'mermaid', 'audio_player', 'video_player', 'file_viewer'"
                 },
                 data: {
                     type: "ARRAY",
@@ -30,7 +30,13 @@ const declarations = [
                             timeStr: { type: "STRING" },
                             subject: { type: "STRING" },
                             from: { type: "STRING" },
-                            content: { type: "STRING", description: "Raw content for mermaid diagram or other text content." }
+                            content: { type: "STRING", description: "Raw content for mermaid diagram or other text content." },
+                            path: { type: "STRING", description: "Absolute local file path for media or file_viewer." },
+                            url: { type: "STRING", description: "Public URL for media." },
+                            title: { type: "STRING", description: "Title of the media or file." },
+                            filename: { type: "STRING", description: "File name for file_viewer." },
+                            metadata: { type: "STRING", description: "Subtitle/metadata like 'Audio • 3MB' for file_viewer." },
+                            icon: { type: "STRING", description: "Emoji icon for file_viewer (e.g., '🎵', '📄')." }
                         }
                     }
                 },
@@ -83,9 +89,14 @@ const declarations = [
 
 const handlers = {
     show_hologram_widget: async (args) => {
+        let payloadData = args.data || [];
+        if (['audio_player', 'video_player', 'file_viewer'].includes(args.type)) {
+            if (Array.isArray(args.data) && args.data.length > 0) payloadData = args.data[0];
+            else if (!Array.isArray(args.data)) payloadData = args.data;
+        }
         sendToRenderer('show-hud-widget', {
             type:   args.type,
-            data:   args.data || [],
+            data:   payloadData,
             append: args.append || false,
             width:  args.width,
             height: args.height,

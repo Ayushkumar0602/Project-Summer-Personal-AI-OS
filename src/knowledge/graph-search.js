@@ -149,6 +149,9 @@ async function searchMemory(query, maxResults = 10, filterTag = null) {
         const tagStr = node.tags && node.tags.length ? ` [${node.tags.join(', ')}]` : '';
         summaryLines.push(`## ${node.label} (${node.type})${tagStr}${age ? ' — ' + age : ''}`);
         if (node.description) summaryLines.push(`  Description: ${node.description}`);
+        if (node.publicUrl) summaryLines.push(`  Public URL: ${node.publicUrl}`);
+        if (node.audioPath) summaryLines.push(`  Audio Path: ${node.audioPath}`);
+        if (node.imagePath) summaryLines.push(`  Image Path: ${node.imagePath}`);
 
         const nodeEdges = relatedEdges.filter(e => e.from === node.id);
         for (const edge of nodeEdges) {

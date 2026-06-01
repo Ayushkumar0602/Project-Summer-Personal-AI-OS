@@ -94,7 +94,9 @@ function buildTimeline(options = {}) {
                 transcript: truncate(node.transcript || '', 200),
                 durationSec: node.durationSec,
                 mood: node.mood,
-                speakerCount: node.speakerCount
+                speakerCount: node.speakerCount,
+                audioPath: node.audioPath,
+                publicUrl: node.publicUrl
             }),
             ...(node.type === 'ImageMemory' && {
                 imagePath: node.imagePath,

@@ -111,7 +111,8 @@ class WidgetManager {
         else if (type === 'map' || type === 'sheet-data') zoneKey = 'right';
         else if (type === 'youtube') zoneKey = 'bottom';
         else if (type === 'mermaid' || type === 'image_gallery' || type === 'agent_progress') zoneKey = 'top';
-        else if (type === 'news' || type === 'emails' || type === 'full-email') zoneKey = 'left';
+        else if (type === 'news' || type === 'emails' || type === 'full-email' || type === 'file_viewer') zoneKey = 'left';
+        else if (type === 'audio_player' || type === 'video_player') zoneKey = 'bottom';
 
         const container = this.zones[zoneKey];
 
@@ -476,6 +477,42 @@ class WidgetManager {
                 </div>`;
             }
         }
+        else if (type === 'audio_player') {
+            headerText = "🎵 Audio Playback";
+            const srcUrl = data.url ? data.url : `summer-media://${data.path}`;
+            html += `
+            <div class="hud-item" style="padding: 10px;">
+                <div class="hud-item-title decrypt-target" data-text="${(data.title || 'Audio File').replace(/"/g, '&quot;')}"></div>
+                <audio controls style="width: 100%; margin-top: 10px; outline: none; border-radius: 8px;" autoplay>
+                    <source src="${srcUrl}">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>`;
+        }
+        else if (type === 'video_player') {
+            headerText = "🎬 Video Playback";
+            zoneKey = 'top'; // override to center top for video
+            const srcUrl = data.url ? data.url : `summer-media://${data.path}`;
+            html += `
+            <div class="hud-item" style="padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; text-align: center;">
+                <div class="hud-item-title decrypt-target" data-text="${(data.title || 'Video File').replace(/"/g, '&quot;')}" style="margin-bottom: 8px; text-align: left;"></div>
+                <video controls autoplay style="width: 100%; max-height: 400px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                    <source src="${srcUrl}">
+                    Your browser does not support the video element.
+                </video>
+            </div>`;
+        }
+        else if (type === 'file_viewer') {
+            headerText = "📄 File Presentation";
+            html += `
+            <div class="hud-item" style="padding: 15px; display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <div style="font-size: 32px;">${data.icon || '📎'}</div>
+                <div style="flex: 1;">
+                    <div class="hud-item-title decrypt-target" data-text="${(data.filename || 'Unknown File').replace(/"/g, '&quot;')}" style="font-size: 16px; font-weight: bold; color: #fff;"></div>
+                    <div class="hud-item-meta decrypt-target" data-text="${(data.metadata || '').replace(/"/g, '&quot;')}" style="color: #94a3b8; font-size: 12px; margin-top: 4px;"></div>
+                </div>
+            </div>`;
+        }
         else {
              // Fallback for older types
              headerText = "💡 Information";
@@ -522,8 +559,9 @@ class WidgetManager {
 
         // Auto-hide
         let timeoutDuration = 25000;
-        if (type === 'youtube') timeoutDuration = 180000;
+        if (type === 'youtube' || type === 'video_player' || type === 'audio_player') timeoutDuration = 300000; // 5 mins
         else if (type === 'mermaid') timeoutDuration = 300000; // 5 mins
+        else if (type === 'file_viewer') timeoutDuration = 60000; // 1 min
         else if (type === 'agent_progress') timeoutDuration = data?.done || data?.failed ? 12000 : 600000;
         
         const timeout = setTimeout(() => {

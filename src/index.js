@@ -13,7 +13,7 @@
 
 'use strict';
 
-const { app, BrowserWindow, ipcMain, systemPreferences, session } = require('electron');
+const { app, BrowserWindow, ipcMain, systemPreferences, session, protocol } = require('electron');
 const path   = require('node:path');
 const { fork } = require('child_process');
 const dotenv = require('dotenv');
@@ -117,6 +117,18 @@ function connectToDaemon() {
 // ── 3. Electron app lifecycle ─────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
+    // Register custom protocol for local media presentation
+    protocol.registerFileProtocol('summer-media', (request, callback) => {
+        let url = request.url.replace('summer-media://', '');
+        // Sometimes file paths might have an extra leading slash on windows, but on Mac it should start with /
+        if (url.startsWith('/')) url = url; // keep it
+        try {
+            callback({ path: decodeURIComponent(url) });
+        } catch (error) {
+            console.error('[Protocol] Error decoding media path:', error);
+        }
+    });
+
     // Request microphone permission on macOS
     if (process.platform === 'darwin') {
         const status = systemPreferences.getMediaAccessStatus('microphone');

@@ -33,7 +33,10 @@ function loadAllSkills() {
             if (skill.name && skill.toolNames && skill.context) {
                 // Map each tool name to this skill
                 for (const toolName of skill.toolNames) {
-                    skills.set(toolName, skill);
+                    if (!skills.has(toolName)) {
+                        skills.set(toolName, []);
+                    }
+                    skills.get(toolName).push(skill);
                 }
                 console.log(`[Skills] ✅ Loaded skill: ${skill.name} (${skill.toolNames.length} tools)`);
             }
@@ -50,8 +53,8 @@ function loadAllSkills() {
  * Returns the context string if a skill exists, or null.
  */
 function getSkillContext(toolName) {
-    const skill = skills.get(toolName);
-    return skill ? skill.context : null;
+    const skillList = skills.get(toolName);
+    return skillList ? skillList.map(s => s.context).join('\n\n') : null;
 }
 
 /**
@@ -61,10 +64,12 @@ function getSkillSummaries() {
     const seen = new Set();
     const summaries = [];
     
-    for (const [, skill] of skills) {
-        if (!seen.has(skill.name)) {
-            seen.add(skill.name);
-            summaries.push(`- **${skill.name}**: ${skill.summary} (tools: ${skill.toolNames.join(', ')})`);
+    for (const [, skillList] of skills) {
+        for (const skill of skillList) {
+            if (!seen.has(skill.name)) {
+                seen.add(skill.name);
+                summaries.push(`- **${skill.name}**: ${skill.summary} (tools: ${skill.toolNames.join(', ')})`);
+            }
         }
     }
     
