@@ -60,15 +60,17 @@ function isSameEntity(nodeA, nodeB) {
         }
 
         // Fuzzy matching for speech-to-text misspellings (e.g., "whizan" vs "vizan")
-        // Only apply fuzzy matching if they are of the same type, to avoid accidentally merging unrelated short words
+        // Only apply fuzzy matching if they are of the same type, to avoid accidentally merging unrelated words
         if (nodeA.type === nodeB.type) {
             const distance = levenshteinDistance(labelA, labelB);
             const maxLength = Math.max(labelA.length, labelB.length);
             
-            // If the strings are fairly long (>4 chars) and distance is very small (1 or 2 edits), treat as same
+            // If the strings are long enough (>4 chars) and distance is very small (1 or 2 edits), treat as same
             if (maxLength > 4 && distance <= 2) return true;
-            // For shorter words (3-4 chars), only allow 1 typo
-            if (maxLength <= 4 && distance <= 1) return true;
+            
+            // For short acronyms and words (<= 4 chars), NEVER apply fuzzy matching.
+            // Example: "aws" vs "ams", "dog" vs "cog" should NOT merge.
+            // Exact substring matches are already handled above, so no typos allowed here.
         }
     }
     

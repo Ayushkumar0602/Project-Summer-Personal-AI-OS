@@ -13,7 +13,7 @@
 
 const https = require('https');
 const { getLocationSafe } = require('./location-provider');
-const { loadGraph, saveGraph } = require('./graph-store');
+const { loadGraph, saveGraph, markNodeDirty, markEdgeDirty } = require('./graph-store');
 
 // Cache: reverse geocoding results
 const geocodeCache = new Map();
@@ -218,6 +218,9 @@ function trackPlaceVisit(placeName, locationData) {
                 label: 'visits_frequently',
                 confidence: 0.85
             });
+
+            markNodeDirty(nodeId);
+            markEdgeDirty('user_self', nodeId, 'visits_frequently');
 
             saveGraph(graph);
             console.log(`[LocationTagger] ${placeTypeEmoji[locationData.placeType] || '📍'} New known place: "${placeName}" (visited ${count}x)`);

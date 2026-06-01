@@ -317,13 +317,16 @@ class LiveSessionManager {
                         }
 
                         if (userText.length > 15) {
-                            const searchResult = searchMemory(userText, 3, null);
-                            if (searchResult.nodes.length > 0) {
-                                const shadowFacts = searchResult.nodes.map(n => `Fact [${n.label}]: ${n.description}`).join(' | ');
-                                const prefix = this.latestShadowContext ? this.latestShadowContext + ' ' : '';
-                                this.latestShadowContext = `${prefix}[SYSTEM BACKGROUND CONTEXT: ${shadowFacts}]`;
-                                console.log(`\n🕵️‍♂️ Shadow Retrieval: Staged ${searchResult.nodes.length} nodes for next turn based on: "${userText.slice(0, 30)}..."`);
-                            }
+                            searchMemory(userText, 3, null).then(searchResult => {
+                                if (searchResult.nodes.length > 0) {
+                                    const shadowFacts = searchResult.nodes.map(n => `Fact [${n.label}]: ${n.description}`).join(' | ');
+                                    const prefix = this.latestShadowContext ? this.latestShadowContext + ' ' : '';
+                                    this.latestShadowContext = `${prefix}[SYSTEM BACKGROUND CONTEXT: ${shadowFacts}]`;
+                                    console.log(`\n🕵️‍♂️ Shadow Retrieval: Staged ${searchResult.nodes.length} nodes for next turn based on: "${userText.slice(0, 30)}..."`);
+                                }
+                            }).catch(err => {
+                                console.error('Shadow retrieval error:', err);
+                            });
 
                             try {
                                 if (hasVisualIntent(userText)) {

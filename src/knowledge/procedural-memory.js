@@ -21,7 +21,7 @@
 
 const { GoogleGenAI } = require('@google/genai');
 const { withMemoryApiKey } = require('./memory-api-key');
-const { loadGraph, saveGraph, mergeGraph } = require('./graph-store');
+const { loadGraph, saveGraph, mergeGraph, markNodeDirty, markEdgeDirty } = require('./graph-store');
 
 // ── Extraction prompt ──────────────────────────────────────────────────────
 
@@ -147,6 +147,7 @@ async function extractProceduralPatterns(transcriptText) {
                 }
                 existing.triggerContext = Array.from(existingTriggers);
 
+                markNodeDirty(existing.id);
                 reinforcedCount++;
                 console.log(`[ProceduralMemory] ↑ Reinforced: "${existing.label}" (confidence: ${existing.confidence.toFixed(2)}, observed: ${existing.observedCount}x)`);
             } else {
@@ -179,6 +180,9 @@ async function extractProceduralPatterns(transcriptText) {
                     source: 'procedural_extraction',
                     updatedAt: Date.now()
                 });
+
+                markNodeDirty(procId);
+                markEdgeDirty('user_self', procId, 'has_preference');
 
                 addedCount++;
                 console.log(`[ProceduralMemory] + New: "${newNode.label}" (subtype: ${newNode.subtype})`);
@@ -225,6 +229,7 @@ function weakenProcedural(procId) {
     if (!node) return { success: false };
 
     node.confidence = Math.max(0.10, (node.confidence || 0.5) - 0.20);
+    markNodeDirty(node.id);
     console.log(`[ProceduralMemory] ↓ Weakened: "${node.label}" → confidence: ${node.confidence.toFixed(2)}`);
     saveGraph(graph);
     return { success: true, confidence: node.confidence };

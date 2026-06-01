@@ -1,5 +1,7 @@
 const { loadGraph, touchNodeAccess, getDecayScore } = require('./graph-store');
 const { normalizeId, levenshteinDistance } = require('./entity-resolution');
+const { generateEmbedding } = require('./embeddings');
+const { supabase } = require('../services/supabase-client');
 
 /**
  * Searches the knowledge graph for nodes and edges matching the query.
@@ -15,7 +17,7 @@ const { normalizeId, levenshteinDistance } = require('./entity-resolution');
  * @param {string} filterTag    - Optional tag to restrict results (e.g. '#work')
  * @returns {{ nodes: Array, edges: Array, summary: string }}
  */
-function searchMemory(query, maxResults = 10, filterTag = null) {
+async function searchMemory(query, maxResults = 10, filterTag = null) {
     const graph = loadGraph();
     if (!graph || graph.nodes.length === 0) {
         return { nodes: [], edges: [], summary: 'No memory graph available.' };
@@ -24,64 +26,89 @@ function searchMemory(query, maxResults = 10, filterTag = null) {
     const queryNorm = normalizeId(query);
     const queryWords = queryNorm.split(/\s+/).filter(Boolean);
 
-    // ── Tag pre-filter ──
-    let candidateNodes = graph.nodes;
-    if (filterTag) {
-        const tag = filterTag.toLowerCase().replace(/^#/, '');
-        candidateNodes = graph.nodes.filter(n =>
-            Array.isArray(n.tags) && n.tags.some(t => t.toLowerCase().replace(/^#/, '') === tag)
-        );
+    let topNodes = [];
+
+    // Attempt Vector Search via Supabase if available
+    let vectorSearchSuccess = false;
+    if (supabase) {
+        try {
+            const queryEmbedding = await generateEmbedding(queryNorm);
+            if (queryEmbedding) {
+                const { data, error } = await supabase.rpc('match_memory_nodes', {
+                    query_embedding: queryEmbedding,
+                    match_threshold: 0.3,
+                    match_count: maxResults,
+                    filter_tag: filterTag ? filterTag.replace(/^#/, '') : null
+                });
+
+                if (!error && data) {
+                    const matchedIds = data.map(row => row.id);
+                    topNodes = matchedIds
+                        .map(id => graph.nodes.find(n => n.id === id))
+                        .filter(Boolean);
+                    vectorSearchSuccess = true;
+                } else if (error) {
+                    console.warn('[GraphSearch] Vector search failed:', error.message);
+                }
+            }
+        } catch (e) {
+            console.warn('[GraphSearch] Vector search exception:', e.message);
+        }
     }
 
-    // ── Score each candidate ──
-    const scoredNodes = candidateNodes.map(node => {
-        const labelNorm = normalizeId(node.label);
-        const descNorm  = normalizeId(node.description || '');
-        const typeNorm  = normalizeId(node.type || '');
-        const tagsNorm  = (node.tags || []).map(t => normalizeId(t)).join(' ');
-
-        let score = 0;
-
-        // Exact ID match — highest priority
-        if (node.id === queryNorm) score += 100;
-
-        // Label exact / partial
-        if (labelNorm === queryNorm)        score += 80;
-        if (labelNorm.includes(queryNorm))  score += 60;
-        if (queryNorm.includes(labelNorm))  score += 40;
-
-        // Word-by-word matching
-        for (const word of queryWords) {
-            if (word.length < 3) continue; // skip stop-words
-            if (labelNorm.includes(word)) score += 20;
-            if (descNorm.includes(word))  score += 10;
-            if (typeNorm.includes(word))  score += 5;
-            if (tagsNorm.includes(word))  score += 15; // tags weighted higher than description
+    // Fallback to local fuzzy search if vector search didn't run or failed
+    if (!vectorSearchSuccess) {
+        // ── Tag pre-filter ──
+        let candidateNodes = graph.nodes;
+        if (filterTag) {
+            const tag = filterTag.toLowerCase().replace(/^#/, '');
+            candidateNodes = graph.nodes.filter(n =>
+                Array.isArray(n.tags) && n.tags.some(t => t.toLowerCase().replace(/^#/, '') === tag)
+            );
         }
 
-        // Fuzzy Levenshtein on label
-        const dist    = levenshteinDistance(queryNorm, labelNorm);
-        const maxLen  = Math.max(queryNorm.length, labelNorm.length);
-        if (maxLen > 0) {
-            const similarity = 1 - dist / maxLen;
-            if (similarity > 0.7) score += similarity * 30;
-        }
+        // ── Score each candidate ──
+        const scoredNodes = candidateNodes.map(node => {
+            const labelNorm = normalizeId(node.label);
+            const descNorm  = normalizeId(node.description || '');
+            const typeNorm  = normalizeId(node.type || '');
+            const tagsNorm  = (node.tags || []).map(t => normalizeId(t)).join(' ');
 
-        // ── Decay multiplier ──
-        // Recently-accessed nodes float to the top; stale ones are penalised
-        if (score > 0) {
-            score *= getDecayScore(node);
-        }
+            let score = 0;
 
-        return { node, score };
-    });
+            if (node.id === queryNorm) score += 100;
+            if (labelNorm === queryNorm)        score += 80;
+            if (labelNorm.includes(queryNorm))  score += 60;
+            if (queryNorm.includes(labelNorm))  score += 40;
 
-    // ── Sort & slice ──
-    const topNodes = scoredNodes
-        .filter(s => s.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, maxResults)
-        .map(s => s.node);
+            for (const word of queryWords) {
+                if (word.length < 3) continue;
+                if (labelNorm.includes(word)) score += 20;
+                if (descNorm.includes(word))  score += 10;
+                if (typeNorm.includes(word))  score += 5;
+                if (tagsNorm.includes(word))  score += 15;
+            }
+
+            const dist    = levenshteinDistance(queryNorm, labelNorm);
+            const maxLen  = Math.max(queryNorm.length, labelNorm.length);
+            if (maxLen > 0) {
+                const similarity = 1 - dist / maxLen;
+                if (similarity > 0.7) score += similarity * 30;
+            }
+
+            if (score > 0) {
+                score *= getDecayScore(node);
+            }
+
+            return { node, score };
+        });
+
+        topNodes = scoredNodes
+            .filter(s => s.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, maxResults)
+            .map(s => s.node);
+    }
 
     if (topNodes.length === 0) {
         return {

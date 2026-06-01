@@ -67,7 +67,7 @@ class Orchestrator extends EventEmitter {
             }
         }
         prior._lastUserText = user_request;
-        const { filled, missing, ready } = resolveAttributes(manifest, user_request, prior);
+        const { filled, missing, ready } = await resolveAttributes(manifest, user_request, prior);
 
         if (!ready) {
             const sessionId = `gather_${++this.sessionCounter}`;

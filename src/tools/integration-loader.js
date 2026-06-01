@@ -17,7 +17,7 @@ const { browserToolDeclarations, isBrowserTool } = require('./browser-tool-decla
 const { memoryToolDeclarations } = require('./memory-tool-declarations');
 const { orchestrationToolDeclarations } = require('./orchestration-tool-declarations');
 const { gatewayDeclarations, createGatewayHandlers } = require('./integration-gateway');
-const { loadGraph } = require('../knowledge/graph-store');
+const { loadGraph, mergeGraph, deleteMemoryNode, deleteMemoryEdge, saveGraph } = require('../knowledge/graph-store');
 const { searchMemory } = require('../knowledge/graph-search');
 const { findMatchingImageNodes, extractKeywordsFromText } = require('../knowledge/image-analyzer');
 const orchestrator    = require('../orchestration/orchestrator');
@@ -60,7 +60,7 @@ function registerPack(pack) {
 }
 
 async function executeQueryMemory(args) {
-    const searchResult = searchMemory(
+    const searchResult = await searchMemory(
         args.query || '',
         Math.min(args.maxResults || 5, 10),
         args.filterTag || null
@@ -123,6 +123,33 @@ async function executeShowVisualMemory(args) {
     };
 }
 
+async function executeMutateMemory(args) {
+    const { addNodes = [], addEdges = [], deleteNodeIds = [], deleteEdges = [] } = args;
+    const graph = loadGraph();
+    
+    let deletedNodeCount = 0;
+    let deletedEdgeCount = 0;
+    
+    for (const id of deleteNodeIds) {
+        if (deleteMemoryNode(id)) deletedNodeCount++;
+    }
+    
+    for (const edge of deleteEdges) {
+        if (deleteMemoryEdge(edge.from, edge.to, edge.label)) deletedEdgeCount++;
+    }
+    
+    const newGraph = { nodes: addNodes, edges: addEdges };
+    const mergedGraph = mergeGraph(graph, newGraph);
+    saveGraph(mergedGraph);
+    
+    return {
+        success: true,
+        message: `Graph mutated successfully. Added/Updated ${addNodes.length} nodes and ${addEdges.length} edges. Deleted ${deletedNodeCount} nodes and ${deletedEdgeCount} specific edges.`,
+        addedNodes: addNodes.map(n => n.id),
+        deletedNodes: deleteNodeIds
+    };
+}
+
 async function executeSearchImages(args) {
     const imgResult = await searchImages(args.query, args.count || 4);
     if (imgResult.images?.length > 0) {
@@ -149,6 +176,7 @@ function buildBuiltinPacks() {
     const memoryHandlers = {
         query_memory: (args) => executeQueryMemory(args),
         show_visual_memory: (args) => executeShowVisualMemory(args),
+        mutate_memory_graph: (args) => executeMutateMemory(args),
     };
 
     const browserHandlers = {};

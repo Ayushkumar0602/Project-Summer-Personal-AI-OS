@@ -67,7 +67,7 @@ function extractReportDepth(text) {
 /**
  * Resolve mandatory/optional attributes from prompt, prior state, and graph memory.
  */
-function resolveAttributes(manifest, userText, prior = {}) {
+async function resolveAttributes(manifest, userText, prior = {}) {
   const filled = { ...prior };
   const text = [userText, prior._lastUserText].filter(Boolean).join(' ');
 
@@ -90,7 +90,7 @@ function resolveAttributes(manifest, userText, prior = {}) {
 
   if (usesMemory) {
     if (!filled.context_data && filled.topic) {
-      const mem = searchMemory(filled.topic, 40);
+      const mem = await searchMemory(filled.topic, 40);
       filled.context_data = mem.summary || 'No additional context in memory.';
     } else if (!filled.context_data) {
       filled.context_data = prior.context_data || '';

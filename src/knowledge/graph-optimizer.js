@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const Paths = require('../core/utils/paths');
 const { GoogleGenAI, Type } = require('@google/genai');
-const { loadGraph, saveGraph } = require('./graph-store');
-const { getMemoryApiKey } = require('./memory-api-key');
+const { loadGraph, saveGraph, markEdgeDirty, deleteMemoryNode, deleteMemoryEdge } = require('./graph-store');
+const { withMemoryApiKey } = require('./memory-api-key');
 
 const GRAPH_PATH  = path.join(Paths.userData(), 'knowledge-graph.json');
 const BACKUP_PATH = path.join(Paths.userData(), 'knowledge-graph.bak.json');
@@ -78,32 +78,28 @@ Analyze the semantics and descriptions. Return a list of edges linking isolated 
 Try to connect each isolated node to the most logical main node using a descriptive relationship label (e.g. 'part_of', 'works_at', 'related_to', 'knows_about', 'uses').
 Ensure every isolated node gets at least one edge connecting it to a main node.`;
 
-    const apiKey = getMemoryApiKey();
-    if (!apiKey) throw new Error("API Key missing");
-
-    const ai = new GoogleGenAI({ apiKey });
-
-    console.log(`[Optimizer] Analyzing ${isolatedNodes.length} isolated nodes...`);
-    
-    const result = await ai.models.generateContent({
-        model: "gemini-flash-latest",
-        contents: prompt,
-        config: {
-            temperature: 0.2,
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        from: { type: Type.STRING },
-                        to: { type: Type.STRING },
-                        label: { type: Type.STRING }
-                    },
-                    required: ["from", "to", "label"]
+    const result = await withMemoryApiKey(async (apiKey) => {
+        const ai = new GoogleGenAI({ apiKey });
+        return await ai.models.generateContent({
+            model: "gemini-flash-latest",
+            contents: prompt,
+            config: {
+                temperature: 0.2,
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            from: { type: Type.STRING },
+                            to: { type: Type.STRING },
+                            label: { type: Type.STRING }
+                        },
+                        required: ["from", "to", "label"]
+                    }
                 }
             }
-        }
+        });
     });
 
     const newEdges = JSON.parse(result.text);
@@ -124,14 +120,16 @@ Ensure every isolated node gets at least one edge connecting it to a main node.`
             // Check for duplicates
             const exists = graph.edges.some(e => e.from === edge.from && e.to === edge.to && e.label === edge.label);
             if (!exists) {
+                const finalLabel = edge.label.replace(/\s+/g, '_').toLowerCase();
                 graph.edges.push({
                     from: edge.from,
                     to: edge.to,
-                    label: edge.label.replace(/\s+/g, '_').toLowerCase(),
+                    label: finalLabel,
                     source: 'ai_optimizer',
                     confidence: 0.9,
                     updatedAt: Date.now()
                 });
+                markEdgeDirty(edge.from, edge.to, finalLabel);
                 addedCount++;
             }
         }
@@ -179,33 +177,32 @@ Generate a JSON array of operations to execute. Supported actions:
 
 Return ONLY a valid JSON array of operations. Return empty array if the command is invalid or no changes are needed.`;
 
-    const apiKey = getMemoryApiKey();
-    if (!apiKey) throw new Error("API Key missing");
-    const ai = new GoogleGenAI({ apiKey });
-
     console.log(`[Optimizer] Running memory command: "${commandText}"...`);
     
-    const result = await ai.models.generateContent({
-        model: "gemini-flash-latest",
-        contents: prompt,
-        config: {
-            temperature: 0.1,
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        action: { type: Type.STRING },
-                        id: { type: Type.STRING },
-                        from: { type: Type.STRING },
-                        to: { type: Type.STRING },
-                        label: { type: Type.STRING }
-                    },
-                    required: ["action"]
+    const result = await withMemoryApiKey(async (apiKey) => {
+        const ai = new GoogleGenAI({ apiKey });
+        return await ai.models.generateContent({
+            model: "gemini-flash-latest",
+            contents: prompt,
+            config: {
+                temperature: 0.1,
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            action: { type: Type.STRING },
+                            id: { type: Type.STRING },
+                            from: { type: Type.STRING },
+                            to: { type: Type.STRING },
+                            label: { type: Type.STRING }
+                        },
+                        required: ["action"]
+                    }
                 }
             }
-        }
+        });
     });
 
     const operations = JSON.parse(result.text);
@@ -219,25 +216,29 @@ Return ONLY a valid JSON array of operations. Return empty array if the command 
     let appliedCount = 0;
     for (const op of operations) {
         if (op.action === 'delete_node' && op.id) {
-            graph.nodes = graph.nodes.filter(n => n.id !== op.id);
-            graph.edges = graph.edges.filter(e => e.from !== op.id && e.to !== op.id);
-            appliedCount++;
+            if (deleteMemoryNode(op.id)) appliedCount++;
         } else if (op.action === 'add_edge' && op.from && op.to && op.label) {
             if (graph.nodes.find(n => n.id === op.from) && graph.nodes.find(n => n.id === op.to)) {
+                const finalLabel = op.label.replace(/\s+/g, '_').toLowerCase();
                 graph.edges.push({
                     from: op.from,
                     to: op.to,
-                    label: op.label.replace(/\s+/g, '_').toLowerCase(),
+                    label: finalLabel,
                     source: 'ai_optimizer',
                     confidence: 1.0,
                     updatedAt: Date.now()
                 });
+                markEdgeDirty(op.from, op.to, finalLabel);
                 appliedCount++;
             }
+        } else if (op.action === 'delete_edge' && op.from && op.to && op.label) {
+            if (deleteMemoryEdge(op.from, op.to, op.label)) appliedCount++;
         } else if (op.action === 'delete_edge' && op.from && op.to) {
-            const before = graph.edges.length;
-            graph.edges = graph.edges.filter(e => !(e.from === op.from && e.to === op.to));
-            if (graph.edges.length < before) appliedCount++;
+            // Fallback if AI didn't provide label
+            const toDelete = graph.edges.filter(e => e.from === op.from && e.to === op.to);
+            for (const edge of toDelete) {
+                if (deleteMemoryEdge(edge.from, edge.to, edge.label)) appliedCount++;
+            }
         }
     }
 

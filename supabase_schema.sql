@@ -1,7 +1,10 @@
 -- Summer AI Knowledge Base Schema
 -- Run this in your Supabase SQL Editor
 
--- 1. Create the Nodes table (Graph memory)
+-- 1. Enable pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 2. Create the Nodes table (Graph memory)
 CREATE TABLE IF NOT EXISTS memory_nodes (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL,
@@ -17,7 +20,8 @@ CREATE TABLE IF NOT EXISTS memory_nodes (
     importance NUMERIC DEFAULT 0.5,
     "updatedAt" BIGINT,
     source TEXT,
-    "createdAt" TIMESTAMPTZ DEFAULT NOW()
+    "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+    embedding vector(384)
 );
 
 -- 2. Create the Edges table (Graph relationships)
@@ -61,3 +65,35 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable all access for service role" ON app_settings FOR ALL USING (true);
+
+-- 6. RPC Function for Semantic Search
+CREATE OR REPLACE FUNCTION match_memory_nodes (
+  query_embedding vector(384),
+  match_threshold float,
+  match_count int,
+  filter_tag text DEFAULT NULL
+)
+RETURNS TABLE (
+  id text,
+  type text,
+  label text,
+  description text,
+  tags jsonb,
+  similarity float
+)
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT
+    memory_nodes.id,
+    memory_nodes.type,
+    memory_nodes.label,
+    memory_nodes.description,
+    memory_nodes.tags,
+    1 - (memory_nodes.embedding <=> query_embedding) AS similarity
+  FROM memory_nodes
+  WHERE 1 - (memory_nodes.embedding <=> query_embedding) > match_threshold
+    AND (filter_tag IS NULL OR memory_nodes.tags @> ('"' || filter_tag || '"')::jsonb)
+  ORDER BY memory_nodes.embedding <=> query_embedding
+  LIMIT match_count;
+$$;

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { supabase } = require('../services/supabase-client');
+const { generateNodeEmbedding } = require('./embeddings');
 
 // Use platform-agnostic path resolver (works in daemon AND Electron)
 const Paths = require('../core/utils/paths');
@@ -25,6 +26,12 @@ const MS_PER_DAY = 86400000;
 // are affected, not all nodes simultaneously.
 const DAEMON_START_MS = Date.now();
 
+// ── Delta Sync Tracking Sets ─────────────────────────────────────────────────
+const _dirtyNodes = new Set();
+const _dirtyEdges = new Set();
+const _deletedNodes = new Set();
+const _deletedEdges = new Set();
+
 // ── Flaw 8 fix: batched write queue for access tracking ──────────────────────
 // touchNodeAccess() was calling saveGraph() on every access — a full disk write
 // for every memory retrieval. Under heavy query load this causes write storms.
@@ -39,7 +46,11 @@ function _flushAccessUpdates() {
         let changed = 0;
         for (const [nodeId, ts] of _pendingAccessUpdates) {
             const node = graph.nodes.find(n => n.id === nodeId);
-            if (node) { node.lastAccessedAt = ts; changed++; }
+            if (node) { 
+                node.lastAccessedAt = ts; 
+                _dirtyNodes.add(node.id);
+                changed++; 
+            }
         }
         _pendingAccessUpdates.clear();
         if (changed > 0) saveGraph(graph);
@@ -72,7 +83,7 @@ async function initGraphStore() {
                     if (parsed.nodes && parsed.nodes.length > 0) {
                         console.log('[GraphStore] Cloud is empty but local has data. Pushing local to cloud...');
                         memoryGraphCache = parsed;
-                        await _syncToSupabase(memoryGraphCache);
+                        await _syncToSupabase(memoryGraphCache, true);
                     }
                 } catch(err) {
                     console.error('[GraphStore] Failed to read local backup for migration', err);
@@ -182,31 +193,95 @@ function saveGraph(graph) {
 }
 
 let syncTimeout = null;
-async function _syncToSupabase(graph) {
+async function _syncToSupabase(graph, forceFullSync = false) {
     if (!supabase) return;
     try {
-        if (graph.nodes.length > 0) {
-            const nodesToInsert = graph.nodes.map(n => ({
+        let nodesToUpdate = Array.from(_dirtyNodes);
+        let edgesToUpdate = Array.from(_dirtyEdges);
+        let nodesToDelete = Array.from(_deletedNodes);
+        let edgesToDelete = Array.from(_deletedEdges).map(s => JSON.parse(s));
+
+        if (forceFullSync) {
+            nodesToUpdate = graph.nodes.map(n => n.id);
+            edgesToUpdate = graph.edges.map(e => JSON.stringify({ from: e.from, to: e.to, label: e.label }));
+        } else {
+            _dirtyNodes.clear();
+            _dirtyEdges.clear();
+            _deletedNodes.clear();
+            _deletedEdges.clear();
+        }
+
+        if (nodesToUpdate.length === 0 && edgesToUpdate.length === 0 && nodesToDelete.length === 0 && edgesToDelete.length === 0) {
+            return;
+        }
+
+        let needsLocalSave = false;
+        const nodesToInsert = [];
+        for (const nodeId of nodesToUpdate) {
+            const n = graph.nodes.find(node => node.id === nodeId);
+            if (!n) continue;
+            
+            if (!n.embedding) {
+                try {
+                    n.embedding = await generateNodeEmbedding(n);
+                    needsLocalSave = true;
+                } catch (e) {
+                    console.error('[GraphStore] Failed to generate embedding for node', n.id, e);
+                }
+            }
+            
+            nodesToInsert.push({
                 id: n.id, type: n.type, label: n.label, description: n.description,
                 imagePath: n.imagePath, publicUrl: n.publicUrl, imageHash: n.imageHash,
                 entities: n.entities, faceIds: n.faceIds, tags: n.tags,
                 pinned: !!n.pinned, importance: n.importance || 0.5,
-                updatedAt: n.updatedAt, source: n.source
-            }));
+                updatedAt: n.updatedAt, source: n.source, createdAt: n.createdAt,
+                embedding: n.embedding
+            });
+        }
+
+        if (needsLocalSave) {
+            fs.writeFileSync(GRAPH_PATH, JSON.stringify(graph, null, 2), 'utf-8');
+        }
+
+        if (nodesToDelete.length > 0) {
+            for (let i = 0; i < nodesToDelete.length; i += 100) {
+                await supabase.from(TABLE_NODES).delete().in('id', nodesToDelete.slice(i, i + 100));
+            }
+        }
+
+        if (edgesToDelete.length > 0) {
+            for (const edge of edgesToDelete) {
+                await supabase.from(TABLE_EDGES).delete()
+                    .eq('from', edge.from)
+                    .eq('to', edge.to)
+                    .eq('label', edge.label);
+            }
+        }
+
+        if (nodesToInsert.length > 0) {
             for (let i = 0; i < nodesToInsert.length; i += 100) {
                 await supabase.from(TABLE_NODES).upsert(nodesToInsert.slice(i, i + 100));
             }
         }
-        if (graph.edges.length > 0) {
-            const edgesToInsert = graph.edges.map(e => ({
-                from: e.from, to: e.to, label: e.label,
-                confidence: e.confidence || 1.0, source: e.source, updatedAt: e.updatedAt
-            }));
+
+        if (edgesToUpdate.length > 0) {
+            const edgesToInsert = [];
+            for (const edgeStr of edgesToUpdate) {
+                const eKey = JSON.parse(edgeStr);
+                const e = graph.edges.find(edge => edge.from === eKey.from && edge.to === eKey.to && edge.label === eKey.label);
+                if (e) {
+                    edgesToInsert.push({
+                        from: e.from, to: e.to, label: e.label,
+                        confidence: e.confidence || 1.0, source: e.source, updatedAt: e.updatedAt
+                    });
+                }
+            }
             for (let i = 0; i < edgesToInsert.length; i += 100) {
                 await supabase.from(TABLE_EDGES).upsert(edgesToInsert.slice(i, i + 100), { onConflict: 'from,to,label' });
             }
         }
-        console.log('[GraphStore] Synced to Supabase.');
+        console.log(`[GraphStore] Delta synced to Supabase. Nodes updated: ${nodesToInsert.length}, deleted: ${nodesToDelete.length}`);
     } catch (e) {
         console.error('[GraphStore] Supabase sync error:', e.message);
     }
@@ -251,20 +326,30 @@ function mergeGraph(existingGraph, newGraph) {
         
         if (existingNode) {
             aliasMap[newNode.id] = existingNode.id;
+            let nodeMutated = false;
             // Merge description if existing one is empty
             if (!existingNode.description && newNode.description) {
                 existingNode.description = newNode.description;
+                nodeMutated = true;
             }
             // Merge tags
             if (newNode.tags && newNode.tags.length) {
+                const oldTagsLen = (existingNode.tags || []).length;
                 existingNode.tags = [...new Set([...(existingNode.tags || []), ...newNode.tags])];
+                if (existingNode.tags.length > oldTagsLen) nodeMutated = true;
+            }
+            if (nodeMutated) {
+                existingNode.updatedAt = Date.now();
+                _dirtyNodes.add(existingNode.id);
             }
         } else {
             aliasMap[newNode.id] = newNode.id;
             // Stamp creation time on new nodes
             if (!newNode.createdAt) newNode.createdAt = Date.now();
+            newNode.updatedAt = Date.now();
             if (!newNode.tags) newNode.tags = [];
             merged.nodes.push(newNode);
+            _dirtyNodes.add(newNode.id);
         }
     }
 
@@ -281,6 +366,10 @@ function mergeGraph(existingGraph, newGraph) {
         // Check if we have an exclusive edge conflict (e.g., [user_self] -> lives_in -> [somewhere_else])
         if (EXCLUSIVE_EDGES.has(edge.label)) {
             // Remove any existing edge with the same FROM and LABEL
+            const toRemove = merged.edges.filter(e => (e.from === canonicalFrom && e.label === edge.label));
+            for (const r of toRemove) {
+                _deletedEdges.add(JSON.stringify({ from: r.from, to: r.to, label: r.label }));
+            }
             merged.edges = merged.edges.filter(e => !(e.from === canonicalFrom && e.label === edge.label));
         }
 
@@ -297,6 +386,7 @@ function mergeGraph(existingGraph, newGraph) {
                 confidence: edge.confidence || 1.0,
                 updatedAt: timestamp
             });
+            _dirtyEdges.add(JSON.stringify({ from: canonicalFrom, to: canonicalTo, label: edge.label }));
         }
     }
 
@@ -305,6 +395,42 @@ function mergeGraph(existingGraph, newGraph) {
 
 function clearGraph() {
     saveGraph(JSON.parse(JSON.stringify(EMPTY_GRAPH)));
+}
+
+function deleteMemoryNode(nodeId) {
+    if (!memoryGraphCache) return false;
+    const initialLen = memoryGraphCache.nodes.length;
+    memoryGraphCache.nodes = memoryGraphCache.nodes.filter(n => n.id !== nodeId);
+    if (memoryGraphCache.nodes.length < initialLen) {
+        _deletedNodes.add(nodeId);
+        // Delete all edges connected to it
+        const edgesToRemove = memoryGraphCache.edges.filter(e => e.from === nodeId || e.to === nodeId);
+        for (const r of edgesToRemove) {
+            _deletedEdges.add(JSON.stringify({ from: r.from, to: r.to, label: r.label }));
+        }
+        memoryGraphCache.edges = memoryGraphCache.edges.filter(e => e.from !== nodeId && e.to !== nodeId);
+        return true;
+    }
+    return false;
+}
+
+function deleteMemoryEdge(from, to, label) {
+    if (!memoryGraphCache) return false;
+    const initialLen = memoryGraphCache.edges.length;
+    memoryGraphCache.edges = memoryGraphCache.edges.filter(e => !(e.from === from && e.to === to && e.label === label));
+    if (memoryGraphCache.edges.length < initialLen) {
+        _deletedEdges.add(JSON.stringify({ from, to, label }));
+        return true;
+    }
+    return false;
+}
+
+function markNodeDirty(nodeId) {
+    _dirtyNodes.add(nodeId);
+}
+
+function markEdgeDirty(from, to, label) {
+    _dirtyEdges.add(JSON.stringify({ from, to, label }));
 }
 
 /**
@@ -339,4 +465,4 @@ function getDecayScore(node) {
     return Math.max(0.1, Math.pow(0.9, daysSince / (DECAY_HALF_LIFE_DAYS / 23)));
 }
 
-module.exports = { initGraphStore, loadGraph, saveGraph, mergeGraph, clearGraph, touchNodeAccess, getDecayScore, GRAPH_PATH };
+module.exports = { initGraphStore, loadGraph, saveGraph, mergeGraph, clearGraph, deleteMemoryNode, deleteMemoryEdge, markNodeDirty, markEdgeDirty, touchNodeAccess, getDecayScore, GRAPH_PATH };
