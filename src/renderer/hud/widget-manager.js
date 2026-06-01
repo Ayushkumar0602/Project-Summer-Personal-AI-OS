@@ -113,8 +113,14 @@ class WidgetManager {
         else if (type === 'mermaid' || type === 'image_gallery' || type === 'agent_progress') zoneKey = 'top';
         else if (type === 'news' || type === 'emails' || type === 'full-email' || type === 'file_viewer') zoneKey = 'left';
         else if (type === 'audio_player' || type === 'video_player') zoneKey = 'bottom';
+        else if (type === 'custom_html') zoneKey = data.zone || 'right';
 
-        const container = this.zones[zoneKey];
+        let container = this.zones[zoneKey];
+        if (!container) {
+            console.warn(`[HUD] Invalid zone key: ${zoneKey}. Falling back to 'right'.`);
+            zoneKey = 'right';
+            container = this.zones['right'];
+        }
 
         if (type === 'clear') {
             // Do NOT clear weather or schedule (persistent fixed widgets)
@@ -513,6 +519,13 @@ class WidgetManager {
                 </div>
             </div>`;
         }
+        else if (type === 'custom_html') {
+            headerText = data.title || "✨ Custom Interface";
+            html += `
+            <div class="hud-item" style="padding: 15px; background: rgba(15,23,42,0.4); border-radius: 8px; backdrop-filter: blur(10px); box-shadow: inset 0 0 10px rgba(255,255,255,0.05);">
+                ${data.html || ''}
+            </div>`;
+        }
         else {
              // Fallback for older types
              headerText = "💡 Information";
@@ -561,6 +574,7 @@ class WidgetManager {
         let timeoutDuration = 25000;
         if (type === 'youtube' || type === 'video_player' || type === 'audio_player') timeoutDuration = 300000; // 5 mins
         else if (type === 'mermaid') timeoutDuration = 300000; // 5 mins
+        else if (type === 'custom_html') timeoutDuration = 300000; // 5 mins
         else if (type === 'file_viewer') timeoutDuration = 60000; // 1 min
         else if (type === 'agent_progress') timeoutDuration = data?.done || data?.failed ? 12000 : 600000;
         

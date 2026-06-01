@@ -18,7 +18,7 @@ const declarations = [
             properties: {
                 type: {
                     type: "STRING",
-                    description: "The type of widget to show. Supported: 'calendar', 'emails', 'mermaid', 'audio_player', 'video_player', 'file_viewer'"
+                    description: "The type of widget to show. Supported: 'calendar', 'emails', 'mermaid', 'audio_player', 'video_player', 'file_viewer', 'custom_html'"
                 },
                 data: {
                     type: "ARRAY",
@@ -36,7 +36,9 @@ const declarations = [
                             title: { type: "STRING", description: "Title of the media or file." },
                             filename: { type: "STRING", description: "File name for file_viewer." },
                             metadata: { type: "STRING", description: "Subtitle/metadata like 'Audio • 3MB' for file_viewer." },
-                            icon: { type: "STRING", description: "Emoji icon for file_viewer (e.g., '🎵', '📄')." }
+                            icon: { type: "STRING", description: "Emoji icon for file_viewer (e.g., '🎵', '📄')." },
+                            html: { type: "STRING", description: "Raw HTML code to inject. ONLY used when type is 'custom_html'." },
+                            zone: { type: "STRING", description: "Target zone for custom_html. Supported: 'left', 'right', 'top', 'bottom', 'center'. Defaults to 'right'." }
                         }
                     }
                 },
@@ -90,7 +92,7 @@ const declarations = [
 const handlers = {
     show_hologram_widget: async (args) => {
         let payloadData = args.data || [];
-        if (['audio_player', 'video_player', 'file_viewer'].includes(args.type)) {
+        if (['audio_player', 'video_player', 'file_viewer', 'custom_html'].includes(args.type)) {
             if (Array.isArray(args.data) && args.data.length > 0) payloadData = args.data[0];
             else if (!Array.isArray(args.data)) payloadData = args.data;
         }

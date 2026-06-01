@@ -20,23 +20,23 @@ const { loadDiary } = require('./session-diary');
 
 // Type metadata
 const TYPE_META = {
-    Person:          { icon: '👤', color: '#a78bfa' },
-    Project:         { icon: '📁', color: '#38bdf8' },
-    Skill:           { icon: '⚡', color: '#34d399' },
-    Technology:      { icon: '🔧', color: '#34d399' },
-    Organization:    { icon: '🏢', color: '#fb923c' },
-    Concept:         { icon: '💡', color: '#f472b6' },
-    Topic:           { icon: '📌', color: '#c084fc' },
-    Location:        { icon: '📍', color: '#60a5fa' },
-    Event:           { icon: '📅', color: '#f9a8d4' },
-    ImageMemory:     { icon: '📸', color: '#a855f7' },
-    AudioMemory:     { icon: '🎤', color: '#22d3ee' },
-    ProceduralMemory:{ icon: '🧠', color: '#e879f9' },
-    Document:        { icon: '📄', color: '#94a3b8' },
-    Formula:         { icon: '📐', color: '#fbbf24' },
-    Definition:      { icon: '📖', color: '#fbbf24' },
-    diary:           { icon: '📓', color: '#6366f1' },
-    Other:           { icon: '📝', color: '#64748b' }
+    Person: { icon: '👤', color: '#a78bfa' },
+    Project: { icon: '📁', color: '#38bdf8' },
+    Skill: { icon: '⚡', color: '#34d399' },
+    Technology: { icon: '🔧', color: '#34d399' },
+    Organization: { icon: '🏢', color: '#fb923c' },
+    Concept: { icon: '💡', color: '#f472b6' },
+    Topic: { icon: '📌', color: '#c084fc' },
+    Location: { icon: '📍', color: '#60a5fa' },
+    Event: { icon: '📅', color: '#f9a8d4' },
+    ImageMemory: { icon: '📸', color: '#a855f7' },
+    AudioMemory: { icon: '🎤', color: '#22d3ee' },
+    ProceduralMemory: { icon: '🧠', color: '#e879f9' },
+    Document: { icon: '📄', color: '#94a3b8' },
+    Formula: { icon: '📐', color: '#fbbf24' },
+    Definition: { icon: '📖', color: '#fbbf24' },
+    diary: { icon: '📓', color: '#6366f1' },
+    Other: { icon: '📝', color: '#64748b' }
 };
 
 /**
@@ -94,9 +94,7 @@ function buildTimeline(options = {}) {
                 transcript: truncate(node.transcript || '', 200),
                 durationSec: node.durationSec,
                 mood: node.mood,
-                speakerCount: node.speakerCount,
-                audioPath: node.audioPath,
-                publicUrl: node.publicUrl
+                speakerCount: node.speakerCount
             }),
             ...(node.type === 'ImageMemory' && {
                 imagePath: node.imagePath,

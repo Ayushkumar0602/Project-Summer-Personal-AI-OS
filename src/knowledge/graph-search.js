@@ -70,27 +70,27 @@ async function searchMemory(query, maxResults = 10, filterTag = null) {
         // ── Score each candidate ──
         const scoredNodes = candidateNodes.map(node => {
             const labelNorm = normalizeId(node.label);
-            const descNorm  = normalizeId(node.description || '');
-            const typeNorm  = normalizeId(node.type || '');
-            const tagsNorm  = (node.tags || []).map(t => normalizeId(t)).join(' ');
+            const descNorm = normalizeId(node.description || '');
+            const typeNorm = normalizeId(node.type || '');
+            const tagsNorm = (node.tags || []).map(t => normalizeId(t)).join(' ');
 
             let score = 0;
 
             if (node.id === queryNorm) score += 100;
-            if (labelNorm === queryNorm)        score += 80;
-            if (labelNorm.includes(queryNorm))  score += 60;
-            if (queryNorm.includes(labelNorm))  score += 40;
+            if (labelNorm === queryNorm) score += 80;
+            if (labelNorm.includes(queryNorm)) score += 60;
+            if (queryNorm.includes(labelNorm)) score += 40;
 
             for (const word of queryWords) {
                 if (word.length < 3) continue;
                 if (labelNorm.includes(word)) score += 20;
-                if (descNorm.includes(word))  score += 10;
-                if (typeNorm.includes(word))  score += 5;
-                if (tagsNorm.includes(word))  score += 15;
+                if (descNorm.includes(word)) score += 10;
+                if (typeNorm.includes(word)) score += 5;
+                if (tagsNorm.includes(word)) score += 15;
             }
 
-            const dist    = levenshteinDistance(queryNorm, labelNorm);
-            const maxLen  = Math.max(queryNorm.length, labelNorm.length);
+            const dist = levenshteinDistance(queryNorm, labelNorm);
+            const maxLen = Math.max(queryNorm.length, labelNorm.length);
             if (maxLen > 0) {
                 const similarity = 1 - dist / maxLen;
                 if (similarity > 0.7) score += similarity * 30;
@@ -149,9 +149,6 @@ async function searchMemory(query, maxResults = 10, filterTag = null) {
         const tagStr = node.tags && node.tags.length ? ` [${node.tags.join(', ')}]` : '';
         summaryLines.push(`## ${node.label} (${node.type})${tagStr}${age ? ' — ' + age : ''}`);
         if (node.description) summaryLines.push(`  Description: ${node.description}`);
-        if (node.publicUrl) summaryLines.push(`  Public URL: ${node.publicUrl}`);
-        if (node.audioPath) summaryLines.push(`  Audio Path: ${node.audioPath}`);
-        if (node.imagePath) summaryLines.push(`  Image Path: ${node.imagePath}`);
 
         const nodeEdges = relatedEdges.filter(e => e.from === node.id);
         for (const edge of nodeEdges) {
