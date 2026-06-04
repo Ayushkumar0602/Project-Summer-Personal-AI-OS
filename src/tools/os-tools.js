@@ -109,7 +109,7 @@ function delegateToClient(action, args, timeoutMs = 15000, ctx = {}) {
 }
 
 // ── Shell helper (safe, timeout-bounded) ───────────────────────────
-function runShell(cmd, timeoutMs = 10000, ctx = {}, ctx) {
+function runShell(cmd, timeoutMs = 10000, ctx = {}) {
     // If the requesting client is NOT the daemon's host platform (or we're not on mac), delegate it.
     // For now, if it's a mobile client, we ALWAYS delegate.
     const isMobileContext = ctx.platform === 'ios' || ctx.platform === 'android';
@@ -125,7 +125,7 @@ function runShell(cmd, timeoutMs = 10000, ctx = {}, ctx) {
 }
 
 // ── AppleScript helper ─────────────────────────────────────────────
-function runAppleScript(script, timeoutMs = 10000, ctx = {}, ctx) {
+function runAppleScript(script, timeoutMs = 10000, ctx = {}) {
     const isMobileContext = ctx.platform === 'ios' || ctx.platform === 'android';
     if (!IS_MAC || isMobileContext) {
         return delegateToClient('runAppleScript', { script }, timeoutMs, ctx);
