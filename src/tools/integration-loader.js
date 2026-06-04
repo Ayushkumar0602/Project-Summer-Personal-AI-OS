@@ -190,12 +190,12 @@ function buildBuiltinPacks() {
 
     const osHandlers = {};
     for (const decl of osToolDeclarations) {
-        osHandlers[decl.name] = (args) => executeOsTool(decl.name, args);
+        osHandlers[decl.name] = (args, ctx) => executeOsTool(decl.name, args, ctx);
     }
 
     const appControlHandlers = {};
     for (const decl of appControlDeclarations) {
-        appControlHandlers[decl.name] = (args) => executeAppControlTool(decl.name, args);
+        appControlHandlers[decl.name] = (args, ctx) => executeAppControlTool(decl.name, args, ctx);
     }
 
     const orchestrationHandlers = {
@@ -400,8 +400,8 @@ async function executeTool(name, args, ctx) {
     initialize();
     const entry = handlerRegistry.get(name);
     if (!entry) {
-        if (isOsTool(name)) return executeOsTool(name, args);
-        if (isAppControlTool(name)) return executeAppControlTool(name, args);
+        if (isOsTool(name)) return executeOsTool(name, args, ctx);
+        if (isAppControlTool(name)) return executeAppControlTool(name, args, ctx);
         throw new Error(`Unknown tool: ${name}`);
     }
     return entry.handler(args, ctx);

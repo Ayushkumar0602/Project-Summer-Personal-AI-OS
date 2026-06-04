@@ -1,7 +1,7 @@
 # ☀️ Project Summer: Jarvis-Class Personal AI Assistant with Agentic Orchestration
 
 [![Electron](https://img.shields.io/badge/Electron-41.5.0-blue.svg)](https://www.electronjs.org/)
-[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini%203%20Flash-orange.svg)](https://deepmind.google/technologies/gemini/)
+[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini%203.1%20Flash-orange.svg)](https://deepmind.google/technologies/gemini/)
 [![Memory](https://img.shields.io/badge/Memory-Ego--Aware%20Graph-green.svg)](#-advanced-memory-intelligence-tier-2)
 [![Agents](https://img.shields.io/badge/Agents-Multi--Domain%20Orchestration-red.svg)](#-agentic-orchestration-system)
 [![OS](https://img.shields.io/badge/OS-macOS%20Deep%20Integration-lightgrey.svg)](#-os--deep-app-control)
@@ -9,8 +9,8 @@
 
 **Summer** is a sophisticated, state-of-the-art AI assistant built on Electron, designed to bridge the gap between human intent and machine execution. Inspired by the "Jarvis" aesthetic, Summer now features **advanced memory extensions with audio processing, procedural behavior tracking, and temporal timeline visualization** for enhanced contextual awareness and learning.
 
-**Latest Update (May 28, 2026)**: 
-✨ **Memory System Extensions** - Implemented advanced audio processing, procedural behavior tracking, and temporal timeline visualization for enhanced contextual awareness and learning.
+**Latest Update (June 4, 2026)**: 
+✨ **Major Intelligence & HUD Upgrades** - Integrated Gemini 3.1 Flash/Live with voice persona selection and emotional system instructions. Added persistent background agent tracking, a new media/file presentation system with HUD widgets, and semantic vector search using pgvector and embeddings for the memory graph.
 
 ---
 
@@ -51,6 +51,7 @@ Summer transcends traditional chatbot limitations by introducing a **Dynamic Age
    - Business agents (Strategy, Analytics, Sales)
    - Creative agents (Writer, Designer, Storyteller)
    - Personal agents (Life Coach, Task Manager, Health Advisor)
+   - **NEW**: Persistent background agent status tracking and milestone notifications
 
 ### 2. **Intelligent Agent Router**
    - Natural language intent detection
@@ -63,15 +64,18 @@ Summer transcends traditional chatbot limitations by introducing a **Dynamic Age
    - Agent-specific memory partitions
    - Cross-agent learning and context sharing
    - Semantic knowledge extraction and graph optimization
-   - **NEW**: Audio processing extensions for voice-based memory capture
-   - **NEW**: Procedural behavior tracking for pattern recognition
-   - **NEW**: Temporal timeline visualization for historical context
+   - Audio processing extensions for voice-based memory capture
+   - Procedural behavior tracking for pattern recognition
+   - Temporal timeline visualization for historical context
+   - **NEW**: Semantic vector search using pgvector and embeddings pipeline
 
 ### 4. **Holographic Jarvis Experience**
    - Glassmorphic UI with Three.js visualizations
    - Audio-reactive core with real-time WebGL rendering
    - Wake-word activation and hands-free interaction
    - Proactive imagery and environmental awareness
+   - **NEW**: Media and file presentation system with dynamic HUD widgets (`custom_html` support)
+   - **NEW**: Voice persona selection and enhanced emotional responsiveness
 
 ### 5. **Deep OS Integration**
    - System control and diagnostics
@@ -143,6 +147,7 @@ graph TD
 - **Audio Processing Extensions**: Capture and process voice-based interactions for enhanced memory contextualization.
 - **Procedural Behavior Tracking**: Monitor and learn from procedural patterns in user interactions.
 - **Temporal Timeline Visualization**: Visual representation of memory evolution and temporal relationships.
+- **Semantic Vector Search**: Advanced knowledge retrieval powered by pgvector and embeddings pipeline.
 
 ---
 

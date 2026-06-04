@@ -24,7 +24,13 @@ let _adapter = null;
  * Singleton — instantiated once on first call.
  * @returns {PlatformAdapterBase}
  */
-function getPlatformAdapter() {
+function getPlatformAdapter(ctx = {}) {
+    // If a mobile context is provided, return a mobile adapter for that platform
+    if (ctx.platform === 'ios' || ctx.platform === 'android') {
+        const { MobileAdapter } = require('./adapter-mobile');
+        return new MobileAdapter(ctx.platform);
+    }
+
     if (_adapter) return _adapter;
 
     const platform = process.platform;
@@ -37,15 +43,12 @@ function getPlatformAdapter() {
             break;
         }
         case 'win32': {
-            // Future: const { WindowsAdapter } = require('./adapter-windows');
-            // For now, fall through to base (returns unsupported for everything)
             const { PlatformAdapterBase } = require('./adapter-base');
             _adapter = new PlatformAdapterBase('windows');
             log.warn('Windows adapter not yet implemented — OS tools will return unsupported.');
             break;
         }
         case 'linux': {
-            // Future: const { LinuxAdapter } = require('./adapter-linux');
             const { PlatformAdapterBase } = require('./adapter-base');
             _adapter = new PlatformAdapterBase('linux');
             log.warn('Linux adapter not yet implemented — OS tools will return unsupported.');

@@ -61,7 +61,7 @@ const IS_MAC = process.platform === 'darwin';
  * execute osascript/open/pbpaste etc. This function delegates the
  * command to the connected Mac client via the client_action protocol.
  */
-function delegateToClient(action, args, timeoutMs = 15000) {
+function delegateToClient(action, args, timeoutMs = 15000, ctx = {}) {
     return new Promise((resolve, reject) => {
         try {
             const { encode } = require('../core/transport/protocol');
@@ -91,21 +91,16 @@ function delegateToClient(action, args, timeoutMs = 15000) {
                 bus.on(bus.EVENTS.CLIENT_ACTION_RESULT, onResult);
             }
 
-            // Send to the Mac client (prefer electron platform)
-            const macClient = registry.getAllClients().find(c => c.platform === 'electron');
-            if (macClient) {
-                registry.send(macClient.id, encode('client_action', {
+            // Send specifically to the client that originated the request
+            const targetClientId = ctx.clientId || registry.getActiveClientId();
+            if (targetClientId) {
+                registry.send(targetClientId, encode('client_action', {
                     requestId,
                     action,
                     args,
                 }));
             } else {
-                // Try sending to any active client
-                registry.sendToActive(encode('client_action', {
-                    requestId,
-                    action,
-                    args,
-                }));
+                reject(new Error('No active client available to execute this action.'));
             }
         } catch (e) {
             reject(new Error(`Delegation failed: ${e.message}`));
@@ -114,10 +109,12 @@ function delegateToClient(action, args, timeoutMs = 15000) {
 }
 
 // ── Shell helper (safe, timeout-bounded) ───────────────────────────
-function runShell(cmd, timeoutMs = 10000) {
-    // If we're NOT on macOS, delegate to the connected Mac client
-    if (!IS_MAC) {
-        return delegateToClient('runShell', { command: cmd }, timeoutMs);
+function runShell(cmd, timeoutMs = 10000, ctx = {}, ctx) {
+    // If the requesting client is NOT the daemon's host platform (or we're not on mac), delegate it.
+    // For now, if it's a mobile client, we ALWAYS delegate.
+    const isMobileContext = ctx.platform === 'ios' || ctx.platform === 'android';
+    if (!IS_MAC || isMobileContext) {
+        return delegateToClient('runShell', { command: cmd }, timeoutMs, ctx);
     }
     return new Promise((resolve, reject) => {
         exec(cmd, { timeout: timeoutMs, maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
@@ -128,12 +125,12 @@ function runShell(cmd, timeoutMs = 10000) {
 }
 
 // ── AppleScript helper ─────────────────────────────────────────────
-function runAppleScript(script, timeoutMs = 10000) {
-    // If we're NOT on macOS, delegate to the connected Mac client
-    if (!IS_MAC) {
-        return delegateToClient('runAppleScript', { script }, timeoutMs);
+function runAppleScript(script, timeoutMs = 10000, ctx = {}, ctx) {
+    const isMobileContext = ctx.platform === 'ios' || ctx.platform === 'android';
+    if (!IS_MAC || isMobileContext) {
+        return delegateToClient('runAppleScript', { script }, timeoutMs, ctx);
     }
-    return runShell(`osascript -e '${script.replace(/'/g, "'\\''")}'`, timeoutMs);
+    return runShell(`osascript -e '${script.replace(/'/g, "'\\''", ctx)}'`, timeoutMs, ctx);
 }
 
 // ── Confirmation Dialog (protocol-based, no Electron) ─────────────
@@ -195,13 +192,13 @@ async function confirmDangerousAction(toolName, actionDescription, actionLabel) 
 
 // ── 1. Application Control ─────────────────────────────────────────
 
-async function openApp(args) {
+async function openApp(args, ctx = {}) {
     const appName = sanitize(args.appName);
     if (!appName) return { error: 'Missing or invalid app name.' };
 
     auditLog('open_app', { appName }, 'executing');
     try {
-        await runShell(`open -a "${appName}"`);
+        await runShell(`open -a "${appName}"`, 10000, ctx);
         return { status: 'success', message: `Opened ${appName}.` };
     } catch (e) {
         auditLog('open_app', { appName }, e.message, false);
@@ -209,7 +206,7 @@ async function openApp(args) {
     }
 }
 
-async function quitApp(args) {
+async function quitApp(args, ctx = {}) {
     const appName = sanitize(args.appName);
     if (!appName) return { error: 'Missing or invalid app name.' };
 
@@ -222,14 +219,14 @@ async function quitApp(args) {
 
     auditLog('quit_app', { appName }, 'executing');
     try {
-        await runAppleScript(`tell application "${appName}" to quit`);
+        await runAppleScript(`tell application "${appName}" to quit`, 10000, ctx);
         return { status: 'success', message: `Quit ${appName}.` };
     } catch (e) {
         return { error: `Could not quit "${appName}": ${e.message}` };
     }
 }
 
-async function listRunningApps() {
+async function listRunningApps(args, ctx = {}) {
     auditLog('list_running_apps', {}, 'executing');
     try {
         const raw = await runAppleScript(
@@ -242,13 +239,13 @@ async function listRunningApps() {
     }
 }
 
-async function focusApp(args) {
+async function focusApp(args, ctx = {}) {
     const appName = sanitize(args.appName);
     if (!appName) return { error: 'Missing or invalid app name.' };
 
     auditLog('focus_app', { appName }, 'executing');
     try {
-        await runAppleScript(`tell application "${appName}" to activate`);
+        await runAppleScript(`tell application "${appName}" to activate`, 10000, ctx);
         return { status: 'success', message: `Brought ${appName} to front.` };
     } catch (e) {
         return { error: e.message };
@@ -257,34 +254,34 @@ async function focusApp(args) {
 
 // ── 2. Volume Control ──────────────────────────────────────────────
 
-async function setVolume(args) {
+async function setVolume(args, ctx = {}) {
     const level = Math.max(0, Math.min(100, parseInt(args.level, 10)));
     if (isNaN(level)) return { error: 'Volume must be a number 0-100.' };
 
     auditLog('set_volume', { level }, 'executing');
     try {
-        await runAppleScript(`set volume output volume ${level}`);
+        await runAppleScript(`set volume output volume ${level}`, 10000, ctx);
         return { status: 'success', message: `Volume set to ${level}%.` };
     } catch (e) {
         return { error: e.message };
     }
 }
 
-async function getVolume() {
+async function getVolume(args, ctx = {}) {
     auditLog('get_volume', {}, 'executing');
     try {
-        const raw = await runAppleScript('output volume of (get volume settings)');
+        const raw = await runAppleScript('output volume of (get volume settings, 10000, ctx)');
         return { status: 'success', volume: parseInt(raw, 10) };
     } catch (e) {
         return { error: e.message };
     }
 }
 
-async function toggleMute(args) {
+async function toggleMute(args, ctx = {}) {
     const muted = args.muted === true || args.muted === 'true';
     auditLog('toggle_mute', { muted }, 'executing');
     try {
-        await runAppleScript(`set volume ${muted ? 'with' : 'without'} output muted`);
+        await runAppleScript(`set volume ${muted ? 'with' : 'without'} output muted`, 10000, ctx);
         return { status: 'success', message: muted ? 'Audio muted.' : 'Audio unmuted.' };
     } catch (e) {
         return { error: e.message };
@@ -293,7 +290,7 @@ async function toggleMute(args) {
 
 // ── 3. Brightness Control ──────────────────────────────────────────
 
-async function setBrightness(args) {
+async function setBrightness(args, ctx = {}) {
     const level = Math.max(0, Math.min(100, parseInt(args.level, 10)));
     if (isNaN(level)) return { error: 'Brightness must be a number 0-100.' };
 
@@ -313,7 +310,7 @@ if (service) {
 } else {
     "no_display";
 }`;
-        const result = await runShell(`osascript -l JavaScript -e '${jxaScript.replace(/'/g, "'\\''")}'`, 5000).catch(() => 'failed');
+        const result = await runShell(`osascript -l JavaScript -e '${jxaScript.replace(/'/g, "'\\''", ctx)}'`, 5000).catch(() => 'failed');
         
         if (result === 'failed' || result === 'no_display') {
             // Fallback: Use AppleScript key simulation
@@ -321,11 +318,11 @@ if (service) {
             const steps = Math.round(level / 6.25); // 16 steps total (0-100)
             // Press brightness down 16 times to go to 0
             for (let i = 0; i < 16; i++) {
-                await runShell(`osascript -e 'tell application "System Events" to key code 145'`).catch(() => {});
+                await runShell(`osascript -e 'tell application "System Events" to key code 145'`, 10000, ctx).catch(() => {});
             }
             // Then press brightness up to desired level
             for (let i = 0; i < steps; i++) {
-                await runShell(`osascript -e 'tell application "System Events" to key code 144'`).catch(() => {});
+                await runShell(`osascript -e 'tell application "System Events" to key code 144'`, 10000, ctx).catch(() => {});
             }
         }
         
@@ -337,15 +334,15 @@ if (service) {
 
 // ── 4. System Information ──────────────────────────────────────────
 
-async function getSystemInfo() {
+async function getSystemInfo(args, ctx = {}) {
     auditLog('get_system_info', {}, 'executing');
     try {
         const [cpuRaw, memRaw, diskRaw, batteryRaw, uptimeRaw] = await Promise.all([
-            runShell("sysctl -n machdep.cpu.brand_string"),
-            runShell("vm_stat | head -5"),
-            runShell("df -h / | tail -1"),
-            runShell("pmset -g batt").catch(() => 'N/A'),
-            runShell("uptime")
+            runShell("sysctl -n machdep.cpu.brand_string", 10000, ctx),
+            runShell("vm_stat | head -5", 10000, ctx),
+            runShell("df -h / | tail -1", 10000, ctx),
+            runShell("pmset -g batt", 10000, ctx).catch(() => 'N/A'),
+            runShell("uptime", 10000, ctx)
         ]);
 
         // Parse memory
@@ -388,10 +385,10 @@ async function getSystemInfo() {
     }
 }
 
-async function getTopProcesses() {
+async function getTopProcesses(args, ctx = {}) {
     auditLog('get_top_processes', {}, 'executing');
     try {
-        const raw = await runShell("ps -arcwwwxo 'pid,%cpu,%mem,command' | head -11");
+        const raw = await runShell("ps -arcwwwxo 'pid,%cpu,%mem,command' | head -11", ctx);
         const lines = raw.split('\n');
         const header = lines[0];
         const processes = lines.slice(1).map(line => {
@@ -411,7 +408,7 @@ async function getTopProcesses() {
 
 // ── 5. System Power Actions (ALL REQUIRE CONFIRMATION) ─────────────
 
-async function systemSleep() {
+async function systemSleep(args, ctx = {}) {
     const allowed = await confirmDangerousAction('os_system_sleep', 'Put the Mac to sleep.', 'System Sleep');
     if (!allowed) {
         auditLog('system_sleep', {}, 'User denied', false);
@@ -419,14 +416,14 @@ async function systemSleep() {
     }
     auditLog('system_sleep', {}, 'executing');
     try {
-        await runAppleScript('tell application "System Events" to sleep');
+        await runAppleScript('tell application "System Events" to sleep', 10000, ctx);
         return { status: 'success', message: 'System going to sleep.' };
     } catch (e) {
         return { error: e.message };
     }
 }
 
-async function lockScreen() {
+async function lockScreen(args, ctx = {}) {
     auditLog('lock_screen', {}, 'executing');
     try {
         await runShell(
@@ -438,7 +435,7 @@ async function lockScreen() {
     }
 }
 
-async function emptyTrash() {
+async function emptyTrash(args, ctx = {}) {
     const allowed = await confirmDangerousAction('os_empty_trash', 'Empty the Trash permanently. This cannot be undone.', 'Empty Trash');
     if (!allowed) {
         auditLog('empty_trash', {}, 'User denied', false);
@@ -446,7 +443,7 @@ async function emptyTrash() {
     }
     auditLog('empty_trash', {}, 'executing');
     try {
-        await runAppleScript('tell application "Finder" to empty trash');
+        await runAppleScript('tell application "Finder" to empty trash', 10000, ctx);
         return { status: 'success', message: 'Trash emptied.' };
     } catch (e) {
         return { error: e.message };
@@ -455,17 +452,17 @@ async function emptyTrash() {
 
 // ── 6. Clipboard (shell-only, no Electron) ─────────────────────────
 
-async function readClipboard() {
+async function readClipboard(args, ctx = {}) {
     auditLog('read_clipboard', {}, 'executing');
     try {
-        const text = await runShell('pbpaste').catch(() => '');
+        const text = await runShell('pbpaste', 10000, ctx).catch(() => '');
         return { status: 'success', text: (text || '').substring(0, 5000) };
     } catch (e) {
         return { error: e.message };
     }
 }
 
-async function writeClipboard(args) {
+async function writeClipboard(args, ctx = {}) {
     const text = args.text || '';
     auditLog('write_clipboard', { length: text.length }, 'executing');
     try {
@@ -482,7 +479,7 @@ async function writeClipboard(args) {
 
 // ── 7. Notifications ──────────────────────────────────────────────
 
-async function showNotification(args) {
+async function showNotification(args, ctx = {}) {
     const title = (args.title || 'Summer').substring(0, 100);
     const body = (args.body || '').substring(0, 500);
     auditLog('show_notification', { title }, 'executing');
@@ -491,7 +488,7 @@ async function showNotification(args) {
         const safeTitle = title.replace(/'/g, "'\\''");
         const safeBody  = body.replace(/'/g, "'\\''");
         if (process.platform === 'darwin') {
-            await runShell(`osascript -e 'display notification "${safeBody}" with title "${safeTitle}"'`);
+            await runShell(`osascript -e 'display notification "${safeBody}" with title "${safeTitle}"'`, 10000, ctx);
         }
 
         // Also notify all connected clients via protocol
@@ -512,7 +509,7 @@ async function showNotification(args) {
 
 // ── 8. File System (Read-Only + Open) ──────────────────────────────
 
-async function readFile(args) {
+async function readFile(args, ctx = {}) {
     const target = sanitize(args.path || '');
     if (!target) return { error: 'Missing path.' };
     auditLog('read_file', { target }, 'executing');
@@ -526,19 +523,19 @@ async function readFile(args) {
     }
 }
 
-async function openFileOrFolder(args) {
+async function openFileOrFolder(args, ctx = {}) {
     const target = sanitize(args.path || '');
     if (!target) return { error: 'Missing path.' };
     auditLog('open_file_or_folder', { target }, 'executing');
     try {
-        await runShell(`open "${target.replace(/"/g, '\\"')}"`);
+        await runShell(`open "${target.replace(/"/g, '\\"', ctx)}"`);
         return { status: 'success', message: `Opened ${target}.` };
     } catch (e) {
         return { error: e.message };
     }
 }
 
-async function openUrl(args) {
+async function openUrl(args, ctx = {}) {
     const url = args.url || '';
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         return { error: 'URL must start with http:// or https://' };
@@ -546,7 +543,7 @@ async function openUrl(args) {
     auditLog('open_url_in_default_browser', { url }, 'executing');
     try {
         // macOS: `open` command works in daemon mode (no Electron dependency)
-        await runShell(`open "${url.replace(/"/g, '\\"')}"`);
+        await runShell(`open "${url.replace(/"/g, '\\"', ctx)}"`);
         return { status: 'success', message: `Opened ${url} in default browser.` };
     } catch (e) {
         return { error: e.message };
@@ -555,7 +552,7 @@ async function openUrl(args) {
 
 // ── 9. Dark Mode Toggle ───────────────────────────────────────────
 
-async function toggleDarkMode(args) {
+async function toggleDarkMode(args, ctx = {}) {
     const enable = args.enable === true || args.enable === 'true';
     auditLog('toggle_dark_mode', { enable }, 'executing');
     try {
@@ -568,7 +565,7 @@ async function toggleDarkMode(args) {
     }
 }
 
-async function getDarkModeStatus() {
+async function getDarkModeStatus(args, ctx = {}) {
     auditLog('get_dark_mode', {}, 'executing');
     try {
         const result = await runAppleScript(
@@ -582,7 +579,7 @@ async function getDarkModeStatus() {
 
 // ── 10. Do Not Disturb ────────────────────────────────────────────
 
-async function toggleDoNotDisturb(args) {
+async function toggleDoNotDisturb(args, ctx = {}) {
     const enable = args.enable === true || args.enable === 'true';
     auditLog('toggle_dnd', { enable }, 'executing');
     try {
@@ -623,13 +620,13 @@ end tell`);
         // Method 2: Use defaults command (may require restart of NotificationCenter)
         try {
             if (enable) {
-                await runShell('defaults -currentHost write com.apple.notificationcenterui dndStart -float 0');
-                await runShell('defaults -currentHost write com.apple.notificationcenterui dndEnd -float 1440');
-                await runShell('defaults -currentHost write com.apple.notificationcenterui doNotDisturb -bool true');
+                await runShell('defaults -currentHost write com.apple.notificationcenterui dndStart -float 0', 10000, ctx);
+                await runShell('defaults -currentHost write com.apple.notificationcenterui dndEnd -float 1440', 10000, ctx);
+                await runShell('defaults -currentHost write com.apple.notificationcenterui doNotDisturb -bool true', 10000, ctx);
             } else {
-                await runShell('defaults -currentHost write com.apple.notificationcenterui doNotDisturb -bool false');
+                await runShell('defaults -currentHost write com.apple.notificationcenterui doNotDisturb -bool false', 10000, ctx);
             }
-            await runShell('killall NotificationCenter').catch(() => {});
+            await runShell('killall NotificationCenter', 10000, ctx).catch(() => {});
             return { status: 'success', message: enable ? 'Do Not Disturb enabled (may need a moment to take effect).' : 'Do Not Disturb disabled.' };
         } catch (e2) {
             return { error: `DND control failed: ${e.message}. Fallback: ${e2.message}` };
@@ -639,13 +636,13 @@ end tell`);
 
 // ── 11. Take Screenshot ───────────────────────────────────────────
 
-async function takeScreenshot() {
+async function takeScreenshot(args, ctx = {}) {
     auditLog('take_screenshot', {}, 'executing');
     try {
         const screenshotDir = Paths.desktop();
         const filename = `summer-screenshot-${Date.now()}.png`;
         const filepath = path.join(screenshotDir, filename);
-        await runShell(`screencapture -x "${filepath}"`);
+        await runShell(`screencapture -x "${filepath}"`, 10000, ctx);
         return { status: 'success', message: `Screenshot saved to Desktop as ${filename}.`, path: filepath };
     } catch (e) {
         return { error: e.message };
@@ -654,7 +651,7 @@ async function takeScreenshot() {
 
 // ── 12. Wi-Fi Control ─────────────────────────────────────────────
 
-async function getWifiStatus() {
+async function getWifiStatus(args, ctx = {}) {
     auditLog('get_wifi_status', {}, 'executing');
     try {
         const networkName = await runShell(
@@ -678,7 +675,7 @@ async function getWifiStatus() {
 
 const activeTimers = new Map();
 
-async function setTimer(args) {
+async function setTimer(args, ctx = {}) {
     const seconds = parseInt(args.seconds, 10);
     const label = (args.label || 'Timer').substring(0, 100);
     if (isNaN(seconds) || seconds < 1 || seconds > 86400) {
@@ -771,10 +768,10 @@ const OS_TOOL_HANDLERS = {
  * Execute an OS tool by name. Returns a result object.
  * Returns null if the tool name is not an OS tool.
  */
-async function executeOsTool(name, args = {}) {
+async function executeOsTool(name, args = {}, ctx = {}) {
     const handler = OS_TOOL_HANDLERS[name];
     if (!handler) return null; // Not an OS tool
-    return await handler(args);
+    return await handler(args, ctx);
 }
 
 /**

@@ -152,12 +152,14 @@ function _buildPayload(ctx, suppressed = new Set()) {
 
     const packIds = selectPackIds(ctx, suppressed);
 
-    // Capability-based filtering
+    // Capability-based filtering for entire packs
     const caps            = registry.getActiveCapabilities();
     const filteredPackIds = packIds.filter(id => {
         if (MACOS_ONLY_PACKS.has(id)) {
-            const isMac = caps.platform === 'electron' || caps.platform === 'darwin';
-            if (!isMac && caps.platform !== 'unknown') return false;
+            // If it's a mobile client, we entirely rely on per-tool capabilities below, 
+            // but we can still drop the whole pack if they declare NO supported actions.
+            const isDesktop = caps.platform === 'electron' || caps.platform === 'darwin' || caps.platform === 'win32';
+            if (!isDesktop && caps.platform !== 'unknown' && (!caps.supportedActions || caps.supportedActions.length === 0)) return false;
         }
         return true;
     });
@@ -169,15 +171,30 @@ function _buildPayload(ctx, suppressed = new Set()) {
     if (caps.supportedActions && Array.isArray(caps.supportedActions)) {
         const supported = new Set(caps.supportedActions);
         finalDeclarations = declarations.filter(d => {
-            if (!d.name.startsWith('os_') && !d.name.startsWith('app_') &&
-                !d.name.startsWith('music_') && !d.name.startsWith('finder_') &&
-                !d.name.startsWith('whatsapp_') && !d.name.startsWith('terminal_') &&
-                !d.name.startsWith('clipboard_') && !d.name.startsWith('airdrop_') &&
-                !d.name.startsWith('notes_') && !d.name.startsWith('calendar_') &&
-                !d.name.startsWith('reminders_')) {
-                return true;
+            // These tool prefixes represent actions that MUST be executed on the client device
+            const isClientTool = d.name.startsWith('os_') || d.name.startsWith('app_') ||
+                d.name.startsWith('music_') || d.name.startsWith('finder_') ||
+                d.name.startsWith('whatsapp_') || d.name.startsWith('terminal_') ||
+                d.name.startsWith('clipboard_') || d.name.startsWith('airdrop_') ||
+                d.name.startsWith('notes_') || d.name.startsWith('calendar_') ||
+                d.name.startsWith('reminders_') || d.name.startsWith('ios_'); // Added ios_
+            
+            if (!isClientTool) {
+                return true; // Server-executed tools (web, orchestration, etc.) are always included
             }
             return supported.has(d.name);
+        });
+    } else if (caps.platform === 'ios' || caps.platform === 'android') {
+        // If a mobile client connects but DOES NOT provide supportedActions, 
+        // strictly forbid all client-executable tools to prevent hallucinations.
+        finalDeclarations = declarations.filter(d => {
+            const isClientTool = d.name.startsWith('os_') || d.name.startsWith('app_') ||
+                d.name.startsWith('music_') || d.name.startsWith('finder_') ||
+                d.name.startsWith('whatsapp_') || d.name.startsWith('terminal_') ||
+                d.name.startsWith('clipboard_') || d.name.startsWith('airdrop_') ||
+                d.name.startsWith('notes_') || d.name.startsWith('calendar_') ||
+                d.name.startsWith('reminders_');
+            return !isClientTool;
         });
     }
 
