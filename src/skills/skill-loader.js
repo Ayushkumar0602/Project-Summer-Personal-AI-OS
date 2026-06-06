@@ -96,7 +96,68 @@ function enhanceToolResponse(toolName, result) {
     return result;
 }
 
+/**
+ * Hot-load a single skill file at runtime (used by Cortex Skill Forge).
+ * Clears require cache to force re-evaluation.
+ * @param {string} filePath - Absolute path to the skill file
+ * @returns {boolean} true if loaded successfully
+ */
+function hotReloadSkill(filePath) {
+    try {
+        // Clear require cache to force fresh load
+        delete require.cache[require.resolve(filePath)];
+        const skill = require(filePath);
+
+        if (skill.name && skill.toolNames && skill.context) {
+            for (const toolName of skill.toolNames) {
+                if (!skills.has(toolName)) skills.set(toolName, []);
+                // Remove existing entries for this skill (prevent duplicates on reload)
+                const list = skills.get(toolName);
+                const filtered = list.filter(s => s.name !== skill.name);
+                filtered.push(skill);
+                skills.set(toolName, filtered);
+            }
+            console.log(`[Skills] 🔥 Hot-loaded: ${skill.name} (${skill.toolNames.length} tools)`);
+            return true;
+        }
+        console.warn(`[Skills] ⚠️  Hot-load: ${filePath} missing name/toolNames/context`);
+        return false;
+    } catch (e) {
+        console.error(`[Skills] ❌ Hot-load failed for ${filePath}:`, e.message);
+        return false;
+    }
+}
+
+/**
+ * Remove a skill by name (used when Cortex demotes a skill).
+ * @param {string} skillName - The skill's export name
+ */
+function removeSkill(skillName) {
+    let removed = false;
+    for (const [toolName, list] of skills) {
+        const filtered = list.filter(s => s.name !== skillName);
+        if (filtered.length !== list.length) {
+            skills.set(toolName, filtered);
+            removed = true;
+        }
+        // Clean up empty tool entries
+        if (filtered.length === 0) {
+            skills.delete(toolName);
+        }
+    }
+    if (removed) {
+        console.log(`[Skills] 🗑️ Removed skill: ${skillName}`);
+    }
+}
+
 // Load skills on startup
 loadAllSkills();
 
-module.exports = { loadAllSkills, getSkillContext, getSkillSummaries, enhanceToolResponse };
+module.exports = {
+    loadAllSkills,
+    getSkillContext,
+    getSkillSummaries,
+    enhanceToolResponse,
+    hotReloadSkill,
+    removeSkill,
+};

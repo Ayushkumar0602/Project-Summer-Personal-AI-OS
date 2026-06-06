@@ -18,7 +18,7 @@ const EventEmitter = require('events');
 class SummerEventBus extends EventEmitter {
     constructor() {
         super();
-        this.setMaxListeners(50); // Many modules subscribe
+        this.setMaxListeners(60); // Many modules subscribe (including Cortex Engine)
 
         // ── Typed event constants ─────────────────────────────────────
         // Use these instead of raw strings to avoid typos.
@@ -87,6 +87,13 @@ class SummerEventBus extends EventEmitter {
 
             // ── Notifications ─────────────────────────────────
             NOTIFY:              'notify',              // { title, body, clientId? }
+
+            // ── Cortex Engine (autonomous self-evolution) ─────
+            CORTEX_AWAKE:        'cortex:awake',         // Cortex woke up (no clients connected)
+            CORTEX_SLEEP:        'cortex:sleep',         // Cortex going to sleep (client connected)
+            CORTEX_CYCLE_DONE:   'cortex:cycle_done',    // One cycle completed { module, result }
+            CORTEX_GAP_FOUND:    'cortex:gap_found',     // New capability gap detected { gapId, description }
+            CORTEX_SKILL_FORGED: 'cortex:skill_forged',  // New skill generated { skillName, gapId, tier }
 
             // ── User transcript ───────────────────────────────
             USER_TEXT:           'transcript:user',

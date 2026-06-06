@@ -14,6 +14,7 @@
  *   node summer-daemon.js --port 9000       # custom port
  *   node summer-daemon.js --skip-auth       # dev mode (no token check)
  *   node summer-daemon.js --no-wake-word    # disable wake word
+ *   node summer-daemon.js --no-cortex       # disable Cortex self-evolution
  *
  * Started automatically by Electron (src/index.js) OR run standalone.
  */
@@ -48,8 +49,9 @@ const SKIP_AUTH   = args.includes('--skip-auth');
 const NO_WAKE     = args.includes('--no-wake-word');
 
 // ── Daemon State ─────────────────────────────────────────────────────────────
-let wsServer    = null;
-let brainBridge = null;
+let wsServer      = null;
+let brainBridge   = null;
+let cortexEngine  = null;
 
 async function start() {
     log.info('═══════════════════════════════════════════');
@@ -114,7 +116,30 @@ async function start() {
         log.info('Wake word: disabled');
     }
 
-    // 9. Graceful shutdown handlers
+    // 9. Initialize the Cortex Engine (autonomous self-evolution)
+    const NO_CORTEX = process.argv.includes('--no-cortex') || process.env.CORTEX_ENABLED === 'false';
+    if (!NO_CORTEX) {
+        log.info('Initializing Cortex Engine...');
+        const { CortexEngine } = require('./src/cortex/cortex-engine');
+        cortexEngine = new CortexEngine({
+            idleCooldownMs:   60_000,    // Wait 1 min after last client disconnects
+            cycleIntervalMs: 300_000,    // 5 min between cycles while idle
+            maxCyclesPerWake:      12,   // Cap at ~1 hour of idle work
+            enabledModules: {
+                consolidator: true,      // Phase 1: always safe
+                gapDetector:  true,      // Phase 2: read-only analysis
+                skillForge:   true,      // Phase 3: Tier 1 only
+                harvester:    false,     // Phase 4: requires explicit opt-in
+                reflector:    true,      // Phase 2: journal + priorities
+            },
+        });
+        cortexEngine.start();
+        log.info('Cortex Engine initialized (modules enabled per config).');
+    } else {
+        log.info('Cortex Engine: disabled.');
+    }
+
+    // 10. Graceful shutdown handlers
     process.on('SIGINT',  () => shutdown('SIGINT'));
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('uncaughtException', (err) => {
@@ -249,6 +274,7 @@ function _initWakeWord() {
 
 async function shutdown(signal) {
     log.info(`Received ${signal} — shutting down gracefully...`);
+    if (cortexEngine) cortexEngine.stop();
     if (wsServer) wsServer.stop();
     log.info('Summer Daemon stopped. Goodbye.');
     process.exit(0);

@@ -141,8 +141,10 @@ function appendDiaryEntry(entry, replaceTimestamp = null, emotion = null, locati
             memoryDiaryCache = memoryDiaryCache.filter(d => d.timestamp !== replaceTimestamp);
         }
 
+        const now = Date.now();
         const newEntry = {
-            timestamp: Date.now(),
+            id: `diary_${now}_${Math.random().toString(36).slice(2, 6)}`,
+            timestamp: now,
             date: new Date().toLocaleString(),
             entry,
             emotion: emotion || null,
@@ -156,13 +158,35 @@ function appendDiaryEntry(entry, replaceTimestamp = null, emotion = null, locati
 
         if (!fs.existsSync(DIARY_DIR)) fs.mkdirSync(DIARY_DIR, { recursive: true });
         fs.writeFileSync(DIARY_PATH, JSON.stringify(memoryDiaryCache, null, 2), 'utf-8');
-        console.log(`[Diary] Entry saved (${entry.length} chars).`);
+        console.log(`[Diary] Entry saved locally (${entry.length} chars).`);
 
+        // Sync to Supabase — fire-and-forget with proper error logging
         if (supabase) {
-            supabase.from(TABLE_DIARY).upsert(newEntry).then(() => {
-                if (replaceTimestamp) supabase.from(TABLE_DIARY).delete().eq('timestamp', replaceTimestamp).then();
-                console.log('[DiaryStore] Synced to Supabase.');
-            }).catch(e => console.error('[DiaryStore] Supabase sync failed:', e.message));
+            (async () => {
+                try {
+                    // Delete the old entry first if we're replacing
+                    if (replaceTimestamp) {
+                        const { error: delErr } = await supabase
+                            .from(TABLE_DIARY)
+                            .delete()
+                            .eq('timestamp', replaceTimestamp);
+                        if (delErr) console.warn('[DiaryStore] Delete old entry failed:', delErr.message);
+                    }
+
+                    // Insert the new entry (each entry has a unique id, so insert is correct)
+                    const { error: insertErr } = await supabase
+                        .from(TABLE_DIARY)
+                        .upsert(newEntry, { onConflict: 'id' });
+
+                    if (insertErr) {
+                        console.error('[DiaryStore] ❌ Supabase insert FAILED:', insertErr.message, insertErr.details || '');
+                    } else {
+                        console.log('[DiaryStore] ✅ Synced to Supabase successfully.');
+                    }
+                } catch (e) {
+                    console.error('[DiaryStore] ❌ Supabase sync exception:', e.message);
+                }
+            })();
         }
 
         return { success: true, path: DIARY_PATH };

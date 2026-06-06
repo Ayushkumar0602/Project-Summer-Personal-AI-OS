@@ -67,6 +67,11 @@ const Paths = {
     pairingToken() {
         return path.join(Paths.daemonData(), '.pairing-token');
     },
+
+    /** Cortex Engine data directory (evolution logs, staging, priorities). */
+    cortexData() {
+        return _ensure(path.join(Paths.daemonData(), 'cortex'));
+    },
 };
 
 module.exports = Paths;
