@@ -115,11 +115,12 @@ async function startRecording() {
                 }
             }
 
-            // Convert Int16Array to Base64
+            // Convert Int16Array to Base64 efficiently
             const uint8Array = new Uint8Array(pcm16.buffer);
             let binary = '';
-            for (let i = 0; i < uint8Array.byteLength; i++) {
-                binary += String.fromCharCode(uint8Array[i]);
+            const chunkSize = 8192;
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, uint8Array.subarray(i, i + chunkSize));
             }
             const base64Audio = window.btoa(binary);
             

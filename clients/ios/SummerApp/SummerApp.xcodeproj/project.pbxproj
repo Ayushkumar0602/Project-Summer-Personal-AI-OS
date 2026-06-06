@@ -3,275 +3,265 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4B0000004B00000004B00001 /* SummerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B0000001B00000001B00001 /* SummerApp.swift */; };
-		4C0000004C00000004C00001 /* SummerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0000001C00000001C00001 /* SummerClient.swift */; };
-		4D0000004D00000004D00001 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0000001D00000001D00001 /* AudioEngine.swift */; };
-		4E0000004E00000004E00001 /* ContextBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0000001E00000001E00001 /* ContextBuilder.swift */; };
-		4F0000004F00000004F00001 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F0000001F00000001F00001 /* MainView.swift */; };
-		5A0000005A00000005A00001 /* OrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000002A00000002A00001 /* OrbView.swift */; };
-		5B0000005B00000005B00001 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0000002B00000002B00001 /* SetupView.swift */; };
-		5C0000005C00000005C00001 /* SummerIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0000002C00000002C00001 /* SummerIntent.swift */; };
-		5D0000005D00000005D00001 /* LocationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0000002D00000002D00001 /* LocationHelper.swift */; };
-		5E0000005E00000005E00001 /* PairingHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E0000002E00000002E00001 /* PairingHelper.swift */; };
-		5F0000005F00000005F00001 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F0000002F00000002F00001 /* Extensions.swift */; };
+		0157E20F276B1162F10BC859 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA9AE4231E03EFCD621FEFB /* ChatView.swift */; };
+		06DEB429267B70A061F63534 /* SummerIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444C3ADB287407C4DD71DB22 /* SummerIntents.swift */; };
+		0E4FA9FB6F01DCE07AE0D4FC /* SummerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 389BD3FA2996E33323D4148E /* SummerViewModel.swift */; };
+		118D7EE4751BC620A077F7B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8272D60B8F078766051242 /* ContentView.swift */; };
+		1570C77C6B2DAADCB670FD55 /* MemoryGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E22B2A6832D0FCD7013F5EB6 /* MemoryGraphView.swift */; };
+		2170F15E81AE92EAF06EB454 /* MemoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E27FD8AFA6B8FA455A1B5B8 /* MemoryViewModel.swift */; };
+		406274F52C0B7327C979B90B /* SummerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D785D7E283CB59391901254E /* SummerProtocol.swift */; };
+		573C2E7B57A95FD235D7AAFC /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EB9C29575C03FBFA749B7C /* DebugLogger.swift */; };
+		5AEA766D44B96186B0F03646 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD7D3B61753A331EC877948C /* SettingsView.swift */; };
+		6924524E606E1C452778412C /* SkillRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA347C1A75AAD9B35CA05A2 /* SkillRegistry.swift */; };
+		8FB8D59054A0F04E5E63FC03 /* HapticsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B2832C8BB2F0A1557C0920E /* HapticsEngine.swift */; };
+		95396100082BF9C3D6394AAD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F7D785DCDCFA9AC62664EB4 /* Assets.xcassets */; };
+		9F4064E8CED4BD9501AF5D8F /* MessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = F36FCED9FDEB13A29A298135 /* MessageBubble.swift */; };
+		BC4849FCB032E58D278397F6 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 551455FD0919BA720BA63C07 /* AudioEngine.swift */; };
+		BDEBB2A36AFCB3FF2618AFD5 /* SummerTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CAEBCEE56FAAF76488B505D /* SummerTheme.swift */; };
+		C4AD8BBEA158393C86BB191A /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F1D7497C236D490BBB24A8C /* WebSocketManager.swift */; };
+		DF4851759E2CF90304BEA287 /* VoiceOrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9D1E5F3A933A2ECBEA28DB /* VoiceOrbView.swift */; };
+		F168763D8910B6A423F08FE9 /* ConnectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FF584A8B7D202D0759BB18 /* ConnectionState.swift */; };
+		FA39FC955B80B40968A82601 /* SummerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 258D768131BDF5EC866C3980 /* SummerApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		1A0000001A00000001A00001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1B0000001B00000001B00001 /* SummerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerApp.swift; sourceTree = "<group>"; };
-		1C0000001C00000001C00001 /* SummerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerClient.swift; sourceTree = "<group>"; };
-		1D0000001D00000001D00001 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
-		1E0000001E00000001E00001 /* ContextBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextBuilder.swift; sourceTree = "<group>"; };
-		1F0000001F00000001F00001 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
-		2A0000002A00000002A00001 /* OrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbView.swift; sourceTree = "<group>"; };
-		2B0000002B00000002B00001 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
-		2C0000002C00000002C00001 /* SummerIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerIntent.swift; sourceTree = "<group>"; };
-		2D0000002D00000002D00001 /* LocationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationHelper.swift; sourceTree = "<group>"; };
-		2E0000002E00000002E00001 /* PairingHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingHelper.swift; sourceTree = "<group>"; };
-		2F0000002F00000002F00001 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
-		3A0000003A00000003A00001 /* SummerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SummerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A9D1E5F3A933A2ECBEA28DB /* VoiceOrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOrbView.swift; sourceTree = "<group>"; };
+		1F8272D60B8F078766051242 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		258D768131BDF5EC866C3980 /* SummerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerApp.swift; sourceTree = "<group>"; };
+		2E27FD8AFA6B8FA455A1B5B8 /* MemoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryViewModel.swift; sourceTree = "<group>"; };
+		2FA9AE4231E03EFCD621FEFB /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		389BD3FA2996E33323D4148E /* SummerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerViewModel.swift; sourceTree = "<group>"; };
+		444C3ADB287407C4DD71DB22 /* SummerIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerIntents.swift; sourceTree = "<group>"; };
+		551455FD0919BA720BA63C07 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		6F7D785DCDCFA9AC62664EB4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7B2832C8BB2F0A1557C0920E /* HapticsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsEngine.swift; sourceTree = "<group>"; };
+		7F1D7497C236D490BBB24A8C /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
+		9C4491877ACC80CAA9CBB618 /* Summer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Summer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9CAEBCEE56FAAF76488B505D /* SummerTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerTheme.swift; sourceTree = "<group>"; };
+		BD7D3B61753A331EC877948C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BFA347C1A75AAD9B35CA05A2 /* SkillRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillRegistry.swift; sourceTree = "<group>"; };
+		C2F80EF8011695607E5F3AD2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D6FF584A8B7D202D0759BB18 /* ConnectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionState.swift; sourceTree = "<group>"; };
+		D785D7E283CB59391901254E /* SummerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummerProtocol.swift; sourceTree = "<group>"; };
+		E0EB9C29575C03FBFA749B7C /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
+		E22B2A6832D0FCD7013F5EB6 /* MemoryGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryGraphView.swift; sourceTree = "<group>"; };
+		F36FCED9FDEB13A29A298135 /* MessageBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubble.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFrameworksBuildPhase section */
-		9F0000009F00000009F00001 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
 /* Begin PBXGroup section */
-		7B0000007B00000007B00001 /* SummerApp */ = {
+		0D6CEB919F7A49E1A4C4B088 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				7D0000007D00000007D00001 /* App */,
-				7E0000007E00000007E00001 /* Core */,
-				7F0000007F00000007F00001 /* Views */,
-				8A0000008A00000008A00001 /* Shortcuts */,
-				8B0000008B00000008B00001 /* Helpers */,
-				1A0000001A00000001A00001 /* Info.plist */,
-			);
-			path = SummerApp;
-			sourceTree = "<group>";
-		};
-		7C0000007C00000007C00001 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				3A0000003A00000003A00001 /* SummerApp.app */,
+				9C4491877ACC80CAA9CBB618 /* Summer.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		7D0000007D00000007D00001 /* App */ = {
+		371F05873B9E06951440220B /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				1B0000001B00000001B00001 /* SummerApp.swift */,
+				2E27FD8AFA6B8FA455A1B5B8 /* MemoryViewModel.swift */,
+				389BD3FA2996E33323D4148E /* SummerViewModel.swift */,
 			);
-			path = App;
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		7E0000007E00000007E00001 /* Core */ = {
+		48E36E7487FB7CD6EBFDB5AE = {
 			isa = PBXGroup;
 			children = (
-				1C0000001C00000001C00001 /* SummerClient.swift */,
-				1D0000001D00000001D00001 /* AudioEngine.swift */,
-				1E0000001E00000001E00001 /* ContextBuilder.swift */,
+				74629B8D1671B17604E76E61 /* SummerApp */,
+				0D6CEB919F7A49E1A4C4B088 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		49FFA3C74545529DCBC1EB53 /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				2FA9AE4231E03EFCD621FEFB /* ChatView.swift */,
+				F36FCED9FDEB13A29A298135 /* MessageBubble.swift */,
+				1A9D1E5F3A933A2ECBEA28DB /* VoiceOrbView.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		708B39B1514A5ECBF3FB1C3D /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				551455FD0919BA720BA63C07 /* AudioEngine.swift */,
+				D6FF584A8B7D202D0759BB18 /* ConnectionState.swift */,
+				E0EB9C29575C03FBFA749B7C /* DebugLogger.swift */,
+				7B2832C8BB2F0A1557C0920E /* HapticsEngine.swift */,
+				BFA347C1A75AAD9B35CA05A2 /* SkillRegistry.swift */,
+				D785D7E283CB59391901254E /* SummerProtocol.swift */,
+				7F1D7497C236D490BBB24A8C /* WebSocketManager.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
 		};
-		7F0000007F00000007F00001 /* Views */ = {
+		74629B8D1671B17604E76E61 /* SummerApp */ = {
 			isa = PBXGroup;
 			children = (
-				1F0000001F00000001F00001 /* MainView.swift */,
-				2A0000002A00000002A00001 /* OrbView.swift */,
-				2B0000002B00000002B00001 /* SetupView.swift */,
+				C2F80EF8011695607E5F3AD2 /* Info.plist */,
+				258D768131BDF5EC866C3980 /* SummerApp.swift */,
+				708B39B1514A5ECBF3FB1C3D /* Core */,
+				9981E7556C561CA6D360D42E /* Design */,
+				DD6A3C13FE0E3CCE84775A37 /* Intents */,
+				371F05873B9E06951440220B /* ViewModels */,
+				CE08ABD23B28FF82B36D3AF3 /* Views */,
+			);
+			path = SummerApp;
+			sourceTree = "<group>";
+		};
+		9513B1E2710757DC9A84A8EE /* Memory */ = {
+			isa = PBXGroup;
+			children = (
+				E22B2A6832D0FCD7013F5EB6 /* MemoryGraphView.swift */,
+			);
+			path = Memory;
+			sourceTree = "<group>";
+		};
+		9981E7556C561CA6D360D42E /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				6F7D785DCDCFA9AC62664EB4 /* Assets.xcassets */,
+				9CAEBCEE56FAAF76488B505D /* SummerTheme.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		BE0EC96F0DFF33BF16E4AAC9 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				BD7D3B61753A331EC877948C /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		CE08ABD23B28FF82B36D3AF3 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				1F8272D60B8F078766051242 /* ContentView.swift */,
+				49FFA3C74545529DCBC1EB53 /* Chat */,
+				9513B1E2710757DC9A84A8EE /* Memory */,
+				BE0EC96F0DFF33BF16E4AAC9 /* Settings */,
 			);
 			path = Views;
 			sourceTree = "<group>";
 		};
-		8A0000008A00000008A00001 /* Shortcuts */ = {
+		DD6A3C13FE0E3CCE84775A37 /* Intents */ = {
 			isa = PBXGroup;
 			children = (
-				2C0000002C00000002C00001 /* SummerIntent.swift */,
+				444C3ADB287407C4DD71DB22 /* SummerIntents.swift */,
 			);
-			path = Shortcuts;
-			sourceTree = "<group>";
-		};
-		8B0000008B00000008B00001 /* Helpers */ = {
-			isa = PBXGroup;
-			children = (
-				2D0000002D00000002D00001 /* LocationHelper.swift */,
-				2E0000002E00000002E00001 /* PairingHelper.swift */,
-				2F0000002F00000002F00001 /* Extensions.swift */,
-			);
-			path = Helpers;
-			sourceTree = "<group>";
-		};
-		8C0000008C00000008C00001 = {
-			isa = PBXGroup;
-			children = (
-				7B0000007B00000007B00001 /* SummerApp */,
-				7C0000007C00000007C00001 /* Products */,
-			);
+			path = Intents;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AA000000AA000000AA000001 /* SummerApp */ = {
+		D1E466D1EA2B722EC71E0764 /* SummerApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = DD000000DD000000DD000001 /* Build configuration list for PBXNativeTarget "SummerApp" */;
+			buildConfigurationList = 02BF0417DE27DC5CFAEB2835 /* Build configuration list for PBXNativeTarget "SummerApp" */;
 			buildPhases = (
-				9D0000009D00000009D00001 /* Sources */,
-				9F0000009F00000009F00001 /* Frameworks */,
-				9E0000009E00000009E00001 /* Resources */,
+				3BC7412C9DCBF50928E6E12A /* Sources */,
+				451E7E5C332104FCF9B796B0 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			name = SummerApp;
+			packageProductDependencies = (
+			);
 			productName = SummerApp;
-			productReference = 3A0000003A00000003A00001 /* SummerApp.app */;
+			productReference = 9C4491877ACC80CAA9CBB618 /* Summer.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		BB000000BB000000BB000001 /* Project object */ = {
+		93201A9758D7EAEF918000D8 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					AA000000AA000000AA000001 = {
-						CreatedOnToolsVersion = 15.0;
+					D1E466D1EA2B722EC71E0764 = {
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = DD000000DD000000DD000002 /* Build configuration list for PBXProject "SummerApp" */;
-			compatibilityVersion = "Xcode 14.0";
+			buildConfigurationList = AC768F977F01C186E21F2E20 /* Build configuration list for PBXProject "SummerApp" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
+				en,
 			);
-			mainGroup = 8C0000008C00000008C00001;
-			productRefGroup = 7C0000007C00000007C00001 /* Products */;
+			mainGroup = 48E36E7487FB7CD6EBFDB5AE;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 0D6CEB919F7A49E1A4C4B088 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AA000000AA000000AA000001 /* SummerApp */,
+				D1E466D1EA2B722EC71E0764 /* SummerApp */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		9E0000009E00000009E00001 /* Resources */ = {
+		451E7E5C332104FCF9B796B0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				95396100082BF9C3D6394AAD /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		9D0000009D00000009D00001 /* Sources */ = {
+		3BC7412C9DCBF50928E6E12A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4B0000004B00000004B00001 /* SummerApp.swift in Sources */,
-				4C0000004C00000004C00001 /* SummerClient.swift in Sources */,
-				4D0000004D00000004D00001 /* AudioEngine.swift in Sources */,
-				4E0000004E00000004E00001 /* ContextBuilder.swift in Sources */,
-				4F0000004F00000004F00001 /* MainView.swift in Sources */,
-				5A0000005A00000005A00001 /* OrbView.swift in Sources */,
-				5B0000005B00000005B00001 /* SetupView.swift in Sources */,
-				5C0000005C00000005C00001 /* SummerIntent.swift in Sources */,
-				5D0000005D00000005D00001 /* LocationHelper.swift in Sources */,
-				5E0000005E00000005E00001 /* PairingHelper.swift in Sources */,
-				5F0000005F00000005F00001 /* Extensions.swift in Sources */,
+				BC4849FCB032E58D278397F6 /* AudioEngine.swift in Sources */,
+				0157E20F276B1162F10BC859 /* ChatView.swift in Sources */,
+				F168763D8910B6A423F08FE9 /* ConnectionState.swift in Sources */,
+				118D7EE4751BC620A077F7B3 /* ContentView.swift in Sources */,
+				573C2E7B57A95FD235D7AAFC /* DebugLogger.swift in Sources */,
+				8FB8D59054A0F04E5E63FC03 /* HapticsEngine.swift in Sources */,
+				1570C77C6B2DAADCB670FD55 /* MemoryGraphView.swift in Sources */,
+				2170F15E81AE92EAF06EB454 /* MemoryViewModel.swift in Sources */,
+				9F4064E8CED4BD9501AF5D8F /* MessageBubble.swift in Sources */,
+				5AEA766D44B96186B0F03646 /* SettingsView.swift in Sources */,
+				6924524E606E1C452778412C /* SkillRegistry.swift in Sources */,
+				FA39FC955B80B40968A82601 /* SummerApp.swift in Sources */,
+				06DEB429267B70A061F63534 /* SummerIntents.swift in Sources */,
+				406274F52C0B7327C979B90B /* SummerProtocol.swift in Sources */,
+				BDEBB2A36AFCB3FF2618AFD5 /* SummerTheme.swift in Sources */,
+				0E4FA9FB6F01DCE07AE0D4FC /* SummerViewModel.swift in Sources */,
+				DF4851759E2CF90304BEA287 /* VoiceOrbView.swift in Sources */,
+				C4AD8BBEA158393C86BB191A /* WebSocketManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		CC000000CC000000CC000001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = 27R89ZUSVW;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = SummerApp/Info.plist;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ayush.summer;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		CC000000CC000000CC000002 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = 27R89ZUSVW;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = SummerApp/Info.plist;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ayush.summer;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
-		CC000000CC000000CC000003 /* Debug */ = {
+		654ED21C9753239EB3ACB719 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -287,7 +277,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLES = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
@@ -297,6 +287,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -306,8 +297,8 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
 					"$(inherited)",
+					"DEBUG=1",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -315,23 +306,26 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
-		CC000000CC000000CC000004 /* Release */ = {
+		912E1B8F96012144EC3E054F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -347,7 +341,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLES = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
@@ -357,6 +351,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
@@ -369,12 +364,65 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D12966D18D4A7BB117957862 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 27R89ZUSVW;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SummerApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ayushjaiswal.summerapp;
+				PRODUCT_NAME = Summer;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F4C7E176B8C5C0082F47EAE8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 27R89ZUSVW;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SummerApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ayushjaiswal.summerapp;
+				PRODUCT_NAME = Summer;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -382,25 +430,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		DD000000DD000000DD000001 /* Build configuration list for PBXNativeTarget "SummerApp" */ = {
+		02BF0417DE27DC5CFAEB2835 /* Build configuration list for PBXNativeTarget "SummerApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				CC000000CC000000CC000001 /* Debug */,
-				CC000000CC000000CC000002 /* Release */,
+				D12966D18D4A7BB117957862 /* Debug */,
+				F4C7E176B8C5C0082F47EAE8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		DD000000DD000000DD000002 /* Build configuration list for PBXProject "SummerApp" */ = {
+		AC768F977F01C186E21F2E20 /* Build configuration list for PBXProject "SummerApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				CC000000CC000000CC000003 /* Debug */,
-				CC000000CC000000CC000004 /* Release */,
+				654ED21C9753239EB3ACB719 /* Debug */,
+				912E1B8F96012144EC3E054F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = BB000000BB000000BB000001 /* Project object */;
+	rootObject = 93201A9758D7EAEF918000D8 /* Project object */;
 }

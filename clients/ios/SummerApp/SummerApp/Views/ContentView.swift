@@ -1,97 +1,113 @@
 import SwiftUI
 
-struct RichMessageView: View {
-    let message: String
-    
-    var body: some View {
-        // A simple Markdown renderer placeholder for rich media
-        VStack(alignment: .leading, spacing: 8) {
-            Text(message)
-                .padding()
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // In a full implementation, parse Markdown here to detect image links,
-            // and use AsyncImage to load them, e.g.:
-            // if let imageUrl = extractImageUrl(from: message) {
-            //     AsyncImage(url: imageUrl) { image in
-            //         image.resizable().scaledToFit()
-            //     } placeholder: {
-            //         ProgressView()
-            //     }
-            // }
+// MARK: - ContentView
+/// Root tab view — Summer's iOS main navigation.
+struct ContentView: View {
+    @StateObject private var viewModel = SummerViewModel()
+    @StateObject private var memoryViewModel = MemoryViewModel()
+    @State private var selectedTab: Tab = .chat
+
+    enum Tab: String, CaseIterable {
+        case chat     = "Chat"
+        case memory   = "Memory"
+        case diary    = "Diary"
+        case settings = "Settings"
+
+        var icon: String {
+            switch self {
+            case .chat:     return "bubble.left.and.bubble.right.fill"
+            case .memory:   return "brain.head.profile"
+            case .diary:    return "book.fill"
+            case .settings: return "gearshape.fill"
+            }
         }
     }
-}
 
-struct ContentView: View {
-    @StateObject private var daemonClient = DaemonClient.shared
-    @State private var inputText: String = ""
-    
     var body: some View {
-        VStack {
-            // Header
-            HStack {
-                Text("Summer Brain")
-                    .font(.headline)
-                Spacer()
-                Circle()
-                    .fill(daemonClient.isConnected ? Color.green : Color.red)
-                    .frame(width: 10, height: 10)
-            }
-            .padding()
-            
-            // Chat List
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(daemonClient.messages, id: \.self) { msg in
-                        RichMessageView(message: msg)
+        ZStack {
+            Color.summerDeepSpace.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Content
+                Group {
+                    switch selectedTab {
+                    case .chat:
+                        ChatView(viewModel: viewModel)
+                    case .memory:
+                        MemoryGraphView(viewModel: memoryViewModel)
+                    case .diary:
+                        DiaryView(viewModel: memoryViewModel)
+                    case .settings:
+                        SettingsView(viewModel: viewModel)
                     }
                 }
-                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // Tab Bar
+                _tabBar
             }
-            
-            // Input Area
-            HStack {
-                TextField("Ask Summer...", text: $inputText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                
-                Button(action: sendMessage) {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(.blue)
+        }
+        .preferredColorScheme(.dark)
+        .onAppear {
+            memoryViewModel.wsManager = viewModel.wsManager
+            _autoConnect()
+        }
+    }
+
+    // MARK: - Custom Tab Bar
+
+    private var _tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(Tab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.3)) {
+                        selectedTab = tab
+                    }
+                    HapticsEngine.shared.selection()
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 20, weight: selectedTab == tab ? .semibold : .regular))
+                            .foregroundStyle(selectedTab == tab ? .summerCyan : .summerTextSecondary)
+                            .scaleEffect(selectedTab == tab ? 1.1 : 1.0)
+
+                        Text(tab.rawValue)
+                            .font(SummerFont.caption(10))
+                            .foregroundStyle(selectedTab == tab ? .summerCyan : .summerTextSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, SummerSpacing.sm)
                 }
             }
-            .padding()
         }
-        .onAppear {
-            requestPermissions()
-        }
+        .padding(.horizontal, SummerSpacing.sm)
+        .padding(.bottom, SummerSpacing.xs)
+        .background(
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Rectangle()
+                        .fill(Color.summerDeepSpace.opacity(0.6))
+                )
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(Color.summerSurface.opacity(0.3))
+                        .frame(height: 0.5)
+                }
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
-    
-    private func sendMessage() {
-        guard !inputText.isEmpty else { return }
-        // Emulate sending a chat message to the daemon
-        let payload: [String: Any] = [
-            "type": "user_message",
-            "text": inputText
-        ]
-        daemonClient.send(json: payload)
-        inputText = ""
-    }
-    
-    private func requestPermissions() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            print("Notifications permission granted: \(granted)")
+
+    // MARK: - Auto Connect
+
+    private func _autoConnect() {
+        let token = viewModel.wsManager.pairingToken
+        if !token.isEmpty {
+            viewModel.connect()
         }
     }
 }
 
-@main
-struct SummerAppApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-    }
+#Preview {
+    ContentView()
 }
