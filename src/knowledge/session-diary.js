@@ -29,6 +29,7 @@ async function initDiaryStore() {
                         memoryDiaryCache = localData;
                         const cleanLocalData = localData.map(d => ({ timestamp: d.timestamp, date: d.date, entry: d.entry }));
                         await supabase.from(TABLE_DIARY).insert(cleanLocalData);
+                    }
                 } catch(e) {}
             }
             
