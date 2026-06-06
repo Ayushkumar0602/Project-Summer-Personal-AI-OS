@@ -1,0 +1,19 @@
+{
+  "$schema": "https://summer.ai/skill-schema/v1",
+  "agent_id": "trend_analyzer_v1",
+  "version": "1.0.0",
+  "display_name": "Trend Analyzer",
+  "description": "Analyzes market shifts, keywords, and emerging trends on a topic, generating an interactive HTML dashboard with charts.",
+  "socket_type": "background_worker",
+  "entry_point": "index.js",
+  "runtime": "node",
+  "mandatory_attributes": [
+    { "key": "industry_or_topic", "type": "string", "description": "The industry, market, or specific topic to analyze." }
+  ],
+  "optional_attributes": [
+    { "key": "period", "type": "string", "default": "last 30 days", "description": "The time frame for the trend analysis." }
+  ],
+  "output_schema": { "type": "object", "description": "Returns { html: 'styled_html_string', summary: 'spoken strategic summary' }. Use show_hologram_widget to display the HTML." },
+  "resource_limits": { "max_memory_mb": 512, "max_execution_time_seconds": 300, "requires_network": true },
+  "permissions": ["network.http"]
+}

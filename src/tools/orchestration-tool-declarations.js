@@ -6,11 +6,11 @@
 const orchestrationToolDeclarations = [
     {
         name: "delegate_domain_agent",
-        description: "Delegate a complex background task to a specialized domain agent plug-in (e.g. PPT generation). Use when the user asks to create a PowerPoint/presentation/deck. Do NOT invent slide content yourself — delegate here. If status is 'gathering', ask the user for missing fields and call again with gathered_attributes.",
+        description: "Delegate a complex background task to a specialized domain agent plug-in (e.g. ppt_editor_v1, news_monitor_v1, fact_checker_v1, trend_analyzer_v1). Use when the user asks to create a presentation, monitor news on a topic, check facts/verify claims, or analyze trends. Do NOT invent content yourself — delegate here. If status is 'gathering', ask the user for missing fields and call again with gathered_attributes.",
         parameters: {
             type: "OBJECT",
             properties: {
-                agent_id:           { type: "STRING", description: "Plug-in ID, e.g. ppt_editor_v1" },
+                agent_id:           { type: "STRING", description: "Plug-in ID, e.g. ppt_editor_v1, news_monitor_v1" },
                 user_request:       { type: "STRING", description: "The user's full request in natural language" },
                 gathered_attributes: {
                     type: "OBJECT",

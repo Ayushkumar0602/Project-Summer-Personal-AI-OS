@@ -1,0 +1,19 @@
+{
+  "$schema": "https://summer.ai/skill-schema/v1",
+  "agent_id": "fact_checker_v1",
+  "version": "1.0.0",
+  "display_name": "Fact Checker",
+  "description": "Verifies claims and statements across reputable sources, outputting a PDF report with a Truth-O-Meter, confidence score, and citations.",
+  "socket_type": "background_worker",
+  "entry_point": "index.js",
+  "runtime": "node",
+  "mandatory_attributes": [
+    { "key": "claim", "type": "string", "description": "The specific statement, rumor, or claim to fact-check." }
+  ],
+  "optional_attributes": [
+    { "key": "context", "type": "string", "description": "Any background context or where the claim was heard." }
+  ],
+  "output_schema": { "type": "file_path", "description": "Path to the generated PDF fact-check report." },
+  "resource_limits": { "max_memory_mb": 512, "max_execution_time_seconds": 300, "requires_network": true },
+  "permissions": ["fs.write.scoped", "network.http"]
+}

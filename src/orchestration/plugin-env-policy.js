@@ -96,6 +96,9 @@ const TRUST_PROFILES = {
 const CORE_PLUGIN_IDS = new Set([
     'research_analyst_v2',
     'ppt_editor_v1',
+    'news_monitor_v1',
+    'fact_checker_v1',
+    'trend_analyzer_v1',
 ]);
 
 // ── Public API ────────────────────────────────────────────────────────────────

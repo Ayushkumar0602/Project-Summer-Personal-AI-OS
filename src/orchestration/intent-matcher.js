@@ -4,8 +4,23 @@ const PPT_PATTERNS = [
   /\bcreate\s+(a\s+)?presentation\b/i
 ];
 
+const NEWS_PATTERNS = [
+  /\b(news|latest updates|monitor)\b/i
+];
+
+const FACT_PATTERNS = [
+  /\b(fact check|verify|is it true)\b/i
+];
+
+const TREND_PATTERNS = [
+  /\b(trend|analyze trends?|market shifts?)\b/i
+];
+
 const AGENT_KEYWORDS = {
-  ppt_editor_v1: PPT_PATTERNS
+  ppt_editor_v1: PPT_PATTERNS,
+  news_monitor_v1: NEWS_PATTERNS,
+  fact_checker_v1: FACT_PATTERNS,
+  trend_analyzer_v1: TREND_PATTERNS
 };
 
 /**

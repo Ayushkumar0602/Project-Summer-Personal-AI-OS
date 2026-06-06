@@ -1,0 +1,19 @@
+{
+  "$schema": "https://summer.ai/skill-schema/v1",
+  "agent_id": "news_monitor_v1",
+  "version": "1.0.0",
+  "display_name": "News Monitor",
+  "description": "Scrapes and synthesizes the latest news, headlines, images, and data on a topic and returns beautifully styled interactive HTML for the HUD.",
+  "socket_type": "background_worker",
+  "entry_point": "index.js",
+  "runtime": "node",
+  "mandatory_attributes": [
+    { "key": "topic", "type": "string", "description": "The specific topic, industry, or company to monitor." }
+  ],
+  "optional_attributes": [
+    { "key": "timeframe", "type": "string", "default": "last 24 hours", "description": "Time window for the news." }
+  ],
+  "output_schema": { "type": "object", "description": "Returns { html: 'styled_html_string', summary: 'short spoken summary' }. Summer should use show_hologram_widget with type 'custom_html' and this html." },
+  "resource_limits": { "max_memory_mb": 512, "max_execution_time_seconds": 300, "requires_network": true },
+  "permissions": ["network.http"]
+}

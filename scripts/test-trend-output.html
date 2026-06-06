@@ -1,0 +1,216 @@
+<div style="
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, rgba(16, 20, 30, 0.9), rgba(28, 32, 42, 0.9));
+    color: #e0e0e0;
+    border-radius: 18px;
+    border: 1px solid rgba(70, 75, 90, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 30px;
+    max-width: 900px;
+    margin: 40px auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 25px;
+    position: relative;
+    overflow: hidden;
+">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
+        body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #0d1117; }
+        .hud-widget {
+            font-family: 'Roboto', sans-serif;
+            color: #e0e0e0;
+            background: linear-gradient(135deg, rgba(16, 20, 30, 0.9), rgba(28, 32, 42, 0.9));
+            border-radius: 18px;
+            border: 1px solid rgba(70, 75, 90, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 30px;
+            max-width: 900px;
+            margin: 40px auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hud-widget::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100, 200, 255, 0.1) 0%, transparent 70%);
+            animation: rotateGlow 20s linear infinite;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+        @keyframes rotateGlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h2, h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: #8be9fd;
+            text-shadow: 0 0 8px rgba(139, 233, 253, 0.6);
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(139, 233, 253, 0.2);
+            padding-bottom: 8px;
+        }
+        p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .section-glass {
+            background: rgba(40, 45, 60, 0.6);
+            border-radius: 12px;
+            border: 1px solid rgba(80, 85, 100, 0.3);
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .keywords-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .keyword-tag {
+            background: linear-gradient(45deg, rgba(68, 114, 196, 0.7), rgba(95, 158, 160, 0.7));
+            border-radius: 8px;
+            padding: 12px 18px;
+            text-align: center;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .keyword-tag:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, rgba(80, 130, 210, 0.8), rgba(110, 180, 182, 0.8));
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 15px;
+        }
+        .chart-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.95em;
+        }
+        .chart-bar-label {
+            flex: 0 0 200px;
+            color: #cbd5e1;
+            font-weight: bold;
+        }
+        .progress-bar-wrapper {
+            flex: 1;
+            height: 14px;
+            background-color: rgba(60, 65, 80, 0.7);
+            border-radius: 7px;
+            overflow: hidden;
+            border: 1px solid rgba(120, 125, 140, 0.2);
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A); /* Green gradient */
+            border-radius: 7px;
+            transition: width 1s ease-out;
+            position: relative;
+        }
+        .progress-bar[data-momentum='95'] { background: linear-gradient(90deg, #6272a4, #8be9fd); } /* High momentum - purple/blue */
+        .progress-bar[data-momentum='90'] { background: linear-gradient(90deg, #bd93f9, #ff79c6); } /* High momentum - pink/purple */
+        .progress-bar[data-momentum='88'] { background: linear-gradient(90deg, #ffb86c, #ffeb3b); } /* Medium-high momentum - orange/yellow */
+        .progress-bar[data-momentum='75'] { background: linear-gradient(90deg, #f1fa8c, #50fa7b); } /* Medium momentum - yellow/green */
+
+        .progress-bar-value {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #1a202c;
+            font-weight: bold;
+            font-size: 0.8em;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+        }
+        .strategic-recommendation {
+            background: rgba(28, 32, 42, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(80, 85, 100, 0.3);
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #f8f8f2;
+        }
+    </style>
+
+    <div class="section-glass">
+        <h2>AI Agents in Software Engineering: Q2 2026 Strategic Overview</h2>
+        <p>The last three months (March-May 2026) have marked a pivotal transition in software engineering, moving emphatically from AI-assisted coding to autonomous AI agents. These sophisticated systems are redefining the entire Software Development Lifecycle (SDLC) by autonomously planning, executing, testing, and deploying complex tasks with significantly reduced human intervention. This shift, driven by advancements in multi-agent orchestration, long-running execution capabilities, and a refined focus on context engineering, is yielding substantial productivity gains and fundamentally reshaping developer roles towards strategic oversight and system architecture.</p>
+    </div>
+
+    <div class="section-glass">
+        <h3>Emerging Keywords & Sub-Trends</h3>
+        <div class="keywords-grid">
+            <div class="keyword-tag">Autonomous AI Agents</div>
+            <div class="keyword-tag">Multi-Agent Orchestration</div>
+            <div class="keyword-tag">Context Engineering</div>
+            <div class="keyword-tag">Agentic SDLC Integration</div>
+        </div>
+    </div>
+
+    <div class="section-glass">
+        <h3>Trend Momentum (Last 3 Months)</h3>
+        <div class="chart-container">
+            <div class="chart-bar-item">
+                <span class="chart-bar-label">Autonomous AI Agents</span>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" style="width: 95%;" data-momentum="95">
+                        <span class="progress-bar-value">95%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-bar-item">
+                <span class="chart-bar-label">Multi-Agent Orchestration</span>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" style="width: 88%;" data-momentum="88">
+                        <span class="progress-bar-value">88%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-bar-item">
+                <span class="chart-bar-label">Context Engineering</span>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" style="width: 75%;" data-momentum="75">
+                        <span class="progress-bar-value">75%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-bar-item">
+                <span class="chart-bar-label">Agentic SDLC & Enterprise Integration</span>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" style="width: 90%;" data-momentum="90">
+                        <span class="progress-bar-value">90%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="strategic-recommendation">
+        <h3>Strategic Recommendation</h3>
+        <p>Organizations must strategically invest in re-skilling their engineering teams from traditional coding to AI agent orchestration and architectural design, as developer roles increasingly involve managing intelligent systems rather than writing every line of code. Prioritize the adoption of multi-agent systems with robust governance and "human-in-the-loop" mechanisms to ensure secure and reliable autonomous operations, especially for high-stakes decisions. Focus on building an adaptive enterprise architecture that supports deep integration of AI agents across the entire SDLC, enabling faster release cycles and significant cost efficiencies, while maintaining human oversight for critical strategic decisions.</p>
+    </div>
+</div>

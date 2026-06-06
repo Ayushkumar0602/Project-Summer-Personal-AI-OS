@@ -77,14 +77,24 @@ music_get_track, whatsapp_send_message, whatsapp_read_messages, finder_list_file
 finder_get_info, terminal_run_command, delegate_domain_agent, get_active_agents_status
 
 GENERATE a skill file with these STRICT rules:
-1. module.exports must be an object with EXACTLY: name, toolNames, context
-2. The context string should be expert-level knowledge about the gap topic
-3. Include specific best practices, common pitfalls, and usage patterns
-4. Keep context under 2000 characters (concise but comprehensive)
-5. toolNames should list 1-5 existing tools that this knowledge enhances
-6. Do NOT use require(), import, eval, or any function definitions
-7. The ENTIRE file must be ONLY the module.exports = { ... } statement
-8. Use backtick template literals for the context string
+1. module.exports must be an object with EXACTLY: name, summary, toolNames, context
+2. The summary is a short 1-sentence description for the system prompt
+3. The context string should be expert-level knowledge about the gap topic
+4. Include specific best practices, common pitfalls, and usage patterns
+5. Keep context under 2000 characters (concise but comprehensive)
+6. toolNames should list 1-5 existing tools that this knowledge enhances
+7. Do NOT use require(), import, eval, or any function definitions
+8. The ENTIRE file must be ONLY the module.exports = { ... } statement
+9. Use backtick template literals for the context string
+
+EXAMPLE OUTPUT FORMAT:
+module.exports = {
+    name: 'Example Skill Name',
+    summary: 'Brief 1-sentence summary of what this skill teaches.',
+    toolNames: ['tool_one', 'tool_two'],
+    context: \`Place your detailed instructional text here.
+It can span multiple lines because it uses backticks.\`
+};
 
 Output ONLY the JavaScript code. No markdown formatting, no explanations.`;
 
