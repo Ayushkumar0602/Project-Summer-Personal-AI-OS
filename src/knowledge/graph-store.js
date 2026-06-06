@@ -235,9 +235,9 @@ async function _syncToSupabase(graph, forceFullSync = false) {
                 imagePath: n.imagePath, publicUrl: n.publicUrl, imageHash: n.imageHash,
                 entities: n.entities, faceIds: n.faceIds, tags: n.tags,
                 pinned: !!n.pinned, importance: n.importance || 0.5,
-                updatedAt: n.updatedAt ? new Date(n.updatedAt).toISOString() : new Date().toISOString(),
-                source: n.source, 
-                createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
+                updatedAt: typeof n.updatedAt === 'number' ? n.updatedAt : (n.updatedAt ? new Date(n.updatedAt).getTime() : Date.now()),
+                source: n.source,
+                createdAt: n.createdAt ? (typeof n.createdAt === 'string' ? n.createdAt : new Date(n.createdAt).toISOString()) : new Date().toISOString(),
                 embedding: n.embedding
             });
         }
@@ -276,8 +276,8 @@ async function _syncToSupabase(graph, forceFullSync = false) {
                 if (e) {
                     edgesToInsert.push({
                         from: e.from, to: e.to, label: e.label,
-                        confidence: e.confidence || 1.0, source: e.source, 
-                        updatedAt: e.updatedAt ? new Date(e.updatedAt).toISOString() : new Date().toISOString()
+                        confidence: e.confidence || 1.0, source: e.source,
+                        updatedAt: typeof e.updatedAt === 'number' ? e.updatedAt : (e.updatedAt ? new Date(e.updatedAt).getTime() : Date.now())
                     });
                 }
             }
