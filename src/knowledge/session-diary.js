@@ -173,10 +173,19 @@ function appendDiaryEntry(entry, replaceTimestamp = null, emotion = null, locati
                         if (delErr) console.warn('[DiaryStore] Delete old entry failed:', delErr.message);
                     }
 
-                    // Insert the new entry (each entry has a unique id, so insert is correct)
+                    // Only send columns that exist in the Supabase table.
+                    // Local-only fields (emotion, location, originalTimestamp)
+                    // are kept in the JSON file but NOT sent to Supabase.
+                    const supabaseRow = {
+                        id:        newEntry.id,
+                        timestamp: newEntry.timestamp,
+                        date:      newEntry.date,
+                        entry:     newEntry.entry,
+                    };
+
                     const { error: insertErr } = await supabase
                         .from(TABLE_DIARY)
-                        .upsert(newEntry, { onConflict: 'id' });
+                        .upsert(supabaseRow, { onConflict: 'id' });
 
                     if (insertErr) {
                         console.error('[DiaryStore] ❌ Supabase insert FAILED:', insertErr.message, insertErr.details || '');

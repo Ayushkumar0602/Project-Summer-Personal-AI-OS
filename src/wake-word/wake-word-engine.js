@@ -78,20 +78,53 @@ class WakeWordEngine extends EventEmitter {
     console.log('[WakeWord] Loading ONNX models...');
     const opts = { executionProviders: ['cpu'], graphOptimizationLevel: 'all' };
 
-    this._melSession = await ort.InferenceSession.create(
-      path.join(this.modelDir, 'melspectrogram.onnx'), opts
-    );
-    console.log(`[WakeWord] ✅ Loaded melspectrogram.onnx (in: ${this._melSession.inputNames}, out: ${this._melSession.outputNames})`);
+    // Load models ONE AT A TIME with a tick between each.
+    // onnxruntime-node in Electron has a race condition where
+    // creating multiple sessions synchronously can cause the GC
+    // to dispose a session that's still being initialized.
 
-    this._embeddingSession = await ort.InferenceSession.create(
-      path.join(this.modelDir, 'embedding_model.onnx'), opts
+    this._melSession = await this._loadOneModel(
+      path.join(this.modelDir, 'melspectrogram.onnx'), opts, 'melspectrogram'
     );
-    console.log(`[WakeWord] ✅ Loaded embedding_model.onnx (in: ${this._embeddingSession.inputNames}, out: ${this._embeddingSession.outputNames})`);
 
-    this._wakeWordSession = await ort.InferenceSession.create(
-      path.join(this.modelDir, 'summer_custom_v1.onnx'), opts
+    // Yield to the event loop between session creations
+    await new Promise(r => setImmediate(r));
+
+    this._embeddingSession = await this._loadOneModel(
+      path.join(this.modelDir, 'embedding_model.onnx'), opts, 'embedding_model'
     );
-    console.log(`[WakeWord] ✅ Loaded summer_custom_v1.onnx (in: ${this._wakeWordSession.inputNames}, out: ${this._wakeWordSession.outputNames})`);
+
+    await new Promise(r => setImmediate(r));
+
+    this._wakeWordSession = await this._loadOneModel(
+      path.join(this.modelDir, 'summer_custom_v1.onnx'), opts, 'summer_custom_v1'
+    );
+
+    console.log('[WakeWord] All 3 ONNX models loaded successfully.');
+  }
+
+  /**
+   * Load a single ONNX model with retry logic.
+   * Retries once after 500ms if the session is immediately disposed.
+   */
+  async _loadOneModel(modelPath, opts, label) {
+    const maxRetries = 2;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const session = await ort.InferenceSession.create(modelPath, opts);
+        // Verify the session is usable by reading its input names
+        const inputs = session.inputNames;
+        console.log(`[WakeWord] ✅ Loaded ${label}.onnx (in: ${inputs}, out: ${session.outputNames})`);
+        return session;
+      } catch (err) {
+        console.warn(`[WakeWord] ⚠️ ${label}.onnx load attempt ${attempt}/${maxRetries} failed: ${err.message}`);
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, 500));
+        } else {
+          throw err;
+        }
+      }
+    }
   }
 
   /**
@@ -347,8 +380,23 @@ class WakeWordEngine extends EventEmitter {
     this._embeddings = [];
     this._audioBuffer = Buffer.alloc(0);
     this._processingQueue = [];
+
+    // Release ONNX sessions to free memory
+    this._releaseSession('_melSession');
+    this._releaseSession('_embeddingSession');
+    this._releaseSession('_wakeWordSession');
+
     console.log('[WakeWord] ⏹️  Stopped.');
     this.emit('stopped');
+  }
+
+  _releaseSession(name) {
+    try {
+      if (this[name]) {
+        this[name].release?.();
+        this[name] = null;
+      }
+    } catch {}
   }
 
   setThreshold(value) {
