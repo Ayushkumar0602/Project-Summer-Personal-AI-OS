@@ -235,7 +235,9 @@ async function _syncToSupabase(graph, forceFullSync = false) {
                 imagePath: n.imagePath, publicUrl: n.publicUrl, imageHash: n.imageHash,
                 entities: n.entities, faceIds: n.faceIds, tags: n.tags,
                 pinned: !!n.pinned, importance: n.importance || 0.5,
-                updatedAt: n.updatedAt, source: n.source, createdAt: n.createdAt,
+                updatedAt: n.updatedAt ? new Date(n.updatedAt).toISOString() : new Date().toISOString(),
+                source: n.source, 
+                createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
                 embedding: n.embedding
             });
         }
@@ -261,7 +263,8 @@ async function _syncToSupabase(graph, forceFullSync = false) {
 
         if (nodesToInsert.length > 0) {
             for (let i = 0; i < nodesToInsert.length; i += 100) {
-                await supabase.from(TABLE_NODES).upsert(nodesToInsert.slice(i, i + 100));
+                const { error } = await supabase.from(TABLE_NODES).upsert(nodesToInsert.slice(i, i + 100));
+                if (error) console.error('[GraphStore] ❌ Nodes upsert failed:', error.message, error.details || '');
             }
         }
 
@@ -273,12 +276,14 @@ async function _syncToSupabase(graph, forceFullSync = false) {
                 if (e) {
                     edgesToInsert.push({
                         from: e.from, to: e.to, label: e.label,
-                        confidence: e.confidence || 1.0, source: e.source, updatedAt: e.updatedAt
+                        confidence: e.confidence || 1.0, source: e.source, 
+                        updatedAt: e.updatedAt ? new Date(e.updatedAt).toISOString() : new Date().toISOString()
                     });
                 }
             }
             for (let i = 0; i < edgesToInsert.length; i += 100) {
-                await supabase.from(TABLE_EDGES).upsert(edgesToInsert.slice(i, i + 100), { onConflict: 'from,to,label' });
+                const { error } = await supabase.from(TABLE_EDGES).upsert(edgesToInsert.slice(i, i + 100), { onConflict: 'from,to,label' });
+                if (error) console.error('[GraphStore] ❌ Edges upsert failed:', error.message, error.details || '');
             }
         }
         console.log(`[GraphStore] Delta synced to Supabase. Nodes updated: ${nodesToInsert.length}, deleted: ${nodesToDelete.length}`);
