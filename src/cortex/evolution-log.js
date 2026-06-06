@@ -57,6 +57,7 @@ const ACTIONS = Object.freeze({
     // Knowledge Harvester
     HARVEST_STARTED:        'harvest_started',
     HARVEST_COMPLETE:       'harvest_complete',
+    PR_CREATED:             'pr_created',
 
     // Self-Reflection
     JOURNAL_WRITTEN:        'journal_written',

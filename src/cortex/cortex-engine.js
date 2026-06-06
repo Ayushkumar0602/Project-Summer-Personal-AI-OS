@@ -10,8 +10,9 @@
  * ║  1. Memory Consolidator  — Graph cleanup, dedup, pruning       ║
  * ║  2. Gap Detector         — Mine diary for failure patterns      ║
  * ║  3. Skill Forge          — Generate Tier 1 skills               ║
- * ║  4. Self-Reflector       — Daily meta-analysis journal          ║
- * ║  5. Knowledge Harvester  — Proactive research (opt-in)          ║
+ * ║  4. Git Harvester        — PR promoted skills to GitHub         ║
+ * ║  5. Self-Reflector       — Daily meta-analysis journal          ║
+ * ║  6. Knowledge Harvester  — Proactive research (opt-in)          ║
  * ║                                                                  ║
  * ║  Safety:                                                         ║
  * ║  - NEVER runs when clients are connected                        ║
@@ -71,6 +72,7 @@ class CortexEngine {
             consolidator: true,
             gapDetector:  true,
             skillForge:   true,
+            gitHarvester: true,
             reflector:    true,
             harvester:    false,
             ...(opts.enabledModules || {}),
@@ -287,7 +289,15 @@ class CortexEngine {
                 cycleReport.modules.skillForge = await forgeSkills();
             }
 
-            // ── 4. Self-Reflection (once per wake, near the end) ────────
+            // ── 4. Git Harvester (every 4th cycle, after skills promoted) ─
+            if (this._enabledModules.gitHarvester && cycleNum % 4 === 0) {
+                if (registry.count() > 0) { this._sleep(); return; }
+
+                const { harvest } = require('./git-harvester');
+                cycleReport.modules.gitHarvester = await harvest();
+            }
+
+            // ── 5. Self-Reflection (once per wake, near the end) ────────
             if (this._enabledModules.reflector && !this._hasReflectedThisWake &&
                 (cycleNum >= 3 || cycleNum >= this._maxCyclesPerWake - 1)) {
                 if (registry.count() > 0) { this._sleep(); return; }

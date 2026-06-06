@@ -369,10 +369,73 @@ async function testSelfReflector() {
     info(`Saved priorities: ${priorities.length} item(s)`);
 }
 
-// ── Test 9: Full Engine Simulation ───────────────────────────────────────────
+// ── Test 9: Git Harvester ───────────────────────────────────────────────────
+
+async function testGitHarvester() {
+    banner('TEST 9: Git Harvester (GitHub PR Automation)');
+
+    const { harvest, _isConfigured } = require('../src/cortex/git-harvester');
+    const staging = require('../src/cortex/staging-registry');
+
+    // Check configuration detection
+    const configured = _isConfigured();
+    info(`GitHub configured: ${configured}`);
+    info(`GITHUB_TOKEN: ${process.env.GITHUB_TOKEN ? '✅ set' : '❌ not set'}`);
+    info(`GITHUB_REPO_OWNER: ${process.env.GITHUB_REPO_OWNER || '(not set)'}`);
+    info(`GITHUB_REPO_NAME: ${process.env.GITHUB_REPO_NAME || '(not set)'}`);
+
+    if (!configured) {
+        // Test that it gracefully skips when not configured
+        const result = await harvest();
+        assert(result.harvested === 0, `Harvest gracefully returns 0 when not configured`);
+        assert(result.errors.length === 0, `No errors when not configured`);
+        pass('Git Harvester safely no-ops without GitHub credentials');
+    } else {
+        // GitHub IS configured — test the actual flow
+        info('GitHub credentials found. Testing PR creation...');
+
+        // Check if there are any un-harvested promoted skills
+        const promoted = staging.getByStatus(staging.STATUS.PROMOTED)
+            .filter(s => !s.harvestedAt);
+        info(`Un-harvested promoted skills: ${promoted.length}`);
+
+        if (promoted.length > 0 && !DRY_RUN) {
+            const result = await harvest();
+            info(`Harvest result: ${result.harvested} harvested, ${result.errors.length} errors`);
+            if (result.harvested > 0) {
+                pass(`Created ${result.harvested} Pull Request(s) on GitHub!`);
+            } else if (result.errors.length > 0) {
+                warn(`Harvest had errors: ${result.errors.join('; ')}`);
+                pass('Git Harvester ran without crashing');
+            } else {
+                pass('Git Harvester ran successfully (0 eligible skills)');
+            }
+        } else {
+            if (DRY_RUN) warn('Skipping GitHub API calls (--dry-run mode)');
+            else warn('No un-harvested promoted skills to test with');
+            pass('Git Harvester configuration validated');
+        }
+    }
+
+    // Test markHarvested function
+    staging.registerSkill('Harvest Test Skill', {
+        tier: 1, filePath: '/tmp/harvest-test.js', gapId: 'gap_harvest_test',
+    });
+    staging.activateSkill('Harvest Test Skill');
+    staging.recordSuccess('Harvest Test Skill');
+    staging.recordSuccess('Harvest Test Skill');
+    staging.recordSuccess('Harvest Test Skill'); // triggers promotion
+    const markedOk = staging.markHarvested('Harvest Test Skill', 'https://github.com/test/repo/pull/99');
+    assert(!!markedOk, `markHarvested returns truthy`);
+    const entry = staging.getSkill('Harvest Test Skill');
+    assert(entry.harvestedAt !== null, `harvestedAt is set (${new Date(entry.harvestedAt).toISOString()})`);
+    assert(entry.prUrl === 'https://github.com/test/repo/pull/99', `prUrl is correct`);
+}
+
+// ── Test 10: Full Engine Simulation ──────────────────────────────────────────
 
 async function testEngineSimulation() {
-    banner('TEST 9: Cortex Engine State Machine');
+    banner('TEST 10: Cortex Engine State Machine');
 
     const { CortexEngine } = require('../src/cortex/cortex-engine');
     const bus = require('../src/core/event-bus');
@@ -385,6 +448,7 @@ async function testEngineSimulation() {
             consolidator: true,
             gapDetector:  false,    // Skip LLM in engine test
             skillForge:   false,    // Skip LLM in engine test
+            gitHarvester: false,    // Skip GitHub in engine test
             reflector:    false,    // Skip LLM in engine test
             harvester:    false,
         },
@@ -437,6 +501,7 @@ async function main() {
         await testGapDetector();
         await testSkillForge();
         await testSelfReflector();
+        await testGitHarvester();
         await testEngineSimulation();
     } catch (e) {
         fail(`Unhandled error: ${e.message}`);

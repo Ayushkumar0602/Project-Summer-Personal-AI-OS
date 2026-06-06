@@ -56,6 +56,8 @@ const DEMOTE_ERROR_THRESHOLD = 2;  // 2+ errors → auto-demote
  * @property {number} promotedAt    - Unix ms (null until promoted)
  * @property {number} demotedAt     - Unix ms (null unless demoted)
  * @property {string} demoteReason  - Why it was demoted (null unless demoted)
+ * @property {number} harvestedAt   - Unix ms when PR was created (null until harvested)
+ * @property {string} prUrl         - GitHub PR URL (null until harvested)
  */
 
 /** @type {Map<string, StagedSkill>} */
@@ -114,6 +116,8 @@ function registerSkill(skillName, opts = {}) {
         promotedAt:  null,
         demotedAt:   null,
         demoteReason: null,
+        harvestedAt: null,
+        prUrl:       null,
     };
 
     _registry.set(skillName, entry);
@@ -285,6 +289,25 @@ function hasSkillForGap(gapId) {
     return false;
 }
 
+/**
+ * Mark a promoted skill as harvested (PR created on GitHub).
+ *
+ * @param {string} skillName
+ * @param {string} prUrl - The GitHub Pull Request URL
+ */
+function markHarvested(skillName, prUrl) {
+    _load();
+    const entry = _registry.get(skillName);
+    if (!entry) return false;
+
+    entry.harvestedAt = Date.now();
+    entry.prUrl = prUrl;
+    _save();
+
+    log.info(`📦 Skill harvested: ${skillName} → ${prUrl}`);
+    return true;
+}
+
 module.exports = {
     STATUS,
     registerSkill,
@@ -296,4 +319,5 @@ module.exports = {
     getSkill,
     getStatusCounts,
     hasSkillForGap,
+    markHarvested,
 };
