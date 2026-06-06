@@ -27,8 +27,8 @@ async function initDiaryStore() {
                     if (localData.length > 0) {
                         console.log('[DiaryStore] Cloud is empty but local has data. Pushing local to cloud...');
                         memoryDiaryCache = localData;
-                        await supabase.from(TABLE_DIARY).upsert(localData);
-                    }
+                        const cleanLocalData = localData.map(d => ({ timestamp: d.timestamp, date: d.date, entry: d.entry }));
+                        await supabase.from(TABLE_DIARY).insert(cleanLocalData);
                 } catch(e) {}
             }
             
@@ -177,7 +177,6 @@ function appendDiaryEntry(entry, replaceTimestamp = null, emotion = null, locati
                     // Local-only fields (emotion, location, originalTimestamp)
                     // are kept in the JSON file but NOT sent to Supabase.
                     const supabaseRow = {
-                        id:        newEntry.id,
                         timestamp: newEntry.timestamp,
                         date:      newEntry.date,
                         entry:     newEntry.entry,
@@ -185,7 +184,7 @@ function appendDiaryEntry(entry, replaceTimestamp = null, emotion = null, locati
 
                     const { error: insertErr } = await supabase
                         .from(TABLE_DIARY)
-                        .upsert(supabaseRow, { onConflict: 'id' });
+                        .insert([supabaseRow]);
 
                     if (insertErr) {
                         console.error('[DiaryStore] ❌ Supabase insert FAILED:', insertErr.message, insertErr.details || '');
