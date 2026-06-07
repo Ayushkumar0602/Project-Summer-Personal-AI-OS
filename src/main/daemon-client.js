@@ -43,6 +43,9 @@ class DaemonClient {
         this._url            = opts.url || null;
         this._getMainWindow  = opts.getMainWindow  || (() => null);
         this._getMemoryWindow= opts.getMemoryWindow || (() => null);
+        this._getWindowManager= opts.getWindowManager || (() => null);
+        this._createBrowserWindow = opts.createBrowserWindow || null;
+        this._getBrowserWindow = opts.getBrowserWindow || null;
         this._ws             = null;
         this._reconnectDelay = RECONNECT_DELAY_MS;
         this._stopping       = false;
@@ -112,8 +115,8 @@ class DaemonClient {
                 return;
             }
             if (code === 4001) {
-                log.info('Server replaced this connection (dedup) — reconnecting immediately.');
-                this._reconnectDelay = RECONNECT_DELAY_MS;
+                log.info('Server replaced this connection (dedup) — NOT reconnecting.');
+                return; // Stop the infinite reconnect loop
             }
 
             log.warn(`Daemon connection closed (${code}). Reconnecting in ${this._reconnectDelay}ms...`);
@@ -257,7 +260,13 @@ class DaemonClient {
                     }
                 } else if (msg.widget === 'clear') {
                     const wm = this._getWindowManager();
-                    if (wm) wm.closeAllPanels();
+                    if (wm) {
+                        if (msg.state?.target) {
+                            wm.closePanelsByType(msg.state.target);
+                        } else {
+                            wm.closeAllPanels();
+                        }
+                    }
                 } else {
                     // Spawn a new HUD panel window
                     const wm = this._getWindowManager();
@@ -342,14 +351,24 @@ class DaemonClient {
     // ── Browser control (daemon-originated browser tool requests) ─────────────
 
     _handleBrowserControl(msg) {
-        const win = this._getMainWindow();
-        if (!win || win.isDestroyed()) {
-            // No window: send empty reply so daemon doesn't time out
-            this.send(encode('browser_reply', { id: msg.id, error: 'No window' }));
-            return;
+        // Find or create the browser window dynamically when requested
+        let win = this._getBrowserWindow ? this._getBrowserWindow() : null;
+        
+        if (msg.action === 'toggle_browser' || msg.action === 'browser_navigate') {
+            if (!win && this._createBrowserWindow) {
+                win = this._createBrowserWindow();
+            }
         }
-        // Forward to renderer — it handles the actual browser automation
-        win.webContents.send('browser-control', { id: msg.id, action: msg.action, args: msg.args });
+        
+        if (win && !win.isDestroyed()) {
+            if (msg.action === 'toggle_browser') {
+                if (msg.args.visible) win.show();
+                else win.hide();
+            }
+            win.webContents.send('browser-control', { id: msg.id, action: msg.action, args: msg.args });
+        } else {
+            log.error("[DaemonClient] Browser window is not available to receive browser_control");
+        }
     }
 
     // ── Client actions (requires_client results from platform adapter) ────────

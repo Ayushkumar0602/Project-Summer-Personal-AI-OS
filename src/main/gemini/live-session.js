@@ -370,6 +370,70 @@ class LiveSessionManager {
                             } catch (imgErr) {
                                 // Non-critical
                             }
+
+                            // ── Audio Memory Shadow Retrieval ──────────────────────
+                            // Automatically surface AudioMemory nodes when the user
+                            // mentions audio-related keywords (voice, recording, etc.)
+                            try {
+                                const AUDIO_INTENT_WORDS = new Set([
+                                    'audio', 'voice', 'recording', 'record', 'listen',
+                                    'conversation', 'transcript', 'dictation', 'note',
+                                    'voicenote', 'memo', 'playback', 'play', 'heard',
+                                    'said', 'spoke', 'talk', 'talked', 'speech'
+                                ]);
+                                const words = userText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/);
+                                const hasAudioIntent = words.some(w => AUDIO_INTENT_WORDS.has(w));
+
+                                if (hasAudioIntent) {
+                                    const graph = loadGraph();
+                                    const keywords = extractKeywordsFromText(userText);
+                                    const audioNodes = (graph.nodes || []).filter(n => n.type === 'AudioMemory');
+
+                                    if (audioNodes.length > 0 && keywords.length > 0) {
+                                        // Score audio nodes by keyword relevance
+                                        const scored = audioNodes.map(node => {
+                                            let score = 0;
+                                            for (const kw of keywords) {
+                                                if ((node.label || '').toLowerCase().includes(kw)) score += 30;
+                                                if ((node.transcript || '').toLowerCase().includes(kw)) score += 25;
+                                                if ((node.description || '').toLowerCase().includes(kw)) score += 15;
+                                                if ((node.tags || []).some(t => t.toLowerCase().includes(kw))) score += 20;
+                                                if ((node.keyFacts || []).some(f => f.toLowerCase().includes(kw))) score += 20;
+                                            }
+                                            return { node, score };
+                                        }).filter(s => s.score > 20).sort((a, b) => b.score - a.score).slice(0, 3);
+
+                                        if (scored.length > 0) {
+                                            // Inject audio context into shadow
+                                            const audioFacts = scored.map(s => {
+                                                const n = s.node;
+                                                const transcript = n.transcript ? ` Transcript: "${n.transcript.slice(0, 200)}"` : '';
+                                                const facts = (n.keyFacts || []).slice(0, 3).join('; ');
+                                                return `AudioMemory [${n.label}]: ${n.description || ''}${transcript}${facts ? ` Key facts: ${facts}` : ''}`;
+                                            }).join(' | ');
+
+                                            const prefix = this.latestShadowContext ? this.latestShadowContext + ' ' : '';
+                                            this.latestShadowContext = `${prefix}[AUDIO MEMORY CONTEXT: ${audioFacts}]`;
+                                            console.log(`\n\ud83c\udfa7 Shadow Audio Retrieval: ${scored.length} audio memory node(s) matched for "${userText.slice(0, 35)}..."`);
+
+                                            // Push audio player widget for the top match
+                                            const topNode = scored[0].node;
+                                            if (topNode.audioPath || topNode.publicUrl) {
+                                                sendToRenderer('show-hud-widget', {
+                                                    type: 'audio_player',
+                                                    data: {
+                                                        title: topNode.label || 'Voice Note',
+                                                        path: topNode.audioPath,
+                                                        publicUrl: topNode.publicUrl,
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (audioErr) {
+                                // Non-critical
+                            }
                         }
                     }
 

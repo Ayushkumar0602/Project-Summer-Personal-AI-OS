@@ -87,6 +87,12 @@ async function searchMemory(query, maxResults = 10, filterTag = null) {
                 if (descNorm.includes(word)) score += 10;
                 if (typeNorm.includes(word)) score += 5;
                 if (tagsNorm.includes(word)) score += 15;
+                // AudioMemory: search transcript and keyFacts
+                if (node.transcript && normalizeId(node.transcript).includes(word)) score += 15;
+                if (Array.isArray(node.keyFacts) && node.keyFacts.some(f => normalizeId(f).includes(word))) score += 15;
+                // ImageMemory: search scene and entities
+                if (node.scene && normalizeId(node.scene).includes(word)) score += 8;
+                if (Array.isArray(node.entities) && node.entities.some(e => normalizeId(e).includes(word))) score += 12;
             }
 
             const dist = levenshteinDistance(queryNorm, labelNorm);

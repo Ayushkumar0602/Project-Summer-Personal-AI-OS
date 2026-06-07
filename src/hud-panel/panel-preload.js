@@ -28,4 +28,11 @@ contextBridge.exposeInMainWorld('hudPanel', {
 
     // Cancel running agents
     cancelAgents: () => ipcRenderer.invoke('cancel-agents'),
+
+    // Read local media files for playback in HUD panels
+    readLocalImage: (filename) => ipcRenderer.invoke('read-local-image', filename),
+    readLocalAudio: (filename) => ipcRenderer.invoke('read-local-audio', filename),
+
+    // Resize this panel dynamically
+    resizePanel: (width, height) => ipcRenderer.send('resize-hud-panel', { width, height }),
 });

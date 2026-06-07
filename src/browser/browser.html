@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: summer-media: https: wss:; img-src 'self' data: blob: summer-media: https:; media-src 'self' data: blob: summer-media: https:;">
+    <title>Summer - Browser</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../index.css">
+</head>
+<body style="margin:0; overflow:hidden; background:#020c18;">
+    <div class="browser-panel" id="browserPanel" style="width:100%; height:100vh; display:flex; flex-direction:column;">
+        <div class="browser-toolbar" style="-webkit-app-region: drag; display:flex; align-items:center; padding:8px 12px; background:rgba(10,15,30,0.8); border-bottom:1px solid rgba(6,182,212,0.2);">
+            <div class="browser-nav-btns" style="-webkit-app-region: no-drag; display:flex; gap:8px;">
+                <button id="browserBackBtn" title="Back" style="background:transparent; border:none; color:#94a3b8; cursor:pointer; font-size:16px;">←</button>
+                <button id="browserReloadBtn" title="Reload" style="background:transparent; border:none; color:#94a3b8; cursor:pointer; font-size:16px;">↻</button>
+            </div>
+            <div class="browser-url-bar" style="-webkit-app-region: no-drag; flex:1; margin:0 12px; position:relative;">
+                <input type="text" id="browserUrlInput" placeholder="Enter URL or search term..." style="width:100%; box-sizing:border-box; padding:6px 12px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(6,182,212,0.3); color:#e2e8f0; font-family:'Inter',sans-serif; outline:none; font-size:13px;" />
+            </div>
+            <button id="browserGoBtn" class="primary-btn" style="-webkit-app-region: no-drag; background:#06b6d4; color:#020c18; border:none; padding:6px 12px; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px;">Go</button>
+        </div>
+        <div class="browser-tabs-bar" id="browserTabsBar" style="display:none;"></div>
+        
+        <div class="browser-viewport-container" style="flex:1; position:relative;">
+            <div id="browserViewport" style="position:absolute; inset:0; display:flex; flex-direction:column;">
+                <webview id="miniBrowser" src="about:blank" class="mini-browser-webview" style="flex:1; width:100%; height:100%; border:none;" allowpopups></webview>
+            </div>
+            <div class="browser-overlay" id="browserOverlay" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); color:#06b6d4; align-items:center; justify-content:center; flex-direction:column;">
+                <div class="loading-spinner" style="margin-bottom:12px;"></div>
+                <div id="browserStatus" style="font-family:'Orbitron',sans-serif; letter-spacing:1px; font-size:14px;">Loading...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../renderer/cjs-shim.js"></script>
+    <script src="../renderer/browser/mini-browser.js"></script>
+    <script>
+        // Init the mini-browser using the CJS shim
+        const miniBrowser = require('renderer/browser/mini-browser.js');
+        if (miniBrowser && typeof miniBrowser.initMiniBrowser === 'function') {
+            miniBrowser.initMiniBrowser({
+                setOrbState: (state, msg) => console.log('Orb state:', state, msg),
+                pushMessage: (role, text) => console.log('Message:', role, text),
+                startThinking: () => console.log('Thinking...'),
+                stopThinking: () => console.log('Stopped thinking')
+            });
+        }
+    </script>
+</body>
+</html>

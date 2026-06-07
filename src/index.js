@@ -84,6 +84,9 @@ function connectToDaemon() {
         url:            process.env.REMOTE_DAEMON_URL,
         getMainWindow:  () => windows.getMainWindow(),
         getMemoryWindow:() => windows.getMemoryWindow(),
+        getWindowManager: () => windowManager,
+        createBrowserWindow: require('./main/windows').createBrowserWindow,
+        getBrowserWindow: require('./main/windows').getBrowserWindow,
     });
 
     if (process.env.REMOTE_DAEMON_URL) {
@@ -126,10 +129,19 @@ app.whenReady().then(async () => {
     // Register custom protocol for local media presentation
     protocol.registerFileProtocol('summer-media', (request, callback) => {
         let url = request.url.replace('summer-media://', '');
-        // Sometimes file paths might have an extra leading slash on windows, but on Mac it should start with /
-        if (url.startsWith('/')) url = url; // keep it
         try {
-            callback({ path: decodeURIComponent(url) });
+            const decoded = decodeURIComponent(url);
+            const pathNode = require('node:path');
+            if (pathNode.isAbsolute(decoded)) {
+                callback({ path: decoded });
+            } else {
+                // Detect audio vs image by extension
+                const ext = pathNode.extname(decoded).toLowerCase();
+                const AUDIO_EXTS = new Set(['.mp3', '.m4a', '.wav', '.webm', '.ogg', '.aac', '.flac', '.opus', '.wma']);
+                const userData = require('./core/utils/paths').userData();
+                const storeDir = AUDIO_EXTS.has(ext) ? 'audio-store' : 'image-store';
+                callback({ path: pathNode.join(userData, storeDir, decoded) });
+            }
         } catch (error) {
             console.error('[Protocol] Error decoding media path:', error);
         }

@@ -29,8 +29,10 @@ const SIZE_PRESETS = {
     video_player:   { w: 640, h: 480 },
     file_viewer:    { w: 400, h: 200 },
     custom_html:    { w: 520, h: 600 },
-    agent_progress: { w: 420, h: 360 },
-    subtitle:       { w: 400, h: 180 },
+    agent_progress:     { w: 420, h: 360 },
+    'agent-gathering':  { w: 400, h: 340 },
+    'agent-started':    { w: 380, h: 220 },
+    subtitle:           { w: 400, h: 180 },
 };
 
 class WindowManager {
@@ -46,6 +48,19 @@ class WindowManager {
     // ── Create a HUD Panel window ────────────────────────────────────────────
 
     createHudPanel({ type, data, title, width, height }) {
+        // Dedup: for agent-gathering and agent-started, close any existing panel
+        // of the same type to avoid flooding the screen with duplicates
+        const DEDUP_TYPES = new Set(['agent-gathering', 'agent-started']);
+        if (DEDUP_TYPES.has(type)) {
+            for (const [id, entry] of this.hudPanels) {
+                if (entry.type === type && entry.win && !entry.win.isDestroyed()) {
+                    entry.win.destroy();
+                    this.hudPanels.delete(id);
+                }
+            }
+        }
+
+        // Auto-close: agent-started panels disappear after 8s
         const widgetId = `hud-${++this._counter}-${Date.now()}`;
         const preset = SIZE_PRESETS[type] || { w: 420, h: 450 };
         const w = width || preset.w;
@@ -108,6 +123,7 @@ class WindowManager {
         const AUTO_CLOSE_DELAYS = {
             welcome: 10000, // 10 seconds
             weather: 15000, // 15 seconds
+            'agent-started': 8000, // 8 seconds
         };
         if (AUTO_CLOSE_DELAYS[type]) {
             setTimeout(() => {
@@ -349,6 +365,17 @@ class WindowManager {
                         if (!win.isDestroyed()) win.setOpacity(opacity);
                     }
                 }, 16);
+            }
+        });
+
+        ipcMain.on('resize-hud-panel', (event, { width, height }) => {
+            const win = BrowserWindow.fromWebContents(event.sender);
+            if (win && !win.isDestroyed()) {
+                // Ensure reasonable bounds
+                const newWidth = Math.max(200, Math.min(width || 400, 800));
+                const newHeight = Math.max(120, Math.min(height || 200, 900));
+                
+                win.setContentSize(newWidth, newHeight, true); // true = animate
             }
         });
 

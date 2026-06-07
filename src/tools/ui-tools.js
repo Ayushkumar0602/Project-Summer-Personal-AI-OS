@@ -60,8 +60,14 @@ const declarations = [
     },
     {
         name: "clear_hologram_widget",
-        description: "Removes or clears any currently displayed widget, map, or video from the user's HUD screen.",
-        parameters: { type: "OBJECT", properties: {}, required: [] }
+        description: "Removes or clears a specific widget or all widgets from the user's HUD screen.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                widget_type: { type: "STRING", description: "Optional. The specific widget type to clear (e.g. 'emails', 'weather', 'calendar'). If omitted, ALL widgets are cleared." }
+            },
+            required: []
+        }
     },
     {
         name: "ui_control_window",
@@ -106,9 +112,9 @@ const handlers = {
         return `Successfully displayed ${args.type} widget on screen.`;
     },
 
-    clear_hologram_widget: async () => {
-        sendToRenderer('show-hud-widget', { type: 'clear' });
-        return 'Successfully cleared the HUD screen.';
+    clear_hologram_widget: async (args) => {
+        sendToRenderer('show-hud-widget', { type: 'clear', target: args.widget_type });
+        return args.widget_type ? `Successfully cleared the ${args.widget_type} widget.` : 'Successfully cleared all HUD screens.';
     },
 
     ui_control_window: async (args) => {

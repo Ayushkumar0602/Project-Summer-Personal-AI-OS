@@ -24,6 +24,8 @@ const THEME_MAP = {
     file_viewer:    { icon: '📄', color: '#06b6d4', title: 'File Presentation' },
     custom_html:    { icon: '✨', color: '#06b6d4', title: 'Custom Interface' },
     agent_progress: { icon: '⚡', color: '#c084fc', title: 'Domain Agent' },
+    'agent-gathering': { icon: '🔎', color: '#fbbf24', title: 'Agent — Gathering Info' },
+    'agent-started':   { icon: '🚀', color: '#10b981', title: 'Agent — Running' },
     subtitle:       { icon: '💬', color: '#06b6d4', title: 'Transcript' },
 };
 
@@ -85,12 +87,15 @@ function renderCalendar(data) {
 }
 
 function renderEmails(data) {
-    if (!data || data.length === 0) {
-        return '<div class="hud-item"><div class="hud-item-title">No new emails</div></div>';
-    }
-    return data.map((email, i) => `
+    if (!data) return '<div class="hud-item"><div class="hud-item-title">No new emails</div></div>';
+    if (typeof data === 'string') return `<div class="hud-item"><div class="hud-item-title">${esc(data)}</div></div>`;
+    
+    let arr = Array.isArray(data) ? data : (data.emails || data.data || [data]);
+    if (!arr || arr.length === 0) return '<div class="hud-item"><div class="hud-item-title">No new emails</div></div>';
+    
+    return arr.map((email, i) => `
         <div class="hud-item" style="animation-delay: ${i * 0.08}s">
-            <div class="hud-item-title">${esc(email.from || 'Unknown Sender')}</div>
+            <div class="hud-item-title">${esc(email.from || email.sender || 'Unknown Sender')}</div>
             <div class="hud-item-meta">${esc(email.subject || 'No Subject')}</div>
         </div>
     `).join('');
@@ -136,10 +141,11 @@ function renderCustomHtml(data) {
 }
 
 function renderAudioPlayer(data) {
-    const src = data.url || `summer-media://${data.path}`;
+    const src = data.url || data.publicUrl || (data.path ? `summer-media://${data.path}` : '');
+    const title = data.title || data.label || (data.path ? data.path : 'Audio File');
     return `
         <div class="media-container">
-            <div class="media-title">${esc(data.title || 'Audio File')}</div>
+            <div class="media-title">${esc(title)}</div>
             <audio controls autoplay style="width:100%; border-radius:6px; outline:none;">
                 <source src="${src}">
             </audio>
@@ -160,25 +166,21 @@ function renderVideoPlayer(data) {
 }
 
 function renderImageGallery(data) {
-    const items = Array.isArray(data) ? data : (data ? [data] : []);
+    const items = data?.images ? data.images : (Array.isArray(data) ? data : (data ? [data] : []));
     if (items.length === 0) return '<div class="hud-item"><div class="hud-item-title">No images</div></div>';
 
     return `
-        <div class="gallery-track">
+        <div class="gallery-track" style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;">
             ${items.map(item => {
-                const src = item.url || `summer-media://${item.path}`;
+                const src = item.publicUrl || item.url || `summer-media://${item.filename || item.path}`;
+                const caption = item.caption || item.label || item.description || '';
                 return `
-                <div class="gallery-slide">
-                    <img src="${src}" class="gallery-img" />
-                    ${item.caption ? `<div class="gallery-credit">${esc(item.caption)}</div>` : ''}
+                <div class="gallery-slide" style="min-width: 200px; flex: 1;">
+                    <img src="${src}" class="gallery-img" style="width: 100%; border-radius: 8px; object-fit: cover;" onerror="this.style.display='none';" />
+                    ${caption ? `<div class="gallery-credit" style="font-size: 11px; margin-top: 4px; color: #cbd5e1;">${esc(caption)}</div>` : ''}
                 </div>`;
             }).join('')}
         </div>
-        ${items.length > 1 ? `
-        <div class="gallery-dots">
-            ${items.map((_, i) => `<div class="gallery-dot ${i === 0 ? 'active' : ''}"></div>`).join('')}
-        </div>
-        ` : ''}
     `;
 }
 
@@ -265,6 +267,53 @@ function renderSubtitle(data) {
     `;
 }
 
+function renderAgentGathering(data) {
+    const agentName = esc(data.display_name || data.agent_id || 'Domain Agent');
+    const message = esc(data.message || 'Gathering required information...');
+    const missing = data.missing || [];
+    
+    let missingHtml = '';
+    if (missing.length > 0) {
+        missingHtml = `
+            <div style="margin-top: 12px;">
+                <div style="font-size: 11px; color: #fbbf24; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;">Required Info</div>
+                ${missing.map(m => `
+                    <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; padding: 6px 8px; background: rgba(251,191,36,0.08); border-radius: 6px; border-left: 2px solid #fbbf24;">
+                        <span style="color: #fbbf24; font-size: 12px;">●</span>
+                        <div>
+                            <div style="color: #e2e8f0; font-size: 13px; font-weight: 500;">${esc(m.key || '')}</div>
+                            <div style="color: #94a3b8; font-size: 11px;">${esc(m.description || '')}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>`;
+    }
+    
+    return `
+        <div class="progress-card">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <div style="font-size: 14px; color: #fbbf24; font-weight: 600;">${agentName}</div>
+            </div>
+            <div style="color: #cbd5e1; font-size: 13px; line-height: 1.5;">${message}</div>
+            ${missingHtml}
+            <div style="margin-top: 12px; color: #64748b; font-size: 11px; font-style: italic;">💡 Answer the questions above so the agent can proceed.</div>
+        </div>
+    `;
+}
+
+function renderAgentStarted(data) {
+    const agentName = esc(data.display_name || data.agent_id || 'Domain Agent');
+    return `
+        <div class="progress-card">
+            <div class="progress-status" style="color: #10b981; text-shadow: 0 0 8px #10b98144;">AGENT LAUNCHED</div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                <div style="font-size: 14px; color: #e2e8f0; font-weight: 600;">🚀 ${agentName}</div>
+            </div>
+            <div style="margin-top: 12px; color: #94a3b8; font-size: 12px;">Running in the background. You'll see progress updates as it works.</div>
+        </div>
+    `;
+}
+
 // ── Utility ──────────────────────────────────────────────────────────────────
 function esc(str) {
     if (!str) return '';
@@ -296,6 +345,8 @@ window.hudPanel.onContentUpdate((payload) => {
         case 'mermaid':        html = renderMermaid(data); break;
         case 'agent_progress': html = renderAgentProgress(data); break;
         case 'subtitle':       html = renderSubtitle(data); break;
+        case 'agent-gathering': html = renderAgentGathering(data); break;
+        case 'agent-started':  html = renderAgentStarted(data); break;
         default: {
             if (data && data.html) {
                 html = renderCustomHtml(data);
@@ -314,6 +365,23 @@ window.hudPanel.onContentUpdate((payload) => {
     }
 
     contentEl.innerHTML = html;
+
+    // Auto-resize the window to fit the content exactly
+    setTimeout(() => {
+        // Minimum and maximum boundaries for safety
+        const MIN_HEIGHT = 120;
+        const MAX_HEIGHT = 800;
+        
+        // Measure exact content scroll height including titlebar
+        // The titlebar is ~36px, plus padding/borders
+        const contentScrollHeight = contentEl.scrollHeight;
+        const newHeight = Math.min(Math.max(contentScrollHeight + 46, MIN_HEIGHT), MAX_HEIGHT);
+        
+        // Let the main process know if we need to resize
+        if (window.hudPanel && window.hudPanel.resizePanel) {
+            window.hudPanel.resizePanel(window.outerWidth, newHeight);
+        }
+    }, 50);
 
     // Bind abort button if present
     const abortBtn = document.getElementById('abortBtn');
