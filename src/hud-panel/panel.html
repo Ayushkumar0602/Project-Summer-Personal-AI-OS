@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Summer — Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="panel.css" />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <!-- Custom Titlebar -->
+    <div class="panel-titlebar" id="panelTitlebar">
+        <div class="panel-title-section">
+            <span class="panel-icon" id="panelIcon">✨</span>
+            <span class="panel-title" id="panelTitle">Loading...</span>
+        </div>
+        <div class="panel-controls">
+            <button class="panel-ctrl-btn panel-minimize" id="minimizeBtn" title="Minimize">─</button>
+            <button class="panel-ctrl-btn panel-close" id="closeBtn" title="Close">✕</button>
+        </div>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="panel-body" id="panelBody">
+        <div class="panel-content" id="panelContent">
+            <div class="panel-loading">
+                <div class="loading-spinner"></div>
+                <span>Initializing...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resize Handle -->
+    <div class="panel-resize-handle" id="resizeHandle"></div>
+
+    <script src="panel-renderer.js"></script>
+</body>
+</html>

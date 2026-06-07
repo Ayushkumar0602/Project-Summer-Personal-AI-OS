@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Summer — Orb</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="orb.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+</head>
+<body>
+    <!-- Wake Word Indicator -->
+    <div id="wakeWordIndicator" class="wake-indicator" title="Wake Word Active"></div>
+
+    <!-- Drag Handle (entire top area) -->
+    <div class="orb-drag-region"></div>
+
+    <!-- Quick Action Buttons -->
+    <div class="orb-actions">
+        <button class="orb-action-btn" id="settingsBtn" title="Settings">⚙️</button>
+        <button class="orb-action-btn" id="memoryBtn" title="Memory Graph">🧠</button>
+        <button class="orb-action-btn" id="sessionsBtn" title="Past Sessions">🕒</button>
+    </div>
+
+    <!-- The Orb -->
+    <div class="orb-wrapper" id="orbContainer">
+        <div id="orb" class="state-idle">
+            <canvas id="jarvis-core"></canvas>
+        </div>
+    </div>
+
+    <!-- Status -->
+    <div class="orb-status" id="statusText">Click to Activate</div>
+
+    <!-- Floating Tool Status -->
+    <div id="floatingToolStatus" class="floating-tool" style="display: none;"></div>
+
+    <!-- Command Palette -->
+    <div id="cmdPaletteOverlay" class="cmd-overlay" style="display:none">
+        <div class="cmd-box">
+            <div class="cmd-header">
+                <span>SUMMER COMMAND</span>
+                <span class="cmd-hint">ESC to close</span>
+            </div>
+            <input type="text" id="cmdInput" class="cmd-input" placeholder="Type a command..." autocomplete="off" />
+        </div>
+    </div>
+
+    <!-- Past Sessions Modal -->
+    <div id="sessionsModal" class="cmd-overlay" style="display:none; padding-top: 10vh;">
+        <div class="cmd-box" style="height: 60vh; max-height: 600px; display: flex; flex-direction: column;">
+            <div class="cmd-header">
+                <span>PAST SESSIONS</span>
+                <span class="cmd-hint" style="cursor:pointer;" onclick="closeSessionsModal()">ESC or ✕</span>
+            </div>
+            <div id="sessionsList" style="flex:1; overflow-y:auto; padding:16px; color:#e2e8f0;"></div>
+        </div>
+    </div>
+
+    <script src="../renderer/cjs-shim.js"></script>
+    <script src="../renderer/ui/orb-state.js"></script>
+    <script src="../renderer/audio/audio-queue.js"></script>
+    <script src="../renderer/session/context-builder.js"></script>
+    <script src="../renderer/audio/vad-recorder.js"></script>
+    <script src="../renderer/session/session-events.js"></script>
+    <script src="../renderer/ui/wake-word-ui.js"></script>
+    <script src="../renderer/ui/command-palette.js"></script>
+    <script src="../renderer/ui/sessions-modal.js"></script>
+    <script src="../visualizer.js"></script>
+    <script src="orb-renderer.js"></script>
+</body>
+</html>

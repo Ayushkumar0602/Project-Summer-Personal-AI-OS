@@ -222,8 +222,19 @@ class DaemonClient {
 
             // ── Audio / text ───────────────────────────────────────────────────
             case MSG.AUDIO_RESPONSE:     fwd('agent-audio', msg.data);                  break;
-            case MSG.TEXT_RESPONSE:      fwd('agent-text', msg.text);                   break;
-            case MSG.USER_TRANSCRIPT:    fwd('user-text', msg.text);                    break;
+            case MSG.TEXT_RESPONSE: {
+                fwd('agent-text', msg.text);
+                // Also send to subtitle panel
+                const wmText = this._getWindowManager();
+                if (wmText) wmText.sendSubtitleText('agent', msg.text);
+                break;
+            }
+            case MSG.USER_TRANSCRIPT: {
+                fwd('user-text', msg.text);
+                const wmUser = this._getWindowManager();
+                if (wmUser) wmUser.sendSubtitleText('user', msg.text);
+                break;
+            }
             case MSG.AGENT_TRANSCRIPT:   fwd('agent-transcript', msg.text);             break;
 
             // ── Turn state ─────────────────────────────────────────────────────
@@ -234,18 +245,36 @@ class DaemonClient {
             case MSG.TOOL_CALL:          fwd('agent-tool-call', { name: msg.name, args: msg.args }); break;
             case MSG.TOOL_COMPLETE:      fwd('agent-tool-complete', { name: msg.name }); break;
 
-            // ── HUD ────────────────────────────────────────────────────────────
-            case MSG.HUD_UPDATE:
+            // ── HUD (Multi-window panels) ─────────────────────────────────────
+            case MSG.HUD_UPDATE: {
                 if (msg.widget === 'wake_word' && msg.state?.detected) {
-                    // wake-word-ui.js listens on 'wake-word-detected' — NOT show-hud-widget
                     fwd('wake-word-detected', { score: msg.state.score || 0 });
+                } else if (msg.widget === 'agent_progress') {
+                    // Try to update existing progress panel first
+                    const wm = this._getWindowManager();
+                    if (wm && !wm.updateAgentProgress(msg.state?.sessionId, msg.state)) {
+                        wm.createHudPanel({ type: 'agent_progress', data: msg.state });
+                    }
                 } else {
-                    fwd('show-hud-widget', { type: msg.widget, ...(msg.state || {}) });
+                    // Spawn a new HUD panel window
+                    const wm = this._getWindowManager();
+                    if (wm) {
+                        wm.createHudPanel({
+                            type: msg.widget,
+                            data: msg.state || {},
+                            title: msg.state?.title,
+                            width: msg.state?.width,
+                            height: msg.state?.height,
+                        });
+                    }
                 }
                 break;
-            case MSG.HUD_CLEAR:
-                fwd('show-hud-widget', { type: 'clear' });
+            }
+            case MSG.HUD_CLEAR: {
+                const wm = this._getWindowManager();
+                if (wm) wm.closeAllPanels();
                 break;
+            }
 
             // ── Memory ────────────────────────────────────────────────────────
             case MSG.MEMORY_UPDATED:
@@ -481,6 +510,14 @@ class DaemonClient {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    _getWindowManager() {
+        try {
+            return require('./window-manager');
+        } catch (e) {
+            return null;
+        }
+    }
 
     _showNotification(title, body) {
         try {

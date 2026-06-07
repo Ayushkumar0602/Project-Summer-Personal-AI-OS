@@ -33,6 +33,7 @@ const { registerGoogleIpc }      = require('./main/ipc/google-ipc');
 const { registerWakeWordIpc }    = require('./main/ipc/wake-word-ipc');
 const { registerIntegrationsIpc } = require('./main/ipc/integrations-ipc');
 const clientRegistry             = require('./core/transport/client-registry');
+const windowManager              = require('./main/window-manager');
 
 if (require('electron-squirrel-startup')) app.quit();
 app.commandLine.appendSwitch('remote-debugging-port', '9222');
@@ -213,11 +214,28 @@ app.whenReady().then(async () => {
         console.warn('[WakeWord] Could not start wake word engine:', e.message);
     }
 
-    // ── Create the main UI window ─────────────────────────────────────────────
-    windows.createMainWindow();
+    // ── Create the floating Orb window ─────────────────────────────────────────
+    windows.createOrbWindow();
+
+    // Create subtitle panel on first session
+    windowManager.createSubtitlePanel();
+
+    // ── IPC: orb's hudManagerStub calls this to spawn HUD panels ──────────
+    ipcMain.on('show-hud-widget', (_, payload) => {
+        if (payload.type === 'clear') {
+            windowManager.closeAllPanels();
+        } else {
+            windowManager.createHudPanel({
+                type: payload.type,
+                data: payload.data,
+                width: payload.width,
+                height: payload.height,
+            });
+        }
+    });
 
     app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) windows.createMainWindow();
+        if (BrowserWindow.getAllWindows().length === 0) windows.createOrbWindow();
     });
 });
 

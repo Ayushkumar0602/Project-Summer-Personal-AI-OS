@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld('liveAPI', {
     checkGoogleAuth: () => ipcRenderer.invoke('check-google-auth'),
     readLocalImage: (filename) => ipcRenderer.invoke('read-local-image', filename),
     cancelAgents: () => ipcRenderer.invoke('cancel-agents'),
+    showHudWidget: (payload) => ipcRenderer.send('show-hud-widget', payload),
 
     // Wake Word
     onWakeWordDetected: (callback) => ipcRenderer.on('wake-word-detected', (event, payload) => callback(payload)),
