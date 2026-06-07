@@ -232,28 +232,77 @@ class WindowManager {
         this.cascadeOffset = { x: 0, y: 0 };
     }
 
-    // ── Smart cascade positioning ────────────────────────────────────────────
+    // ── Smart Layout Positioning ─────────────────────────────────────────────
 
     _getNextPosition(width, height) {
         const display = screen.getPrimaryDisplay();
-        const { width: sw, height: sh } = display.workAreaSize;
+        const { width: sw, height: sh, x: sx, y: sy } = display.workArea;
 
-        // Start from top-right area, cascade down-left
-        let x = sw - width - 50 - this.cascadeOffset.x;
-        let y = 50 + this.cascadeOffset.y;
-
-        // Ensure on-screen
-        if (x < 10) x = 50;
-        if (y + height > sh - 20) {
-            this.cascadeOffset = { x: 0, y: 0 };
-            x = sw - width - 50;
-            y = 50;
+        // Get bounds of all currently active panels
+        const activeRects = [];
+        for (const [, entry] of this.hudPanels) {
+            if (!entry.win.isDestroyed() && entry.win.isVisible()) {
+                activeRects.push(entry.win.getBounds());
+            }
         }
 
-        this.cascadeOffset.x += 35;
-        this.cascadeOffset.y += 35;
+        const margin = 20; // Margin between windows
+        const startX = sx + sw - width - 30; // Start near top-right
+        const startY = sy + 30;
 
-        return { x: Math.round(x), y: Math.round(y) };
+        // Grid search approach
+        const stepX = 50;
+        const stepY = 50;
+
+        // We scan from top-right towards bottom-left
+        let bestX = startX;
+        let bestY = startY;
+        let foundClearSpot = false;
+
+        // Scan Y first (top to bottom), then X (right to left)
+        for (let testX = startX; testX >= sx + 10; testX -= stepX) {
+            for (let testY = startY; testY <= sy + sh - height - 10; testY += stepY) {
+                const testRect = { x: testX, y: testY, width: width + margin, height: height + margin };
+                let collision = false;
+
+                for (const rect of activeRects) {
+                    // Check intersection
+                    if (
+                        testRect.x < rect.x + rect.width &&
+                        testRect.x + testRect.width > rect.x &&
+                        testRect.y < rect.y + rect.height &&
+                        testRect.y + testRect.height > rect.y
+                    ) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                if (!collision) {
+                    bestX = testX;
+                    bestY = testY;
+                    foundClearSpot = true;
+                    break;
+                }
+            }
+            if (foundClearSpot) break;
+        }
+
+        // If no completely clear spot, fallback to cascade
+        if (!foundClearSpot) {
+            bestX = startX - this.cascadeOffset.x;
+            bestY = startY + this.cascadeOffset.y;
+            
+            this.cascadeOffset.x += 35;
+            this.cascadeOffset.y += 35;
+            if (bestX < sx || bestY + height > sy + sh) {
+                this.cascadeOffset = { x: 35, y: 35 };
+                bestX = startX;
+                bestY = startY;
+            }
+        }
+
+        return { x: Math.round(bestX), y: Math.round(bestY) };
     }
 
     // ── IPC handlers ─────────────────────────────────────────────────────────

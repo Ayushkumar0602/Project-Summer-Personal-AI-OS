@@ -117,6 +117,11 @@ function connectToDaemon() {
 
 // ── 3. Electron app lifecycle ─────────────────────────────────────────────────
 
+// Register custom protocol privileges BEFORE app is ready
+protocol.registerSchemesAsPrivileged([
+    { scheme: 'summer-media', privileges: { bypassCSP: true, supportFetchAPI: true, stream: true, standard: true, secure: true } }
+]);
+
 app.whenReady().then(async () => {
     // Register custom protocol for local media presentation
     protocol.registerFileProtocol('summer-media', (request, callback) => {

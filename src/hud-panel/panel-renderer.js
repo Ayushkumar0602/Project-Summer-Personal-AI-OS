@@ -294,8 +294,21 @@ window.hudPanel.onContentUpdate((payload) => {
         case 'mermaid':        html = renderMermaid(data); break;
         case 'agent_progress': html = renderAgentProgress(data); break;
         case 'subtitle':       html = renderSubtitle(data); break;
-        default:
-            html = `<div class="hud-item"><div class="hud-item-title">Data Received</div></div>`;
+        default: {
+            if (data && data.html) {
+                html = renderCustomHtml(data);
+            } else if (typeof data === 'string' && data.includes('<')) {
+                html = renderCustomHtml(data);
+            } else {
+                html = `<div class="hud-item">
+                    <div class="hud-item-title" style="color: #fca5a5;">Unknown Widget: [${esc(type)}]</div>
+                    <div class="hud-item-meta custom-html-wrapper" style="font-size: 11px; opacity: 0.8; margin-top: 8px;">
+                        <pre style="white-space: pre-wrap; font-family: monospace;">${esc(JSON.stringify(data, null, 2))}</pre>
+                    </div>
+                </div>`;
+            }
+            break;
+        }
     }
 
     contentEl.innerHTML = html;
