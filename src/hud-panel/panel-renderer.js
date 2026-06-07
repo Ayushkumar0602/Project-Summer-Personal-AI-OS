@@ -275,6 +275,8 @@ function esc(str) {
 window.hudPanel.onContentUpdate((payload) => {
     const { type, data, title } = payload;
 
+    if (type === 'subtitle_update') return;
+
     applyTheme(type);
     if (title) titleEl.textContent = title;
 

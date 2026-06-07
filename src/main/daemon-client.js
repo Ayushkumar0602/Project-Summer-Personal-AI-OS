@@ -255,6 +255,9 @@ class DaemonClient {
                     if (wm && !wm.updateAgentProgress(msg.state?.sessionId, msg.state)) {
                         wm.createHudPanel({ type: 'agent_progress', data: msg.state });
                     }
+                } else if (msg.widget === 'clear') {
+                    const wm = this._getWindowManager();
+                    if (wm) wm.closeAllPanels();
                 } else {
                     // Spawn a new HUD panel window
                     const wm = this._getWindowManager();

@@ -104,6 +104,19 @@ class WindowManager {
             }
         }, 16);
 
+        // Auto-close transient widgets after some time
+        const AUTO_CLOSE_DELAYS = {
+            welcome: 10000, // 10 seconds
+            weather: 15000, // 15 seconds
+        };
+        if (AUTO_CLOSE_DELAYS[type]) {
+            setTimeout(() => {
+                if (panel && !panel.isDestroyed()) {
+                    this._fadeOutAndClose(panel);
+                }
+            }, AUTO_CLOSE_DELAYS[type]);
+        }
+
         console.log(`[WindowManager] Created HUD panel: ${type} (${widgetId}) at ${x},${y} [${w}x${h}]`);
         return { widgetId, panel };
     }
@@ -230,6 +243,20 @@ class WindowManager {
         }
         this.hudPanels.clear();
         this.cascadeOffset = { x: 0, y: 0 };
+    }
+
+    _fadeOutAndClose(win) {
+        if (!win || win.isDestroyed()) return;
+        let opacity = win.getOpacity();
+        const fadeOut = setInterval(() => {
+            opacity -= 0.12;
+            if (opacity <= 0) {
+                clearInterval(fadeOut);
+                if (!win.isDestroyed()) win.close();
+            } else {
+                if (!win.isDestroyed()) win.setOpacity(opacity);
+            }
+        }, 16);
     }
 
     // ── Smart Layout Positioning ─────────────────────────────────────────────
