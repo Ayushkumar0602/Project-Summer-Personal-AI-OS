@@ -261,7 +261,7 @@ class DaemonClient {
                     if (wm) {
                         wm.createHudPanel({
                             type: msg.widget,
-                            data: msg.state || {},
+                            data: msg.state?.data !== undefined ? msg.state.data : msg.state,
                             title: msg.state?.title,
                             width: msg.state?.width,
                             height: msg.state?.height,

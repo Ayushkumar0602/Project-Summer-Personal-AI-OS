@@ -159,6 +159,29 @@ function renderVideoPlayer(data) {
     `;
 }
 
+function renderImageGallery(data) {
+    const items = Array.isArray(data) ? data : (data ? [data] : []);
+    if (items.length === 0) return '<div class="hud-item"><div class="hud-item-title">No images</div></div>';
+
+    return `
+        <div class="gallery-track">
+            ${items.map(item => {
+                const src = item.url || `summer-media://${item.path}`;
+                return `
+                <div class="gallery-slide">
+                    <img src="${src}" class="gallery-img" />
+                    ${item.caption ? `<div class="gallery-credit">${esc(item.caption)}</div>` : ''}
+                </div>`;
+            }).join('')}
+        </div>
+        ${items.length > 1 ? `
+        <div class="gallery-dots">
+            ${items.map((_, i) => `<div class="gallery-dot ${i === 0 ? 'active' : ''}"></div>`).join('')}
+        </div>
+        ` : ''}
+    `;
+}
+
 function renderFileViewer(data) {
     return `
         <div class="file-card">
@@ -264,6 +287,7 @@ window.hudPanel.onContentUpdate((payload) => {
         case 'welcome':        html = renderWelcome(data); break;
         case 'full-email':     html = renderFullEmail(data); break;
         case 'custom_html':    html = renderCustomHtml(data); break;
+        case 'image_gallery':  html = renderImageGallery(data); break;
         case 'audio_player':   html = renderAudioPlayer(data); break;
         case 'video_player':   html = renderVideoPlayer(data); break;
         case 'file_viewer':    html = renderFileViewer(data); break;

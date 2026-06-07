@@ -74,8 +74,6 @@ class WindowManager {
             },
         });
 
-        panel.loadFile(path.join(__dirname, '..', 'hud-panel', 'panel.html'));
-
         panel.webContents.once('did-finish-load', () => {
             panel.webContents.send('panel-content-update', {
                 type,
@@ -83,6 +81,8 @@ class WindowManager {
                 title: title || (SIZE_PRESETS[type] ? undefined : type),
             });
         });
+
+        panel.loadFile(path.join(__dirname, '..', 'hud-panel', 'panel.html'));
 
         // Track in our map
         this.hudPanels.set(widgetId, { win: panel, type });
