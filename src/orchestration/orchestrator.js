@@ -111,6 +111,25 @@ class Orchestrator extends EventEmitter {
                 const notification = statusTracker.onAgentComplete(sessionId, result);
                 emit?.('agent-complete', { sessionId, agent_id, result });
                 this.emit('agent-complete', { sessionId, agent_id, result });
+
+                // ── Auto-render HTML results directly onto the HUD ──────────
+                // If the agent result contains an 'html' field, push it to the
+                // renderer immediately instead of waiting for Gemini to call
+                // show_hologram_widget (which it often fails to do reliably).
+                if (result?.html) {
+                    try {
+                        const { sendToRenderer } = require('../core/utils/renderer-bridge');
+                        sendToRenderer('show-hud-widget', {
+                            type: 'custom_html',
+                            data: { html: result.html },
+                            append: false,
+                        });
+                        console.log(`[Orchestrator] ✅ Auto-rendered HTML from ${agent_id} onto HUD`);
+                    } catch (e) {
+                        console.error(`[Orchestrator] Failed to auto-render HTML:`, e.message);
+                    }
+                }
+
                 if (notification?.shouldNotify) {
                     this.emit('agent-milestone', { sessionId, agent_id, clientId: clientId || null, text: notification.text });
                 }

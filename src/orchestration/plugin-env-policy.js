@@ -40,6 +40,7 @@ const OS_SAFE_KEYS = new Set([
 /** Keys that grant access to Summer's Gemini quota — only for "core" plugins */
 const GEMINI_KEYS = new Set([
     'GEMINI_API_KEY', 'GEMINI_LIVE_MODEL', 'GEMINI_VOICE_NAME',
+    'MEMORY_API_KEY', 'MEMORY_API_KEY_FALLBACK', 'MEMORY_API_KEY_3', 'MEMORY_API_KEY_4',
 ]);
 
 /** Keys that grant full cloud database access — never share with non-core */
