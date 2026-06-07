@@ -85,6 +85,15 @@ async function resolveAttributes(manifest, userText, prior = {}) {
   if (!filled.topic && userText && userText.length > 10) {
     filled.topic = userText;
   }
+
+  // ── Map topic to agent-specific mandatory attribute names ──────────────
+  // fact_checker_v1 needs "claim", trend_analyzer_v1 needs "industry_or_topic"
+  if (!filled.claim) {
+    filled.claim = filled.topic || (userText?.length > 10 ? userText : null);
+  }
+  if (!filled.industry_or_topic) {
+    filled.industry_or_topic = filled.topic || (userText?.length > 10 ? userText : null);
+  }
   if (!filled.slide_count) {
     const n = extractSlideCount(text);
     if (n) filled.slide_count = n;
