@@ -36,7 +36,13 @@ function extractTopic(text) {
     /(?:make|create|build|generate|conduct).{0,30}?\b(?:on|about|for|regarding|into)\s+['"]?([^"'.]+)['"]?/i,
     /(?:on|about|regarding)\s+['"]?([^"'.]+)['"]?\s+(?:for\s+)?(?:college|corporate|my)/i,
     /research\s+['"]?([^"'.]+)['"]?\s+(?:briefly|deeply|thoroughly)/i,
-    /(?:research|investigate|explore)\s+['"]?([^"'.]+)['"]?/i
+    /(?:research|investigate|explore)\s+['"]?([^"'.]+)['"]?/i,
+    // ── News / monitor / trend / fact-check patterns ──────────────────────
+    /(?:news|updates?|headlines?|monitor|track|check|analyze)\s+(?:on|about|for|regarding|related\s+to|of)\s+['"]?(.+?)['"]?(?:\s+in\s+the\s+|\s*$)/i,
+    /(?:gather|get|fetch|find|show)\s+(?:all\s+)?(?:the\s+)?(?:news|info|information|updates?|data)\s+(?:on|about|for|regarding|related\s+to|of)\s+['"]?(.+?)['"]?(?:\s+in\s+the\s+|\s*$)/i,
+    /(?:latest|recent)\s+(?:news|updates?|releases?|info)\s+(?:on|about|for|from|regarding)\s+['"]?(.+?)['"]?$/i,
+    /(?:fact[- ]?check|verify|is\s+it\s+true)\s+(?:that\s+)?['"]?(.+?)['"]?$/i,
+    /(?:trend|trends?|analyze\s+trends?)\s+(?:in|on|about|for|regarding)\s+['"]?(.+?)['"]?$/i,
   ];
   for (const p of patterns) {
     const m = text.match(p);
@@ -73,6 +79,11 @@ async function resolveAttributes(manifest, userText, prior = {}) {
 
   if (!filled.topic) {
     filled.topic = extractTopic(text) || prior.topic || null;
+  }
+  // Fallback: if topic is still null but user clearly asked about something,
+  // use the full user request as the topic (common for news/trend/fact queries)
+  if (!filled.topic && userText && userText.length > 10) {
+    filled.topic = userText;
   }
   if (!filled.slide_count) {
     const n = extractSlideCount(text);
