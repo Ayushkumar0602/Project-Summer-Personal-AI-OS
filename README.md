@@ -9,8 +9,15 @@
 
 **Summer** is a sophisticated, state-of-the-art AI assistant built on Electron, designed to bridge the gap between human intent and machine execution. Inspired by the "Jarvis" aesthetic, Summer now features **advanced memory extensions with audio processing, procedural behavior tracking, and temporal timeline visualization** for enhanced contextual awareness and learning.
 
-**Latest Update (June 4, 2026)**: 
-✨ **Major Intelligence & HUD Upgrades** - Integrated Gemini 3.1 Flash/Live with voice persona selection and emotional system instructions. Added persistent background agent tracking, a new media/file presentation system with HUD widgets, and semantic vector search using pgvector and embeddings for the memory graph.
+**Latest Updates (June 2026)**: 
+✨ **Cortex Engine, Unified HUD Overlay, & Advanced Google Workspace Integrations**
+- 🧠 **Autonomous Cortex Engine**: Self-evolution framework featuring automatic gap detection from session logs, sandboxed AST validation, dynamic Tier 1 skill forging, staging lifecycle management, and Git harvesting for PR automation.
+- 📺 **Unified Transparent Overlay**: Replaced individual panel windows with a single, full-screen transparent web canvas, featuring a priority-based, content-aware 3-zone tiling layout engine and click-through pointer watchdog logic.
+- 👥 **Multiple Google Accounts**: Direct listing, OAuth registration, and context-aware execution across multiple Gmail and Workspace accounts, backed by Supabase cloud state synchronization.
+- 📄 **Drive Presentation & Rendering**: Dynamic HUD presentation of Drive media files, mini-browser rendering of PDFs and presentations, and silent background text-extraction.
+- 🕵️ **Core Agents (Tier 2 Plugins)**: Integrated Fact Checker (web cross-referencing and PDF compilation via Playwright), News Monitor (sentiment and image scraping), and Trend Analyzer (keyword momentum and recommendation dashboards).
+- ✕ **Agent Cancellation**: Seamless execution termination via direct HUD abort interaction, killing background child processes cleanly.
+- 📱 **iOS Client MVVM Overhaul**: Swift architecture rewrite using modern MVVM, SwiftUI view components, voice orb integration, and visual memory graph.
 
 ---
 
@@ -25,9 +32,11 @@
 7. [System Implementation Flow](#-system-implementation-flow)
 8. [Data Flow & Communication Patterns](#-data-flow--communication-patterns)
 9. [Capabilities & Integration](#-capabilities--integration)
-10. [Installation & Setup](#-installation--setup)
-11. [Security & Privacy](#-security--privacy)
-12. [Roadmap](#-roadmap)
+10. [June 2026 System Upgrades](#-june-2026-system-upgrades)
+11. [Project Structure](#-project-structure)
+12. [Installation & Setup](#-installation--setup)
+13. [Security & Privacy](#-security--privacy)
+14. [Roadmap](#-roadmap)
 
 ---
 
@@ -550,7 +559,57 @@ graph LR
     style BA fill:#ffe0b2
     style CRA fill:#f0e6ff
     style PA fill:#ffccbc
-```
+
+---
+
+## 🌟 June 2026 System Upgrades
+
+### 1. Unified Transparent Overlay & Tiling Layout Engine
+Replaced individual panel window instances with a single, high-performance, full-screen transparent Electron canvas:
+* **Unified Canvas**: Controlled via [overlay.html](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/overlay/overlay.html), powered by [overlay-renderer.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/overlay/overlay-renderer.js) and [overlay-preload.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/overlay/overlay-preload.js).
+* **Smart Pointer Capture & Watchdog**: Solves pointer blocking. The window ignores mouse events (`setIgnoreMouseEvents(true, { forward: true })`) to pass clicks through to the OS. Mouse capture is enabled dynamically when hovering over widgets. A 500ms watchdog timer monitors cursor positions, automatically restoring click-through if a layout change or widget closure leaves the mouse over empty space.
+* **3-Zone Tiling Layout Engine**: Dynamic, content-aware widget arrangement. The active/focused widget (such as [mermaid](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/overlay/overlay-renderer.js#L231-L257) diagrams, emails, custom html) is centered with custom width and height. Secondary widgets automatically tile in left and right columns (max 8 visible, excess sent off-screen).
+* **Modular Multi-Window Orchestration**: Managed by [window-manager.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/main/window-manager.js) and [windows.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/main/windows.js).
+  * *Floating Orb Window*: The core voice responder (shifts to the left when the browser opens, recenters when closed).
+  * *On-Demand Mini-Browser Window*: Built-in browser taking 50% of screen width for web tools and authentication.
+  * *Settings/Permissions Window*: Local configurations and OAuth setup.
+
+### 2. Autonomous Cortex Engine (Self-Evolution Loop)
+An automated background capability optimizer that wakes up when all clients disconnect (idle mode):
+* **Core Loop Orchestration**: Regulated by [cortex-engine.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/cortex-engine.js). Runs sequential cycles governed by strict daily token limits (100k tokens/day) and automatic client connection gates.
+* **Evolution Subsystems**:
+  * **Memory Consolidator** ([memory-consolidator.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/memory-consolidator.js)): Prunes knowledge graphs and merges related nodes.
+  * **Gap Detector** ([gap-detector.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/gap-detector.js)): Mines session diaries and user-correction anti-patterns for failure items, writing `CapabilityGap` nodes to the graph.
+  * **Skill Forge** ([skill-forge.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/skill-forge.js)): Generates context-only JavaScript skills (Tier 1) containing expert guidance.
+  * **Sandbox Validator (Security Gate)** ([sandbox-validator.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/sandbox-validator.js)): Enforces a strict security policy on generated code via Node.js `vm` AST validation. Blocks `require`, `import`, `eval`, Node globals (`process`, `global`), networking/IO, and functions, ensuring context is pure data.
+  * **Staging Registry** ([staging-registry.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/staging-registry.js)): Hot-reloads and registers skills. Auto-promotes skills after 3 successful executions; auto-demotes and deletes them after 2 failures.
+  * **Git Harvester** ([git-harvester.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/git-harvester.js)): Automatically packages promoted skills and opens GitHub Pull Requests to merge them.
+  * **Self-Reflector** ([self-reflector.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/self-reflector.js)): Generates daily journals detailing capabilities evolution.
+
+### 3. Multiple Google Accounts & Drive Presentation
+Extends Google Workspace capabilities with multi-account auth and media streaming:
+* **Multi-Account Storage**: Managed in [google-auth.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/auth/google-auth.js). Migrated from legacy single-token files to `google-accounts.json`, supporting concurrent accounts and primary selection.
+* **Workspace Tools Context**: Registered in [google-tools.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/tools/google-tools.js) and executed by [drive-service.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/services/drive-service.js) and [mail-service.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/services/mail-service.js). Supports querying, listing, and archiving across all accounts at once.
+* **Drive Media Streaming & Processing**:
+  * Playback of media files on the HUD (images rendered in overlay, videos and audio opened in the browser window).
+  * Integrates silent PDF text-extraction using `pdf-parse` to feed document contents into Gemini's context for live Q&A.
+* **Supabase Cloud Syncing**: Synchronizes credentials and settings to Supabase table `app_settings` for seamless multi-device access.
+
+### 4. New Core Agents (Tier 2 Plugins)
+Introduces specialized background worker agents loaded dynamically via [orchestrator.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/orchestration/orchestrator.js):
+* **Fact Checker** ([fact_checker/index.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/plugins/fact_checker/index.js)): Evaluates claims by scanning search indexes, outputs color-coded "Truth-O-Meter" verdicts, renders a report via Playwright chromium, compiles it to PDF, and uploads it to Google Drive.
+* **News Monitor** ([news_monitor/index.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/plugins/news_monitor/index.js)): Gathers news items, performs sentiment analysis, scrapes lead images from og:image tags, and generates custom glassmorphic dashboards.
+* **Trend Analyzer** ([trend_analyzer/index.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/plugins/trend_analyzer/index.js)): Analyzes keyword popularity, graphs trend momentum, and structures recommendation dashboards.
+
+### 5. Agent Cancellation Workflow
+Provides users the ability to abort active background agents instantly:
+* **Protocol & IPC Routing**: Employs `cancel_agents` message type in [protocol.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/core/transport/protocol.js) routed through [daemon-client.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/main/daemon-client.js) and [session-ipc.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/main/ipc/session-ipc.js).
+* **Process Termination**: Handled in [ws-server.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/core/transport/ws-server.js) and [orchestrator.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/orchestration/orchestrator.js). Kills spawned child processes immediately, updates status, and closes the progress panel.
+
+### 6. iOS Client MVVM Overhaul
+Complete refactoring of the Swift mobile application located in [clients/ios/SummerApp/](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/clients/ios/SummerApp/):
+* **Architecture Shift**: Transitioned to SwiftUI and clean MVVM using [SummerViewModel.swift](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/clients/ios/SummerApp/SummerApp/ViewModels/SummerViewModel.swift) and [MemoryViewModel.swift](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/clients/ios/SummerApp/SummerApp/ViewModels/MemoryViewModel.swift).
+* **Interface Improvements**: Includes `ChatView.swift` for interactive messaging, `VoiceOrbView.swift` representing voice activity, and `MemoryGraphView.swift` which reads memory nodes and visualizes connections directly on iOS.
 
 ---
 
@@ -558,81 +617,77 @@ graph LR
 
 ```
 summer-personal-assistant/
+├── clients/
+│   └── ios/SummerApp/            # SwiftUI MVVM iOS Client
+├── plugins/                      # Tier 2 Plugin Agents
+│   ├── fact_checker/             # Playwright/Gemini fact-verifier
+│   ├── news_monitor/             # Sentiment-aware news dashboard
+│   └── trend_analyzer/           # Strategic industry trend monitor
+├── scripts/                      # Testing & Supabase migration scripts
 ├── src/
+│   ├── auth/
+│   │   └── google-auth.js        # Multi-account OAuth registry & storage
+│   ├── browser/
+│   │   └── browser.html          # Mini-browser layout template
+│   ├── core/
+│   │   ├── event-bus.js          # Core event management
+│   │   ├── platform/             # MacOS adapter interface
+│   │   └── transport/
+│   │       ├── protocol.js       # WebSocket packet formats
+│   │       └── ws-server.js      # WebSocket transport server ( nervous system )
+│   ├── cortex/                   # Subconscious Self-Evolution Loop
+│   │   ├── cortex-engine.js      # Runs evolution cycles during idle state
+│   │   ├── gap-detector.js       # Mines session logs for capability gaps
+│   │   ├── skill-forge.js        # Automatically creates Tier 1 skills
+│   │   ├── sandbox-validator.js  # AST validation safety gate
+│   │   ├── staging-registry.js   # Skill promotion & demotion lifecycle
+│   │   ├── git-harvester.js      # Automated Git PR creator
+│   │   └── self-reflector.js     # Daily self-reflection journal generator
+│   ├── hud-panel/
+│   │   └── panel-renderer.js     # Progress & media presentation views
+│   ├── knowledge/
+│   │   ├── graph-store.js        # Local graph DB & serialization
+│   │   ├── memory-api-key.js     # API key management and token budgeting
+│   │   └── session-diary.js      # End-of-session logs and summaries
 │   ├── main/
-│   │   ├── index.ts              # Main process entry point
-│   │   ├── ipc-bridge.ts         # IPC message routing
-│   │   ├── intent-engine.ts      # Intent detection & analysis
-│   │   ├── agent-router.ts       # Agent selection algorithm
-│   │   ├── tool-executor.ts      # Tool execution engine
-│   │   ├── memory-engine.ts      # Knowledge graph management
-│   │   ├── skills-loader.ts      # Dynamic skill loading
-│   │   └── event-manager.ts      # Event coordination
-│   │
-│   ├── agents/
-│   │   ├── base-agent.ts         # Abstract agent class
-│   │   ├── code-agent.ts         # Software engineering agent
-│   │   ├── research-agent.ts     # Research & analysis agent
-│   │   ├── business-agent.ts     # Business strategy agent
-│   │   ├── creative-agent.ts     # Creative content agent
-│   │   └── personal-agent.ts     # Lifestyle & wellness agent
-│   │
-│   ├── memory/
-│   │   ├── knowledge-graph.ts    # Graph database operations
-│   │   ├── memory-partition.ts   # Agent-specific memory
-│   │   ├── semantic-chunker.ts   # Document processing
-│   │   ├── audio-processor.ts    # Audio memory extensions (NEW)
-│   │   ├── procedural-tracker.ts # Behavior pattern tracking (NEW)
-│   │   └── timeline-visualizer.ts # Temporal visualization (NEW)
-│   │
+│   │   ├── daemon-client.js      # Electron main → daemon WebSocket client
+│   │   ├── window-manager.js     # Overlay widget layout controller
+│   │   ├── windows.js            # Electron BrowserWindow factory methods
+│   │   └── ipc/
+│   │       ├── google-ipc.js     # Google account IPC bridging
+│   │       └── session-ipc.js    # Voice session IPC bridging
+│   ├── orb/
+│   │   ├── orb-renderer.js       # Audio-reactive WebGL voice visualization
+│   │   └── orb.html              # Floating voice responder frame
+│   ├── orchestration/
+│   │   ├── attribute-resolver.js # Task manifest field resolver
+│   │   └── orchestrator.js       # Tier 2 domain agent scheduler
+│   ├── overlay/                  # Unified HUD overlay Canvas
+│   │   ├── overlay-preload.js    # Preload bridging definitions
+│   │   ├── overlay-renderer.js   # Priority layout & pointer watchdog
+│   │   └── overlay.html          # Transparent click-through web canvas
+│   ├── services/
+│   │   ├── drive-service.js      # Drive downloading, metadata & delete
+│   │   ├── google-service.js     # Google tasks and calendar manager
+│   │   └── mail-service.js       # Multi-account email retrieval
+│   ├── settings/
+│   │   ├── settings-renderer.js  # Local permissions settings panel
+│   │   └── permissions-store.js  # Pre-approved permission registries
+│   ├── skills/
+│   │   ├── skill-loader.js       # Dynamic runtime loader
+│   │   └── cortex-*-skill.js     # Auto-forged skill files
 │   ├── tools/
-│   │   ├── git-tools.ts
-│   │   ├── code-analyzer.ts
-│   │   ├── debugger.ts
-│   │   ├── web-scraper.ts
-│   │   ├── calendar-tool.ts
-│   │   └── system-control.ts
-│   │
-│   ├── renderer/
-│   │   ├── index.html
-│   │   ├── styles/
-│   │   │   ├── glassmorphic.css
-│   │   │   ├── responsive.css
-│   │   │   └── animations.css
-│   │   ├── components/
-│   │   │   ├── agent-display.tsx
-│   │   │   ├── memory-visualizer.tsx
-│   │   │   ├── timeline-view.tsx
-│   │   │   └── ui-controller.tsx
-│   │   └── app.tsx               # React entry point
-│   │
-│   └── utils/
-│       ├── logger.ts
-│       ├── config.ts
-│       ├── constants.ts
-│       └── helpers.ts
-│
-├── tests/
-│   ├── agents/
-│   ├── memory/
-│   ├── tools/
-│   └── integration/
-│
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── API_REFERENCE.md
-│   ├── AGENT_GUIDE.md
-│   └── MEMORY_SYSTEM.md
-│
-├── .github/
-│   └── workflows/
-│       ├── build.yml
-│       ├── test.yml
-│       └── deploy.yml
-│
+│   │   ├── google-tools.js       # Workspace tool declarations & handlers
+│   │   ├── os-tools.ts           # macOS automation tools
+│   │   └── tool-router.js        # Unified tool dispatcher
+│   ├── wake-word/
+│   │   └── wake-word-engine.js   # Local VAD audio trigger
+│   ├── index.js                  # Main Electron entry
+│   ├── index.html                # App layout shell
+│   ├── index.css                 # Base stylesheet
+│   └── preload.js                # Main IPC preload bridge
+├── summer-daemon.js              # Headless Core Daemon server entry
 ├── package.json
-├── tsconfig.json
-├── webpack.config.js
 └── README.md
 ```
 
