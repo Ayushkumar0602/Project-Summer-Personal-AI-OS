@@ -251,20 +251,25 @@
         <div class="tab-content" id="tab-integrations">
             <div class="section-header">
                 <h2>Account Integrations</h2>
-                <p>Connect third-party services to give Summer access to your digital life.</p>
+                <p>Connect multiple Google accounts to give Summer access to all your inboxes, calendars, and files.</p>
             </div>
 
             <div class="access-cards">
+                <!-- Google Multi-Account Card -->
                 <div class="access-card essential">
                     <div class="card-icon" style="font-size:24px;">G</div>
                     <h3>Google Workspace</h3>
-                    <p>Connect your Google Account to let Summer read your calendar, fetch your tasks, and manage emails securely via OAuth 2.0.</p>
-                    <div style="margin-top: 12px;" id="googleAuthStatus">
-                        <span style="color:#94a3b8; font-size:12px;">Status: Checking...</span>
+                    <p>Connect your Google Accounts to let Summer read calendars, manage emails, and access Drive across all your accounts. One account is marked as <strong>Primary</strong> — used by default for calendar, tasks, and sending emails.</p>
+
+                    <!-- Connected Accounts List -->
+                    <div id="googleAccountsList" style="margin-top: 16px;">
+                        <div style="color:#94a3b8; font-size:12px;">Loading accounts...</div>
                     </div>
-                    <div style="margin-top: 12px; display:flex; gap:10px;">
-                        <button class="btn btn-primary" id="btnConnectGoogle">Connect Google</button>
-                        <button class="btn btn-danger" id="btnDisconnectGoogle" style="display:none;">Disconnect</button>
+
+                    <!-- Add Account Button -->
+                    <div style="margin-top: 16px; display:flex; gap:10px; align-items:center;">
+                        <button class="btn btn-primary" id="btnAddGoogleAccount">＋ Add Google Account</button>
+                        <span id="googleAddStatus" style="font-size:12px; color:#94a3b8;"></span>
                     </div>
                 </div>
             </div>

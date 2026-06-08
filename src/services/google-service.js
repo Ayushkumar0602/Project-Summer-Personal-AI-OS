@@ -1,16 +1,17 @@
 const { google } = require('googleapis');
-const { getClient, isAuthenticated } = require('../auth/google-auth');
+const { getClient, isAuthenticated, getAccounts, getAllAccountIds, getAccountInfo } = require('../auth/google-auth');
 
 /**
  * Fetches today's agenda from Google Calendar.
+ * @param {string} [accountId] - specific account ID, or primary if omitted
  */
-async function getTodaysSchedule() {
-    if (!(await isAuthenticated())) {
+async function getTodaysSchedule(accountId = null) {
+    if (!(await isAuthenticated(accountId))) {
         return "Google Calendar: Not connected.";
     }
 
     try {
-        const calendar = google.calendar({ version: 'v3', auth: getClient() });
+        const calendar = google.calendar({ version: 'v3', auth: getClient(accountId) });
         const now = new Date();
         
         // Start of today
@@ -47,14 +48,15 @@ async function getTodaysSchedule() {
 
 /**
  * Fetches pending and recently completed tasks from Google Tasks.
+ * @param {string} [accountId] - specific account ID, or primary if omitted
  */
-async function getTasksContext() {
-    if (!(await isAuthenticated())) {
+async function getTasksContext(accountId = null) {
+    if (!(await isAuthenticated(accountId))) {
         return "Google Tasks: Not connected.";
     }
 
     try {
-        const tasksService = google.tasks({ version: 'v1', auth: getClient() });
+        const tasksService = google.tasks({ version: 'v1', auth: getClient(accountId) });
         
         // Fetch all task lists, pick the primary one (usually the first one "@default")
         const listsRes = await tasksService.tasklists.list();
@@ -105,6 +107,7 @@ async function getTasksContext() {
 
 /**
  * Compiles a full daily briefing from Google APIs to inject into context.
+ * Uses the primary account by default.
  */
 async function getDailyBriefingContext() {
     const isAuth = await isAuthenticated();
@@ -115,14 +118,24 @@ async function getDailyBriefingContext() {
         getTasksContext()
     ]);
 
-    return `\n\n--- GOOGLE WORKSPACE CONTEXT ---\n${schedule}\n\n${tasks}\n---------------------------------`;
+    // Include account info in context
+    const accounts = getAccounts();
+    let accountInfo = '';
+    if (accounts.length > 0) {
+        accountInfo = '\nCONNECTED GOOGLE ACCOUNTS:\n';
+        accounts.forEach(a => {
+            accountInfo += `- ${a.email}${a.isPrimary ? ' (PRIMARY)' : ''}\n`;
+        });
+    }
+
+    return `\n\n--- GOOGLE WORKSPACE CONTEXT ---\n${schedule}\n\n${tasks}${accountInfo}\n---------------------------------`;
 }
 
 // ── MUTATIONS (Tools) ──
 
-async function createGoogleTask(title, notes = '', due = null) {
-    if (!(await isAuthenticated())) throw new Error("Google Tasks not connected.");
-    const tasksService = google.tasks({ version: 'v1', auth: getClient() });
+async function createGoogleTask(title, notes = '', due = null, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Google Tasks not connected.");
+    const tasksService = google.tasks({ version: 'v1', auth: getClient(accountId) });
     
     const listsRes = await tasksService.tasklists.list();
     const primaryListId = listsRes.data.items?.[0]?.id || '@default';
@@ -141,9 +154,9 @@ async function createGoogleTask(title, notes = '', due = null) {
     return `Successfully created Google Task: "${res.data.title}" (ID: ${res.data.id})`;
 }
 
-async function createGoogleCalendarEvent(summary, startTime, endTime, description = '') {
-    if (!(await isAuthenticated())) throw new Error("Google Calendar not connected.");
-    const calendar = google.calendar({ version: 'v3', auth: getClient() });
+async function createGoogleCalendarEvent(summary, startTime, endTime, description = '', accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Google Calendar not connected.");
+    const calendar = google.calendar({ version: 'v3', auth: getClient(accountId) });
 
     const event = {
         summary,
@@ -160,9 +173,9 @@ async function createGoogleCalendarEvent(summary, startTime, endTime, descriptio
     return `Successfully created Google Calendar Event: "${res.data.summary}" at ${res.data.start.dateTime} (ID: ${res.data.id})`;
 }
 
-async function listUpcomingGoogleCalendarEvents(maxResults = 10) {
-    if (!(await isAuthenticated())) throw new Error("Google Calendar not connected.");
-    const calendar = google.calendar({ version: 'v3', auth: getClient() });
+async function listUpcomingGoogleCalendarEvents(maxResults = 10, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Google Calendar not connected.");
+    const calendar = google.calendar({ version: 'v3', auth: getClient(accountId) });
     
     const res = await calendar.events.list({
         calendarId: 'primary',
@@ -178,9 +191,9 @@ async function listUpcomingGoogleCalendarEvents(maxResults = 10) {
     return events.map(e => `ID: ${e.id} | Summary: ${e.summary} | Start: ${e.start.dateTime || e.start.date}`).join("\n");
 }
 
-async function deleteGoogleCalendarEvent(eventId) {
-    if (!(await isAuthenticated())) throw new Error("Google Calendar not connected.");
-    const calendar = google.calendar({ version: 'v3', auth: getClient() });
+async function deleteGoogleCalendarEvent(eventId, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Google Calendar not connected.");
+    const calendar = google.calendar({ version: 'v3', auth: getClient(accountId) });
     await calendar.events.delete({
         calendarId: 'primary',
         eventId: eventId,

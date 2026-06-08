@@ -5,9 +5,14 @@ contextBridge.exposeInMainWorld('settingsAPI', {
     revokePermission: (toolName) => ipcRenderer.invoke('revoke-permission', toolName),
     revokeAllPermissions: () => ipcRenderer.invoke('revoke-all-permissions'),
     getAuditLogs: () => ipcRenderer.invoke('get-audit-logs'),
+
+    // Google — Multi-Account
     authenticateGoogle: () => ipcRenderer.invoke('authenticate-google'),
-    logoutGoogle: () => ipcRenderer.invoke('logout-google'),
+    logoutGoogle: (accountId) => ipcRenderer.invoke('logout-google', accountId),
+    logoutGoogleAccount: (accountId) => ipcRenderer.invoke('logout-google-account', accountId),
     checkGoogleAuth: () => ipcRenderer.invoke('check-google-auth'),
+    getGoogleAccounts: () => ipcRenderer.invoke('get-google-accounts'),
+    setPrimaryGoogleAccount: (accountId) => ipcRenderer.invoke('set-primary-google-account', accountId),
 
     // Wake Word
     getWakeWordStatus: () => ipcRenderer.invoke('get-wake-word-status'),

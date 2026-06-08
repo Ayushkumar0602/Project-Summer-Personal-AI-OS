@@ -20,7 +20,7 @@ html, body {
     top: 0; left: 0; right: 0;
     height: 32px;
     -webkit-app-region: drag;
-    z-index: 999;
+    z-index: 1;
 }
 
 /* ── Wake Word Indicator ─────────────────────────────────── */

@@ -4,13 +4,24 @@ const driveService = require('../services/drive-service');
 const youtubeService = require('../services/youtube-service');
 const mapsService = require('../services/maps-service');
 const { sendToRenderer, executeInRenderer } = require('../core/utils/renderer-bridge');
+const googleAuth = require('../auth/google-auth');
 
 /**
- * Tool definitions for Google Workspace (Calendar, Tasks, Gmail)
+ * Tool definitions for Google Workspace (Calendar, Tasks, Gmail, Multi-Account)
  * These tools will be mapped to Gemini Live's tools array.
  */
 
 const declarations = [
+    // ── Account Management ─────────────────────────────────────────────────────
+    {
+        name: "google_list_accounts",
+        description: "Lists all connected Google accounts. Shows email addresses and which one is the primary account. Use this to understand which accounts the user has connected.",
+        parameters: {
+            type: "OBJECT",
+            properties: {}
+        }
+    },
+    // ── Calendar & Tasks ───────────────────────────────────────────────────────
     {
         name: "google_create_task",
         description: "Creates a new task in the user's primary Google Tasks list.",
@@ -59,37 +70,41 @@ const declarations = [
             required: ["eventId"]
         }
     },
+    // ── Email (Single Account) ─────────────────────────────────────────────────
     {
         name: "google_read_unread_emails",
-        description: "Reads the user's unread emails from Gmail. Returns the sender, subject, and date.",
+        description: "Reads the user's unread emails from Gmail. By default reads from the primary account. Pass an accountId to target a specific account.",
         parameters: {
             type: "OBJECT",
             properties: {
-                maxResults: { type: "INTEGER", description: "Maximum number of unread emails to fetch. Default is 5." }
+                maxResults: { type: "INTEGER", description: "Maximum number of unread emails to fetch. Default is 5." },
+                accountId: { type: "STRING", description: "Optional. The ID of a specific Google account. If omitted, uses the primary account. Use google_list_accounts to find account IDs." }
             }
         }
     },
     {
         name: "google_send_email",
-        description: "Sends an email using the user's Gmail account.",
+        description: "Sends an email using the user's Gmail account. Defaults to primary account.",
         parameters: {
             type: "OBJECT",
             properties: {
                 to: { type: "STRING", description: "The email address of the recipient." },
                 subject: { type: "STRING", description: "The subject line of the email." },
-                bodyText: { type: "STRING", description: "The body content of the email." }
+                bodyText: { type: "STRING", description: "The body content of the email." },
+                accountId: { type: "STRING", description: "Optional. The account to send from. Defaults to primary." }
             },
             required: ["to", "subject", "bodyText"]
         }
     },
     {
         name: "google_search_emails",
-        description: "Searches Gmail using standard Gmail queries (e.g. 'category:promotions', 'from:spam@spam.com', 'is:unread'). Returns a list of matching emails and their IDs.",
+        description: "Searches Gmail using standard Gmail queries (e.g. 'category:promotions', 'from:spam@spam.com', 'is:unread'). Returns a list of matching emails and their IDs. Defaults to primary account.",
         parameters: {
             type: "OBJECT",
             properties: {
                 query: { type: "STRING", description: "The Gmail search query." },
-                maxResults: { type: "INTEGER", description: "Maximum number of results to fetch. Default is 10." }
+                maxResults: { type: "INTEGER", description: "Maximum number of results to fetch. Default is 10." },
+                accountId: { type: "STRING", description: "Optional. Target a specific account." }
             },
             required: ["query"]
         }
@@ -100,7 +115,8 @@ const declarations = [
         parameters: {
             type: "OBJECT",
             properties: {
-                messageId: { type: "STRING", description: "The ID of the email to trash." }
+                messageId: { type: "STRING", description: "The ID of the email to trash." },
+                accountId: { type: "STRING", description: "Optional. The account this email belongs to." }
             },
             required: ["messageId"]
         }
@@ -111,7 +127,8 @@ const declarations = [
         parameters: {
             type: "OBJECT",
             properties: {
-                messageId: { type: "STRING", description: "The ID of the email to archive." }
+                messageId: { type: "STRING", description: "The ID of the email to archive." },
+                accountId: { type: "STRING", description: "Optional. The account this email belongs to." }
             },
             required: ["messageId"]
         }
@@ -122,11 +139,36 @@ const declarations = [
         parameters: {
             type: "OBJECT",
             properties: {
-                messageId: { type: "STRING", description: "The ID of the email." }
+                messageId: { type: "STRING", description: "The ID of the email." },
+                accountId: { type: "STRING", description: "Optional. The account this email belongs to." }
             },
             required: ["messageId"]
         }
     },
+    // ── Email (All Accounts) ───────────────────────────────────────────────────
+    {
+        name: "google_read_unread_emails_all_accounts",
+        description: "Reads unread emails from ALL connected Google accounts at once. Results are labeled by account email. Great for getting a complete overview across personal, work, and other accounts.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                maxResults: { type: "INTEGER", description: "Maximum number of unread emails to fetch PER account. Default is 5." }
+            }
+        }
+    },
+    {
+        name: "google_search_emails_all_accounts",
+        description: "Searches emails across ALL connected Google accounts simultaneously. Results are labeled by account email.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                query: { type: "STRING", description: "The Gmail search query." },
+                maxResults: { type: "INTEGER", description: "Maximum results per account. Default is 10." }
+            },
+            required: ["query"]
+        }
+    },
+    // ── Drive ──────────────────────────────────────────────────────────────────
     {
         name: "google_drive_search",
         description: "Searches Google Drive for files. Good for finding the ID of a document or spreadsheet.",
@@ -230,6 +272,24 @@ const declarations = [
 ];
 
 const handlers = {
+    // ── Account Management ─────────────────────────────────────────────────────
+    google_list_accounts: async () => {
+        try {
+            const accounts = googleAuth.getAccounts();
+            if (accounts.length === 0) {
+                return "No Google accounts connected. The user can connect accounts in Settings → Integrations.";
+            }
+            let result = `CONNECTED GOOGLE ACCOUNTS (${accounts.length}):\n`;
+            accounts.forEach((a, i) => {
+                result += `${i + 1}. ${a.email}${a.isPrimary ? ' ★ PRIMARY' : ''} (ID: ${a.id})\n`;
+            });
+            return result;
+        } catch (e) {
+            return `Failed to list accounts: ${e.message}`;
+        }
+    },
+
+    // ── Calendar & Tasks ───────────────────────────────────────────────────────
     google_create_task: async (args) => {
         try {
             return await googleService.createGoogleTask(args.title, args.notes, args.due);
@@ -258,50 +318,70 @@ const handlers = {
             return `Failed to delete calendar event: ${e.message}`;
         }
     },
+
+    // ── Email (Single Account) ─────────────────────────────────────────────────
     google_read_unread_emails: async (args) => {
         try {
-            return await mailService.getUnreadEmails(args.maxResults || 5);
+            return await mailService.getUnreadEmails(args.maxResults || 5, args.accountId || null);
         } catch (e) {
             return `Failed to read emails: ${e.message}`;
         }
     },
     google_send_email: async (args) => {
         try {
-            return await mailService.sendEmail(args.to, args.subject, args.bodyText);
+            return await mailService.sendEmail(args.to, args.subject, args.bodyText, args.accountId || null);
         } catch (e) {
             return `Failed to send email: ${e.message}`;
         }
     },
     google_search_emails: async (args) => {
         try {
-            return await mailService.searchEmails(args.query, args.maxResults || 10);
+            return await mailService.searchEmails(args.query, args.maxResults || 10, args.accountId || null);
         } catch (e) {
             return `Failed to search emails: ${e.message}`;
         }
     },
     google_trash_email: async (args) => {
         try {
-            return await mailService.trashEmail(args.messageId);
+            return await mailService.trashEmail(args.messageId, args.accountId || null);
         } catch (e) {
             return `Failed to trash email: ${e.message}`;
         }
     },
     google_archive_email: async (args) => {
         try {
-            return await mailService.archiveEmail(args.messageId);
+            return await mailService.archiveEmail(args.messageId, args.accountId || null);
         } catch (e) {
             return `Failed to archive email: ${e.message}`;
         }
     },
     google_read_full_email: async (args) => {
         try {
-            const html = await mailService.getEmailHtml(args.messageId);
+            const html = await mailService.getEmailHtml(args.messageId, args.accountId || null);
             sendToRenderer('show-hud-widget', { type: 'full-email', data: html });
             return "Successfully rendered the full email on the user's screen. You do not need to read the content to them.";
         } catch (e) {
             return `Failed to get full email: ${e.message}`;
         }
     },
+
+    // ── Email (All Accounts) ───────────────────────────────────────────────────
+    google_read_unread_emails_all_accounts: async (args) => {
+        try {
+            return await mailService.getUnreadEmailsAllAccounts(args.maxResults || 5);
+        } catch (e) {
+            return `Failed to read emails across accounts: ${e.message}`;
+        }
+    },
+    google_search_emails_all_accounts: async (args) => {
+        try {
+            return await mailService.searchEmailsAllAccounts(args.query, args.maxResults || 10);
+        } catch (e) {
+            return `Failed to search emails across accounts: ${e.message}`;
+        }
+    },
+
+    // ── Drive ──────────────────────────────────────────────────────────────────
     google_drive_search: async (args) => {
         try {
             return await driveService.searchFiles(args.query, args.maxResults);

@@ -480,3 +480,22 @@ input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.2);
     box-shadow: 0 0 14px rgba(6, 182, 212, 0.7);
 }
+
+/* ── Google Account Items ────────────────────────────────────── */
+.google-account-item:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(6, 182, 212, 0.15) !important;
+}
+
+.btn-set-primary:hover {
+    background: rgba(6, 182, 212, 0.2) !important;
+    border-color: rgba(6, 182, 212, 0.5) !important;
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
+}
+
+.btn-disconnect-account:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+}
+

@@ -1,5 +1,5 @@
 const { google } = require('googleapis');
-const { getClient, isAuthenticated } = require('../auth/google-auth');
+const { getClient, isAuthenticated, getAllAccountIds, getAccountInfo } = require('../auth/google-auth');
 
 function maskSensitiveInfo(subject, snippet) {
     const textToScan = (subject + " " + (snippet || "")).toLowerCase();
@@ -16,9 +16,25 @@ function maskSensitiveInfo(subject, snippet) {
     return { subject, snippet };
 }
 
-async function getUnreadEmails(maxResults = 5) {
-    if (!(await isAuthenticated())) throw new Error("Gmail not connected.");
-    const gmail = google.gmail({ version: 'v1', auth: getClient() });
+/**
+ * Helper: get a Gmail API instance for a specific account or primary.
+ */
+function _getGmail(accountId) {
+    return google.gmail({ version: 'v1', auth: getClient(accountId) });
+}
+
+/**
+ * Helper: get account label string for multi-account results.
+ */
+function _accountLabel(accountId) {
+    if (!accountId) return '';
+    const info = getAccountInfo(accountId);
+    return info ? `[${info.email}] ` : '';
+}
+
+async function getUnreadEmails(maxResults = 5, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Gmail not connected.");
+    const gmail = _getGmail(accountId);
 
     const res = await gmail.users.messages.list({
         userId: 'me',
@@ -29,7 +45,8 @@ async function getUnreadEmails(maxResults = 5) {
     const messages = res.data.messages;
     if (!messages || messages.length === 0) return "No unread emails found.";
 
-    let resultStr = "UNREAD EMAILS:\n";
+    const label = _accountLabel(accountId);
+    let resultStr = `UNREAD EMAILS${label ? ' — ' + label.trim() : ''}:\n`;
     for (const msg of messages) {
         const msgData = await gmail.users.messages.get({
             userId: 'me',
@@ -45,14 +62,36 @@ async function getUnreadEmails(maxResults = 5) {
         
         const { subject, snippet } = maskSensitiveInfo(rawSubject, rawSnippet);
         
-        resultStr += `- From: ${from} | Subject: ${subject} | Date: ${date} | ID: ${msg.id}\n  Snippet: ${snippet}\n`;
+        resultStr += `- ${label}From: ${from} | Subject: ${subject} | Date: ${date} | ID: ${msg.id}\n  Snippet: ${snippet}\n`;
     }
     return resultStr;
 }
 
-async function searchEmails(query, maxResults = 10) {
-    if (!(await isAuthenticated())) throw new Error("Gmail not connected.");
-    const gmail = google.gmail({ version: 'v1', auth: getClient() });
+/**
+ * Fetches unread emails across ALL connected Google accounts.
+ */
+async function getUnreadEmailsAllAccounts(maxResults = 5) {
+    const accountIds = getAllAccountIds();
+    if (accountIds.length === 0) return "No Google accounts connected.";
+
+    let allResults = `UNREAD EMAILS — ALL ACCOUNTS (${accountIds.length} accounts):\n\n`;
+    
+    for (const accountId of accountIds) {
+        try {
+            const result = await getUnreadEmails(maxResults, accountId);
+            allResults += result + '\n';
+        } catch (e) {
+            const info = getAccountInfo(accountId);
+            allResults += `[${info?.email || accountId}] Error: ${e.message}\n`;
+        }
+    }
+
+    return allResults;
+}
+
+async function searchEmails(query, maxResults = 10, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Gmail not connected.");
+    const gmail = _getGmail(accountId);
 
     const res = await gmail.users.messages.list({
         userId: 'me',
@@ -63,7 +102,8 @@ async function searchEmails(query, maxResults = 10) {
     const messages = res.data.messages;
     if (!messages || messages.length === 0) return `No emails found for query: ${query}`;
 
-    let resultStr = `SEARCH RESULTS (${query}):\n`;
+    const label = _accountLabel(accountId);
+    let resultStr = `SEARCH RESULTS (${query})${label ? ' — ' + label.trim() : ''}:\n`;
     for (const msg of messages) {
         const msgData = await gmail.users.messages.get({
             userId: 'me',
@@ -79,14 +119,36 @@ async function searchEmails(query, maxResults = 10) {
         
         const { subject, snippet } = maskSensitiveInfo(rawSubject, rawSnippet);
         
-        resultStr += `- ID: ${msg.id} | From: ${from} | Subject: ${subject}\n`;
+        resultStr += `- ${label}ID: ${msg.id} | From: ${from} | Subject: ${subject}\n`;
     }
     return resultStr;
 }
 
-async function trashEmail(messageId) {
-    if (!(await isAuthenticated())) throw new Error("Gmail not connected.");
-    const gmail = google.gmail({ version: 'v1', auth: getClient() });
+/**
+ * Searches emails across ALL connected Google accounts.
+ */
+async function searchEmailsAllAccounts(query, maxResults = 10) {
+    const accountIds = getAllAccountIds();
+    if (accountIds.length === 0) return "No Google accounts connected.";
+
+    let allResults = `SEARCH RESULTS (${query}) — ALL ACCOUNTS (${accountIds.length} accounts):\n\n`;
+    
+    for (const accountId of accountIds) {
+        try {
+            const result = await searchEmails(query, maxResults, accountId);
+            allResults += result + '\n';
+        } catch (e) {
+            const info = getAccountInfo(accountId);
+            allResults += `[${info?.email || accountId}] Error: ${e.message}\n`;
+        }
+    }
+
+    return allResults;
+}
+
+async function trashEmail(messageId, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Gmail not connected.");
+    const gmail = _getGmail(accountId);
     await gmail.users.messages.trash({
         userId: 'me',
         id: messageId
@@ -94,9 +156,9 @@ async function trashEmail(messageId) {
     return `Successfully moved email ${messageId} to trash.`;
 }
 
-async function archiveEmail(messageId) {
-    if (!(await isAuthenticated())) throw new Error("Gmail not connected.");
-    const gmail = google.gmail({ version: 'v1', auth: getClient() });
+async function archiveEmail(messageId, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Gmail not connected.");
+    const gmail = _getGmail(accountId);
     await gmail.users.messages.modify({
         userId: 'me',
         id: messageId,
@@ -107,9 +169,9 @@ async function archiveEmail(messageId) {
     return `Successfully archived email ${messageId}.`;
 }
 
-async function sendEmail(to, subject, bodyText) {
-    if (!(await isAuthenticated())) throw new Error("Gmail not connected.");
-    const gmail = google.gmail({ version: 'v1', auth: getClient() });
+async function sendEmail(to, subject, bodyText, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Gmail not connected.");
+    const gmail = _getGmail(accountId);
 
     const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
     const messageParts = [
@@ -135,15 +197,16 @@ async function sendEmail(to, subject, bodyText) {
         },
     });
 
-    return `Email successfully sent to ${to} (Message ID: ${res.data.id})`;
+    const label = _accountLabel(accountId);
+    return `${label}Email successfully sent to ${to} (Message ID: ${res.data.id})`;
 }
 
 /**
- * NEW: Fetches the full HTML body of an email to be rendered on screen.
+ * Fetches the full HTML body of an email to be rendered on screen.
  */
-async function getEmailHtml(messageId) {
-    if (!(await isAuthenticated())) throw new Error("Gmail not connected.");
-    const gmail = google.gmail({ version: 'v1', auth: getClient() });
+async function getEmailHtml(messageId, accountId = null) {
+    if (!(await isAuthenticated(accountId))) throw new Error("Gmail not connected.");
+    const gmail = _getGmail(accountId);
     
     const msgData = await gmail.users.messages.get({
         userId: 'me',
@@ -177,7 +240,9 @@ async function getEmailHtml(messageId) {
 
 module.exports = {
     getUnreadEmails,
+    getUnreadEmailsAllAccounts,
     searchEmails,
+    searchEmailsAllAccounts,
     trashEmail,
     archiveEmail,
     sendEmail,

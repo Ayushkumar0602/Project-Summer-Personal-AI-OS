@@ -117,47 +117,101 @@ async function loadAuditLogs() {
 loadPermissions();
 loadAuditLogs();
 
-// ── Google Integrations Tab ─────────────────────────────────────
-const btnConnectGoogle = document.getElementById('btnConnectGoogle');
-const btnDisconnectGoogle = document.getElementById('btnDisconnectGoogle');
-const googleAuthStatus = document.getElementById('googleAuthStatus');
+// ── Google Multi-Account Integrations ───────────────────────────────────────
+const btnAddGoogleAccount = document.getElementById('btnAddGoogleAccount');
+const googleAddStatus = document.getElementById('googleAddStatus');
+const googleAccountsList = document.getElementById('googleAccountsList');
 
-async function checkGoogleAuth() {
+async function loadGoogleAccounts() {
     try {
-        const isAuth = await window.settingsAPI.checkGoogleAuth();
-        if (isAuth) {
-            googleAuthStatus.innerHTML = '<span style="color:#4ade80; font-size:12px;">Status: Connected ✅</span>';
-            btnConnectGoogle.style.display = 'none';
-            btnDisconnectGoogle.style.display = 'block';
-        } else {
-            googleAuthStatus.innerHTML = '<span style="color:#f87171; font-size:12px;">Status: Not Connected ❌</span>';
-            btnConnectGoogle.style.display = 'block';
-            btnDisconnectGoogle.style.display = 'none';
+        const accounts = await window.settingsAPI.getGoogleAccounts();
+
+        if (!accounts || accounts.length === 0) {
+            googleAccountsList.innerHTML = `
+                <div style="padding: 14px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div style="color:#94a3b8; font-size:13px;">No Google accounts connected yet.</div>
+                    <div style="color:#475569; font-size:11px; margin-top:4px;">Click "Add Google Account" below to connect your first account.</div>
+                </div>
+            `;
+            return;
         }
+
+        googleAccountsList.innerHTML = accounts.map(account => {
+            const primaryBadge = account.isPrimary
+                ? '<span style="background:linear-gradient(135deg,#06b6d4,#0ea5e9); color:#fff; padding:2px 8px; border-radius:9px; font-size:10px; font-weight:700; letter-spacing:0.5px; margin-left:8px;">PRIMARY</span>'
+                : '';
+            const setPrimaryBtn = !account.isPrimary
+                ? `<button class="btn-set-primary" onclick="setPrimaryAccount('${account.id}')" style="font-size:11px; padding:4px 10px; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); color:#06b6d4; border-radius:6px; cursor:pointer; transition:all 0.2s;">Set Primary</button>`
+                : '';
+            const disconnectBtn = `<button class="btn-disconnect-account" onclick="disconnectAccount('${account.id}')" style="font-size:11px; padding:4px 10px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:6px; cursor:pointer; transition:all 0.2s;">Disconnect</button>`;
+            const addedDate = account.addedAt ? new Date(account.addedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+            return `
+                <div class="google-account-item" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:8px; transition:all 0.2s;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; flex-wrap:wrap;">
+                            <span style="font-size:13px; font-weight:600; color:#e2e8f0;">${account.email}</span>
+                            ${primaryBadge}
+                        </div>
+                        <div style="font-size:11px; color:#475569; margin-top:3px;">Added ${addedDate}</div>
+                    </div>
+                    <div style="display:flex; gap:6px; flex-shrink:0; margin-left:12px;">
+                        ${setPrimaryBtn}
+                        ${disconnectBtn}
+                    </div>
+                </div>
+            `;
+        }).join('');
     } catch (e) {
-        googleAuthStatus.innerHTML = `<span style="color:#f87171; font-size:12px;">Status: Error checking auth</span>`;
+        googleAccountsList.innerHTML = `<span style="color:#f87171; font-size:12px;">Error loading accounts: ${e.message}</span>`;
     }
 }
 
-btnConnectGoogle?.addEventListener('click', async () => {
-    btnConnectGoogle.disabled = true;
-    googleAuthStatus.innerHTML = '<span style="color:#eab308; font-size:12px;">Status: Waiting for browser login...</span>';
-    const res = await window.settingsAPI.authenticateGoogle();
-    if (res.success) {
-        await checkGoogleAuth();
-    } else {
-        googleAuthStatus.innerHTML = `<span style="color:#f87171; font-size:12px;">Status: Auth Failed (${res.message})</span>`;
-        btnConnectGoogle.disabled = false;
+// Global functions for inline onclick handlers
+window.setPrimaryAccount = async function(accountId) {
+    try {
+        await window.settingsAPI.setPrimaryGoogleAccount(accountId);
+        await loadGoogleAccounts();
+    } catch (e) {
+        console.error('Failed to set primary account:', e);
     }
+};
+
+window.disconnectAccount = async function(accountId) {
+    try {
+        await window.settingsAPI.logoutGoogleAccount(accountId);
+        await loadGoogleAccounts();
+    } catch (e) {
+        console.error('Failed to disconnect account:', e);
+    }
+};
+
+btnAddGoogleAccount?.addEventListener('click', async () => {
+    btnAddGoogleAccount.disabled = true;
+    googleAddStatus.textContent = 'Waiting for browser login...';
+    googleAddStatus.style.color = '#eab308';
+
+    try {
+        const res = await window.settingsAPI.authenticateGoogle();
+        if (res.success) {
+            googleAddStatus.textContent = `✅ Connected ${res.email || ''}`;
+            googleAddStatus.style.color = '#4ade80';
+            await loadGoogleAccounts();
+            setTimeout(() => { googleAddStatus.textContent = ''; }, 3000);
+        } else {
+            googleAddStatus.textContent = `❌ Failed: ${res.message}`;
+            googleAddStatus.style.color = '#f87171';
+        }
+    } catch (e) {
+        googleAddStatus.textContent = `❌ Error: ${e.message}`;
+        googleAddStatus.style.color = '#f87171';
+    }
+
+    btnAddGoogleAccount.disabled = false;
 });
 
-btnDisconnectGoogle?.addEventListener('click', async () => {
-    await window.settingsAPI.logoutGoogle();
-    await checkGoogleAuth();
-});
-
-// Check on load
-checkGoogleAuth();
+// Load accounts on init
+loadGoogleAccounts();
 
 // ── Wake Word Tab ───────────────────────────────────────────────
 const wakeWordToggle = document.getElementById('wakeWordToggle');
