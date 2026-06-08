@@ -23,6 +23,11 @@ const THEME_MAP = {
     video_player:   { icon: '🎬', color: '#fbbf24', title: 'Video Playback' },
     file_viewer:    { icon: '📄', color: '#06b6d4', title: 'File Presentation' },
     custom_html:    { icon: '✨', color: '#06b6d4', title: 'Custom Interface' },
+    drive_video:    { icon: '🎥', color: '#f43f5e', title: 'Drive Video' },
+    drive_audio:    { icon: '🎧', color: '#f43f5e', title: 'Drive Audio' },
+    drive_image:    { icon: '🖼️', color: '#f43f5e', title: 'Drive Image' },
+    drive_pdf:      { icon: '📑', color: '#f43f5e', title: 'Drive Document' },
+    drive_ppt:      { icon: '📊', color: '#f43f5e', title: 'Drive Presentation' },
     agent_progress: { icon: '⚡', color: '#c084fc', title: 'Domain Agent' },
     'agent-gathering': { icon: '🔎', color: '#fbbf24', title: 'Agent — Gathering Info' },
     'agent-started':   { icon: '🚀', color: '#10b981', title: 'Agent — Running' },
@@ -196,6 +201,58 @@ function renderFileViewer(data) {
     `;
 }
 
+function renderDriveVideo(data) {
+    const embedUrl = data.webViewLink ? data.webViewLink.replace(/\/view.*$/, '/preview') : '';
+    return `
+        <div class="drive-doc-container">
+            <div class="drive-media-title">${esc(data.title)}</div>
+            <iframe class="drive-iframe-embed" src="${embedUrl}" allowfullscreen></iframe>
+        </div>
+    `;
+}
+
+function renderDriveAudio(data) {
+    const embedUrl = data.webViewLink ? data.webViewLink.replace(/\/view.*$/, '/preview') : '';
+    return `
+        <div class="drive-doc-container">
+            <div class="drive-media-title">${esc(data.title)}</div>
+            <iframe class="drive-iframe-embed" src="${embedUrl}" allowfullscreen></iframe>
+        </div>
+    `;
+}
+
+function renderDriveImage(data) {
+    const src = data.path ? `summer-media://${encodeURIComponent(data.path)}` : data.url;
+    return `
+        <div class="drive-media-container">
+            <div class="drive-media-title">${esc(data.title)}</div>
+            <img class="drive-image-viewer" src="${src}" alt="${esc(data.title)}">
+        </div>
+    `;
+}
+
+function renderDrivePdf(data) {
+    // Electron's webPreferences for overlays doesn't enable plugins, so <embed> won't work for PDFs.
+    // Always use the Drive preview iframe instead.
+    const embedUrl = data.webViewLink ? data.webViewLink.replace(/\/view.*$/, '/preview') : '';
+    return `
+        <div class="drive-doc-container">
+            <div class="drive-media-title">${esc(data.title)}</div>
+            <iframe class="drive-iframe-embed" src="${embedUrl}" allowfullscreen></iframe>
+        </div>
+    `;
+}
+
+function renderDrivePpt(data) {
+    const embedUrl = data.webViewLink ? data.webViewLink.replace(/\/view.*$/, '/preview') : '';
+    return `
+        <div class="drive-doc-container">
+            <div class="drive-media-title">${esc(data.title)}</div>
+            <iframe class="drive-iframe-embed" src="${embedUrl}" allowfullscreen></iframe>
+        </div>
+    `;
+}
+
 function renderMermaid(data) {
     const items = Array.isArray(data) ? data : (data ? [data] : []);
     let html = '';
@@ -342,6 +399,11 @@ window.hudPanel.onContentUpdate((payload) => {
         case 'audio_player':   html = renderAudioPlayer(data); break;
         case 'video_player':   html = renderVideoPlayer(data); break;
         case 'file_viewer':    html = renderFileViewer(data); break;
+        case 'drive_video':    html = renderDriveVideo(data); break;
+        case 'drive_audio':    html = renderDriveAudio(data); break;
+        case 'drive_image':    html = renderDriveImage(data); break;
+        case 'drive_pdf':      html = renderDrivePdf(data); break;
+        case 'drive_ppt':      html = renderDrivePpt(data); break;
         case 'mermaid':        html = renderMermaid(data); break;
         case 'agent_progress': html = renderAgentProgress(data); break;
         case 'subtitle':       html = renderSubtitle(data); break;

@@ -364,6 +364,10 @@ class DaemonClient {
             if (msg.action === 'toggle_browser') {
                 if (msg.args.visible) win.show();
                 else win.hide();
+                
+                // Immediately reply so the daemon tool call completes
+                this.send(encode('browser_reply', { id: msg.id, result: `Browser ${msg.args.visible ? 'shown' : 'hidden'}` }));
+                return;
             }
             win.webContents.send('browser-control', { id: msg.id, action: msg.action, args: msg.args });
         } else {

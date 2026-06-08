@@ -163,9 +163,17 @@ function initMiniBrowser(deps) {
 
     function navigateBrowser(url) {
         if (!url) return;
-        if (!url.startsWith('http://') && !url.startsWith('https://') && url !== 'about:blank') {
+        
+        // Simple heuristic: if it has spaces or doesn't have a dot, treat as a search query
+        const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(url);
+        const isSearch = !hasScheme && (url.includes(' ') || !url.includes('.'));
+        
+        if (isSearch) {
+            url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+        } else if (!hasScheme) {
             url = 'https://' + url;
         }
+        
         urlInput.value = url;
         browserOverlay.classList.add('hidden');
         webview.src = url;

@@ -2,6 +2,7 @@ const { google } = require('googleapis');
 const { getClient, isAuthenticated } = require('../auth/google-auth');
 const fs = require('node:fs');
 const path = require('node:path');
+const Paths = require('../core/utils/paths');
 
 /**
  * Searches Google Drive for files matching a query.
@@ -137,10 +138,97 @@ async function appendSheetData(spreadsheetId, range, values) {
     return `Successfully appended data to ${range}. Updated ${res.data.updates.updatedCells} cells.`;
 }
 
+/**
+ * Gets metadata for a specific file in Google Drive.
+ */
+async function getFileMetadata(fileId) {
+    if (!(await isAuthenticated())) throw new Error("Google Drive not connected.");
+    const drive = google.drive({ version: 'v3', auth: getClient() });
+
+    const res = await drive.files.get({
+        fileId,
+        fields: 'id, name, mimeType, webViewLink, webContentLink, thumbnailLink, size'
+    });
+
+    return res.data;
+}
+
+/**
+ * Downloads a file from Google Drive to a local temporary cache.
+ * Uses the media download approach.
+ */
+async function downloadFile(fileId, fileName, options = {}) {
+    if (!(await isAuthenticated())) throw new Error("Google Drive not connected.");
+    const drive = google.drive({ version: 'v3', auth: getClient() });
+
+    const tempDir = path.join(Paths.userData(), 'drive-cache');
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    const safeFileId = String(fileId || 'drive').replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const safeBaseName = fileName ? fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_') : 'file';
+    const safeName = `${safeFileId}_${safeBaseName}`;
+    const destPath = path.join(tempDir, safeName);
+    const tempPath = `${destPath}.download`;
+    const expectedSize = Number(options.expectedSize || 0);
+
+    if (fs.existsSync(destPath)) {
+        const stat = fs.statSync(destPath);
+        if (stat.size > 0 && (!expectedSize || stat.size === expectedSize)) {
+            return destPath;
+        }
+    }
+
+    return new Promise(async (resolve, reject) => {
+        const fail = (err) => {
+            try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch (_) {}
+            reject(err);
+        };
+
+        try {
+            const res = await drive.files.get(
+                { fileId, alt: 'media' },
+                { responseType: 'stream' }
+            );
+
+            const dest = fs.createWriteStream(tempPath);
+            dest.on('finish', () => {
+                try {
+                    fs.renameSync(tempPath, destPath);
+                    resolve(destPath);
+                } catch (err) {
+                    fail(err);
+                }
+            });
+            dest.on('error', fail);
+            res.data
+                .on('error', fail)
+                .pipe(dest);
+        } catch (err) {
+            fail(new Error(`Download failed: ${err.message}`));
+        }
+    });
+}
+
+/**
+ * Deletes a file from Google Drive.
+ */
+async function deleteFile(fileId) {
+    if (!(await isAuthenticated())) throw new Error("Google Drive not connected.");
+    const drive = google.drive({ version: 'v3', auth: getClient() });
+
+    await drive.files.delete({ fileId });
+    return `Successfully deleted file with ID: ${fileId}`;
+}
+
 module.exports = {
     searchFiles,
     createFile,
     uploadFile,
     readSheetRange,
-    appendSheetData
+    appendSheetData,
+    getFileMetadata,
+    downloadFile,
+    deleteFile
 };

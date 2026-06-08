@@ -183,6 +183,13 @@ app.whenReady().then(async () => {
     const browserBridge = createBrowserBridge(() => windows.getMainWindow());
     registerBrowserIpc(ipcMain, browserBridge);
 
+    // Forward browser replies from the renderer to the Daemon for daemon-originated calls
+    ipcMain.on('browser-reply', (event, payload) => {
+        if (daemonClient && daemonClient.isReady()) {
+            daemonClient.send(encode(MSG.BROWSER_REPLY, payload));
+        }
+    });
+
     // Memory graph UI — reads graph data locally (graph files are on this machine)
     registerMemoryIpc(ipcMain, { getMainWindow: () => windows.getMainWindow() });
 
@@ -233,6 +240,9 @@ app.whenReady().then(async () => {
 
     // ── Create the floating Orb window ─────────────────────────────────────────
     windows.createOrbWindow();
+    
+    // ── Create the Master Overlay Canvas ───────────────────────────────────────
+    windows.createOverlayWindow();
 
     // Create subtitle panel on first session
     windowManager.createSubtitlePanel();
@@ -248,6 +258,14 @@ app.whenReady().then(async () => {
                 width: payload.width,
                 height: payload.height,
             });
+        }
+    });
+
+    // ── IPC: overlay hover toggle ──────────────────────────────────────────────
+    ipcMain.on('overlay-ignore-mouse', (_, ignore) => {
+        const overlay = windows.getOverlayWindow();
+        if (overlay && !overlay.isDestroyed()) {
+            overlay.setIgnoreMouseEvents(ignore, { forward: true });
         }
     });
 

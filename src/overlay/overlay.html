@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <!-- Allow external fonts, images, and mermaid.js from CDN -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: summer-media: https: wss:; img-src 'self' data: blob: summer-media: https:; media-src 'self' data: blob: summer-media: https:;">
+    <title>Summer Overlay Canvas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="overlay.css" />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <!-- The master canvas where all HUD widgets will be dynamically inserted -->
+    <div id="overlay-canvas"></div>
+
+    <script src="overlay-renderer.js"></script>
+</body>
+</html>

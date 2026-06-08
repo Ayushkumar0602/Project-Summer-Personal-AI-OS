@@ -189,16 +189,8 @@ function _daemonCallBrowser(action, args) {
     const { encode } = require('./src/core/transport/protocol');
     const registry = require('./src/core/transport/client-registry');
 
-    // toggle_browser: just run the script in the renderer — no reply needed
-    if (action === 'toggle_browser') {
-        const show = args?.visible !== false;
-        rendererBridge.executeInRenderer(
-            show
-                ? `document.getElementById('appLayout')?.classList.remove('browser-hidden');`
-                : `document.getElementById('appLayout')?.classList.add('browser-hidden');`
-        );
-        return Promise.resolve({ result: `Browser ${show ? 'shown' : 'hidden'}.` });
-    }
+    // Route all browser_control commands (including toggle_browser) to the client
+    // so the client can manage its native BrowserWindows.
 
     return new Promise((resolve) => {
         const id = Math.random().toString(36).slice(2);

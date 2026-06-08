@@ -1,8 +1,3 @@
-/* ═══════════════════════════════════════════════════════════
-   SUMMER HUD PANEL — Modular Widget Window
-   Premium solid-background, fully interactive panel
-   ═══════════════════════════════════════════════════════════ */
-
 :root {
     --panel-bg: #0a0f1e;
     --panel-bg-secondary: #0d1529;
@@ -18,17 +13,31 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
-    background: var(--panel-bg);
+    margin: 0;
+    padding: 0;
+    /* Crucial: transparent background so OS shows through */
+    background: transparent;
     font-family: 'Inter', -apple-system, sans-serif;
     color: var(--panel-text);
-    border-radius: var(--panel-radius);
 }
 
-body {
+#overlay-canvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Let clicks pass through empty space */
+}
+
+/* ── HUD Widget Container ────────────────────────────────── */
+.hud-widget {
+    position: absolute;
+    pointer-events: auto; /* Re-enable clicks for actual widgets */
     display: flex;
     flex-direction: column;
+    background: var(--panel-bg);
     border: 1px solid var(--panel-border);
     border-radius: var(--panel-radius);
     box-shadow:
@@ -36,7 +45,43 @@ body {
         0 0 1px rgba(255, 255, 255, 0.05) inset,
         0 0 40px var(--panel-glow) inset;
     overflow: hidden;
+    /* Smooth transition for all layout properties to enable dynamic reorganizing */
+    transition: 
+        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), 
+        opacity 0.4s ease,
+        top 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        left 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        height 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.5s ease;
+    
+    /* Strict size limits */
+    max-width: 85vw;
+    max-height: 85vh;
+    
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+    z-index: 100; /* Base z-index */
 }
+
+.hud-widget.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+/* Modifier class when widget is secondary / background */
+.hud-widget.secondary-widget {
+    box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.8),
+        0 0 1px rgba(255, 255, 255, 0.05) inset,
+        0 0 10px var(--panel-glow) inset;
+    opacity: 0.65;
+}
+.hud-widget.secondary-widget:hover {
+    opacity: 0.92;
+    cursor: pointer;
+}
+
 
 /* ── Custom Titlebar ─────────────────────────────────────── */
 .panel-titlebar {
@@ -48,10 +93,14 @@ body {
     padding: 0 10px 0 14px;
     background: linear-gradient(180deg, rgba(20, 30, 50, 0.95), rgba(10, 15, 30, 0.95));
     border-bottom: 1px solid var(--panel-border);
-    -webkit-app-region: drag;
     user-select: none;
     position: relative;
     z-index: 10;
+    cursor: grab; /* Indicating it's draggable inside the overlay */
+}
+
+.panel-titlebar:active {
+    cursor: grabbing;
 }
 
 /* Accent glow line at top */
@@ -92,7 +141,6 @@ body {
 .panel-controls {
     display: flex;
     gap: 4px;
-    -webkit-app-region: no-drag;
     flex-shrink: 0;
 }
 
@@ -108,7 +156,6 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.15s ease;
-    -webkit-app-region: no-drag;
 }
 .panel-ctrl-btn:hover {
     background: rgba(255, 255, 255, 0.06);
@@ -119,12 +166,6 @@ body {
     background: rgba(239, 68, 68, 0.2);
     border-color: rgba(239, 68, 68, 0.4);
     color: #fca5a5;
-}
-
-.panel-minimize:hover {
-    background: rgba(251, 191, 36, 0.15);
-    border-color: rgba(251, 191, 36, 0.3);
-    color: #fde68a;
 }
 
 /* ── Panel Body ──────────────────────────────────────────── */
@@ -138,7 +179,7 @@ body {
 
 .panel-content {
     padding: 16px;
-    min-height: 100%;
+    /* content sizes dictate the widget height */
 }
 
 /* ── Loading State ───────────────────────────────────────── */
@@ -163,23 +204,9 @@ body {
 }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* ── Resize Handle ───────────────────────────────────────── */
-.panel-resize-handle {
-    position: absolute;
-    bottom: 0; right: 0;
-    width: 14px; height: 14px;
-    cursor: nwse-resize;
-    opacity: 0.3;
-    transition: opacity 0.2s;
-    background:
-        linear-gradient(135deg, transparent 50%, var(--panel-text-muted) 50%, transparent 52%),
-        linear-gradient(135deg, transparent 60%, var(--panel-text-muted) 60%, transparent 62%),
-        linear-gradient(135deg, transparent 70%, var(--panel-text-muted) 70%, transparent 72%);
-}
-.panel-resize-handle:hover { opacity: 0.7; }
 
 /* ═══════════════════════════════════════════════════════════
-   WIDGET CONTENT STYLES
+   WIDGET CONTENT STYLES (Copied from panel.css)
    ═══════════════════════════════════════════════════════════ */
 
 /* ── Generic List Items ──────────────────────────────────── */
@@ -207,7 +234,6 @@ body {
 }
 .hud-item:last-child { margin-bottom: 0; }
 
-/* Shimmer effect on hover */
 .hud-item::after {
     content: '';
     position: absolute;
@@ -256,7 +282,6 @@ body {
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
-
 .custom-html-wrapper a {
     color: #38bdf8;
     text-decoration: none;
@@ -267,83 +292,11 @@ body {
     color: #7dd3fc;
     border-bottom-color: #7dd3fc;
 }
-
 .custom-html-wrapper img {
     max-width: 100%;
     height: auto;
     border-radius: 6px;
     margin: 8px 0;
-}
-
-.custom-html-wrapper h1, .custom-html-wrapper h2, .custom-html-wrapper h3 {
-    color: #f1f5f9;
-    margin: 16px 0 8px;
-    font-family: 'Inter', sans-serif;
-}
-.custom-html-wrapper h1 { font-size: 18px; }
-.custom-html-wrapper h2 { font-size: 15px; }
-.custom-html-wrapper h3 { font-size: 13px; }
-
-.custom-html-wrapper ul, .custom-html-wrapper ol {
-    padding-left: 20px;
-    margin: 8px 0;
-}
-.custom-html-wrapper li {
-    margin-bottom: 4px;
-}
-
-.custom-html-wrapper table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 8px 0;
-    font-size: 12px;
-}
-.custom-html-wrapper th {
-    background: rgba(6, 182, 212, 0.1);
-    border: 1px solid rgba(6, 182, 212, 0.2);
-    padding: 8px;
-    text-align: left;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    letter-spacing: 1px;
-    color: var(--panel-accent);
-}
-.custom-html-wrapper td {
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 8px;
-}
-
-/* ── Email Content ───────────────────────────────────────── */
-.email-content {
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    padding: 16px;
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-/* ── Media Players ───────────────────────────────────────── */
-.media-container {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    padding: 12px;
-    text-align: center;
-}
-
-.media-container audio,
-.media-container video {
-    width: 100%;
-    border-radius: 6px;
-    outline: none;
-    margin-top: 8px;
-}
-
-.media-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 11px;
-    color: #f1f5f9;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
 }
 
 /* ── File Viewer ─────────────────────────────────────────── */
@@ -368,21 +321,6 @@ body {
     color: var(--panel-text-dim);
 }
 
-/* ── Mermaid Diagrams ────────────────────────────────────── */
-.mermaid-container {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 8px;
-    padding: 16px;
-    min-height: 200px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: auto;
-}
-.mermaid-container svg {
-    max-width: 100%;
-}
-
 /* ── Agent Progress ──────────────────────────────────────── */
 .progress-card {
     background: rgba(15, 23, 42, 0.5);
@@ -390,7 +328,6 @@ body {
     padding: 16px;
     border-radius: 10px;
 }
-
 .progress-status {
     font-size: 11px;
     font-weight: 700;
@@ -398,12 +335,10 @@ body {
     letter-spacing: 1.5px;
     margin-bottom: 12px;
 }
-
 .progress-logs {
     margin-bottom: 14px;
     min-height: 40px;
 }
-
 .progress-log-item {
     font-size: 12px;
     color: var(--panel-text-dim);
@@ -413,14 +348,8 @@ body {
     gap: 8px;
     line-height: 1.4;
 }
-.progress-log-item:last-child {
-    color: #fff;
-}
-.progress-log-bullet {
-    margin-top: 2px;
-    font-size: 8px;
-}
-
+.progress-log-item:last-child { color: #fff; }
+.progress-log-bullet { margin-top: 2px; font-size: 8px; }
 .progress-bar-track {
     height: 5px;
     background: rgba(0, 0, 0, 0.5);
@@ -428,14 +357,12 @@ body {
     overflow: hidden;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
-
 .progress-bar-fill {
     height: 100%;
     border-radius: 5px;
     transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
     box-shadow: 0 0 10px currentColor;
 }
-
 .progress-pct {
     text-align: right;
     font-size: 14px;
@@ -443,27 +370,6 @@ body {
     color: #fff;
     margin-bottom: 6px;
     font-variant-numeric: tabular-nums;
-}
-
-.progress-abort-btn {
-    margin-top: 12px;
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    color: #fca5a5;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    transition: all 0.2s;
-    display: block;
-    width: 100%;
-}
-.progress-abort-btn:hover {
-    background: rgba(239, 68, 68, 0.25);
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
 }
 
 /* ── Image Gallery ───────────────────────────────────────── */
@@ -487,9 +393,7 @@ body {
     cursor: pointer;
     transition: transform 6s linear;
 }
-.gallery-img:hover {
-    transform: scale(1.08);
-}
+.gallery-img:hover { transform: scale(1.08); }
 .gallery-credit {
     position: absolute;
     bottom: 0; left: 0; right: 0;
@@ -497,35 +401,6 @@ body {
     background: linear-gradient(0deg, rgba(0, 0, 0, 0.9), transparent);
     font-size: 10px;
     color: #e2e8f0;
-}
-.gallery-dots {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-    padding: 8px 0;
-}
-.gallery-dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.25);
-    cursor: pointer;
-    transition: 0.3s;
-}
-.gallery-dot.active {
-    background: var(--panel-accent);
-    transform: scale(1.3);
-    box-shadow: 0 0 6px var(--panel-accent);
-}
-
-/* ── Scrollbars ──────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-    background: rgba(6, 182, 212, 0.15);
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(6, 182, 212, 0.3);
 }
 
 /* ── Subtitle Panel Specific ─────────────────────────────── */
@@ -536,7 +411,6 @@ body {
     height: 100%;
     padding: 0;
 }
-
 .user-text {
     max-height: 50px;
     overflow-y: auto;
@@ -549,7 +423,6 @@ body {
     background: rgba(165, 180, 252, 0.04);
     border-radius: 0 6px 6px 0;
 }
-
 .agent-text {
     flex: 1;
     overflow-y: auto;
@@ -560,7 +433,7 @@ body {
 }
 
 /* ── Drive Widgets ───────────────────────────────────────── */
-.drive-media-container, .drive-doc-container {
+.drive-media-container {
     background: rgba(15, 23, 42, 0.4);
     border: 1px solid rgba(244, 63, 94, 0.2);
     border-radius: 12px;
@@ -585,28 +458,6 @@ body {
     padding-bottom: 6px;
 }
 
-.drive-video-player {
-    width: 100%;
-    border-radius: 8px;
-    outline: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    background: #000;
-}
-
-.drive-audio-wrapper {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    padding: 10px;
-}
-.drive-audio-player {
-    width: 100%;
-    height: 40px;
-    outline: none;
-}
-.drive-audio-player::-webkit-media-controls-panel {
-    background: rgba(244, 63, 94, 0.1);
-}
-
 .drive-image-viewer {
     width: 100%;
     max-height: 400px;
@@ -619,29 +470,11 @@ body {
     transform: scale(1.02);
 }
 
-.drive-pdf-embed, .drive-iframe-embed {
-    width: 100%;
-    height: 400px;
-    border: none;
-    border-radius: 8px;
-    background: #fff; /* Native viewers often expect white background */
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+/* Scrollbars */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(6, 182, 212, 0.15);
+    border-radius: 10px;
 }
-
-/* Media Queries for widgets */
-@media (max-width: 400px) {
-    .drive-pdf-embed, .drive-iframe-embed {
-        height: 300px;
-    }
-    .drive-image-viewer {
-        max-height: 250px;
-    }
-}
-@media (min-width: 800px) {
-    .drive-pdf-embed, .drive-iframe-embed {
-        height: 600px;
-    }
-    .drive-image-viewer {
-        max-height: 600px;
-    }
-}
+::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.3); }

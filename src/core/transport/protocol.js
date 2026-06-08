@@ -25,6 +25,7 @@ const MSG = Object.freeze({
     PERMISSION_RESPONSE: 'permission_response',  // { requestId, granted: bool }
     CANCEL_AGENTS:       'cancel_agents',        // Abort all running Tier-2 agents
     CLIENT_ACTION_RESULT:'client_action_result', // { requestId, action, result } — response to client_action
+    BROWSER_REPLY:       'browser_reply',        // { id, ...payload } — reply to browser_control
     GOOGLE_AUTH_REQUEST: 'google_auth_request',  // Client wants to authenticate Google
     GOOGLE_AUTH_LOGOUT:  'google_auth_logout',   // Client wants to logout Google
     GOOGLE_AUTH_CHECK:   'google_auth_check',    // Client checks auth status

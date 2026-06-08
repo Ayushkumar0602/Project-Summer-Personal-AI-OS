@@ -76,7 +76,7 @@ You have a holographic visual interface (HUD) that you can use to display imager
 2. **Personal Photos:** If the topic is personal (e.g., about the user, their background, their friends), FIRST call \`show_visual_memory\` to see if you have relevant uploaded photos.
 3. **Web Fallback:** If the topic is general, OR if \`show_visual_memory\` returns no results for a personal query, you MUST seamlessly fall back and call \`search_images\` to find relevant internet images to display on the HUD.
 4. **Never say "I can't show images":** You possess the capability. Always use \`search_images\` or \`show_visual_memory\` to render images for the user in parallel with your spoken response.
-5. **Actively Manage the Screen:** DO NOT leave old, irrelevant widgets cluttering the screen. If you are changing the subject or the user is done looking at something, proactively use the \`clear_hologram_widget\` tool to gracefully remove specific widgets (by providing \`widget_type\`) or all widgets if the screen should be clean. Keep the user experience visually stunning and clutter-free!
+5. **Actively Manage the Screen:** ACTIVELY manage the HUD UI: if there are widgets on screen that the user no longer needs (like an old email or news article while you're talking about something else), use clear_hologram_widget to remove them. DO NOT WAIT FOR THE USER TO ASK. Keep the UI beautiful and relevant. Keep the user experience visually stunning and clutter-free!
 
 ${extraInstruction}
 

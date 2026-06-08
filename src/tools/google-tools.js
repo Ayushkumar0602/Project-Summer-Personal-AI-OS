@@ -152,6 +152,28 @@ const declarations = [
         }
     },
     {
+        name: "google_drive_read_file",
+        description: "Reads, shows, or plays a file from Google Drive (e.g., video, audio, pdf, ppt, image). It downloads media to present in a custom widget, and extracts text for you to read if possible.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                fileId: { type: "STRING", description: "The ID of the file to read or play." }
+            },
+            required: ["fileId"]
+        }
+    },
+    {
+        name: "google_drive_delete",
+        description: "Deletes a file from Google Drive. You MUST ask the user for explicit permission BEFORE calling this tool.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                fileId: { type: "STRING", description: "The ID of the file to delete." }
+            },
+            required: ["fileId"]
+        }
+    },
+    {
         name: "google_sheet_read",
         description: "Reads data from a specific Google Sheet and displays it on the HUD.",
         parameters: {
@@ -292,6 +314,113 @@ const handlers = {
             return await driveService.createFile(args.title, args.type);
         } catch (e) {
             return `Drive creation failed: ${e.message}`;
+        }
+    },
+    google_drive_read_file: async (args, ctx = {}) => {
+        try {
+            const meta = await driveService.getFileMetadata(args.fileId);
+            const mimeType = meta.mimeType || '';
+            const isVideo = mimeType.startsWith('video/');
+            const isAudio = mimeType.startsWith('audio/');
+            const isImage = mimeType.startsWith('image/');
+            const isPdf = mimeType === 'application/pdf';
+            const isGoogleSlides = mimeType === 'application/vnd.google-apps.presentation';
+            const isPpt = isGoogleSlides || mimeType.includes('presentation');
+            const fileType = isVideo ? 'Video' : isAudio ? 'Audio' : isPdf ? 'PDF' : isPpt ? 'Presentation' : 'File';
+            const previewUrl = isGoogleSlides
+                ? `https://docs.google.com/presentation/d/${args.fileId}/embed?start=false&loop=false&delayms=3000`
+                : `https://drive.google.com/file/d/${args.fileId}/preview`;
+
+            const openInBrowser = async (url) => {
+                if (ctx.callBrowser) {
+                    const nav = await ctx.callBrowser('browser_navigate', { url });
+                    if (nav?.error) throw new Error(nav.error);
+                    return nav;
+                }
+                sendToRenderer('browser-control', {
+                    action: 'browser_navigate',
+                    args: { url }
+                });
+                return { result: { status: 'sent', url } };
+            };
+
+            if (isImage) {
+                // Images are small — download and show in overlay widget
+                const localPath = await driveService.downloadFile(args.fileId, meta.name, { expectedSize: meta.size });
+                sendToRenderer('show-hud-widget', {
+                    type: 'drive_image',
+                    data: { path: localPath, title: meta.name, mimeType, webViewLink: meta.webViewLink }
+                });
+                return `Successfully displayed image "${meta.name}" on the HUD.`;
+
+            } else if (isVideo || isAudio || isPdf || isPpt) {
+                let textResult = '';
+                let localPath = null;
+                let openedUrl = previewUrl;
+                
+                if (isGoogleSlides || isPpt) {
+                    await openInBrowser(previewUrl);
+                    textResult = `Successfully opened ${fileType} "${meta.name}" in the browser panel.`;
+                    
+                } else if (isPdf) {
+                    await openInBrowser(previewUrl);
+                    textResult = `Successfully opened ${fileType} "${meta.name}" in the browser panel.`;
+                    
+                } else if (isVideo || isAudio) {
+                    // Download media to avoid Google Drive authentication issues in webview
+                    localPath = await driveService.downloadFile(args.fileId, meta.name, { expectedSize: meta.size });
+                    openedUrl = 'summer-media://' + encodeURIComponent(localPath);
+                    await openInBrowser(openedUrl);
+                    textResult = `Successfully opened ${fileType.toLowerCase()} "${meta.name}" in the browser panel.`;
+                }
+
+                // Show info card on overlay
+                sendToRenderer('show-hud-widget', {
+                    type: isVideo ? 'drive_video' : isAudio ? 'drive_audio' : isPdf ? 'drive_pdf' : 'drive_ppt',
+                    data: {
+                        title: meta.name,
+                        fileType,
+                        mimeType,
+                        path: localPath,
+                        url: openedUrl,
+                        previewUrl,
+                        webViewLink: meta.webViewLink
+                    }
+                });
+
+                // For PDFs, also try to extract text silently for Q&A context
+                if (isPdf) {
+                    try {
+                        const localPdfPath = await driveService.downloadFile(args.fileId, meta.name, { expectedSize: meta.size });
+                        const fs = require('fs');
+                        const pdfParse = require('pdf-parse');
+                        const dataBuffer = fs.readFileSync(localPdfPath);
+                        const pdfData = await pdfParse(dataBuffer);
+                        textResult += `\n\nCRITICAL INSTRUCTION: DO NOT read the PDF text out loud! The user is already reading it on their screen. Just say "I have opened the PDF for you."\n\n[Silent Context - PDF Content (first 1500 chars)]:\n${pdfData.text.substring(0, 1500)}...`;
+                    } catch (e) {
+                        // PDF text extraction is optional — preview still works
+                    }
+                }
+
+                return textResult;
+
+            } else {
+                // Unknown/unsupported type — show generic file card
+                sendToRenderer('show-hud-widget', {
+                    type: 'file_viewer',
+                    data: { filename: meta.name, metadata: `Type: ${mimeType}`, webViewLink: meta.webViewLink }
+                });
+                return `Displayed a generic file viewer for "${meta.name}". Link: ${meta.webViewLink}`;
+            }
+        } catch (e) {
+            return `Failed to read file from Drive: ${e.message}`;
+        }
+    },
+    google_drive_delete: async (args) => {
+        try {
+            return await driveService.deleteFile(args.fileId);
+        } catch (e) {
+            return `Failed to delete file from Drive: ${e.message}`;
         }
     },
     google_sheet_read: async (args) => {

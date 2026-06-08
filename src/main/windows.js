@@ -19,6 +19,7 @@ let orbWindow = null;
 let memoryWindow = null;
 let settingsWindow = null;
 let browserWindow = null;
+let overlayWindow = null;
 
 // ── Orb Window (Main) ────────────────────────────────────────────────────────
 
@@ -63,9 +64,16 @@ function createBrowserWindow() {
         return browserWindow;
     }
 
+    const { screen } = require('electron');
+    const display = screen.getPrimaryDisplay();
+    const { width, height } = display.workAreaSize;
+    const browserWidth = Math.floor(width / 2);
+
     browserWindow = new BrowserWindow({
-        width: 1000,
-        height: 700,
+        x: width - browserWidth,
+        y: 0,
+        width: browserWidth,
+        height: height,
         frame: false,
         transparent: false,
         backgroundColor: '#020c18',
@@ -81,7 +89,25 @@ function createBrowserWindow() {
     });
 
     browserWindow.loadFile(path.join(__dirname, '..', 'browser', 'browser.html'));
-    browserWindow.on('closed', () => { browserWindow = null; });
+    
+    // Move Orb to the left side
+    if (orbWindow && !orbWindow.isDestroyed()) {
+        const bounds = orbWindow.getBounds();
+        orbWindow.setBounds({
+            x: Math.floor((browserWidth - bounds.width) / 2),
+            y: Math.floor((height - bounds.height) / 2),
+            width: bounds.width,
+            height: bounds.height
+        });
+    }
+
+    browserWindow.on('closed', () => { 
+        browserWindow = null; 
+        // Move Orb back to center
+        if (orbWindow && !orbWindow.isDestroyed()) {
+            orbWindow.center();
+        }
+    });
 
     return browserWindow;
 }
@@ -134,13 +160,57 @@ function createSettingsWindow() {
 
 function getMemoryWindow() { return memoryWindow; }
 
+// ── Overlay Window (Unified HUD Canvas) ───────────────────────────────────────
+
+function createOverlayWindow() {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+        return overlayWindow;
+    }
+
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.workAreaSize;
+
+    overlayWindow = new BrowserWindow({
+        x: 0,
+        y: 0,
+        width: width,
+        height: height,
+        frame: false,
+        transparent: true,
+        hasShadow: false,
+        alwaysOnTop: true,
+        resizable: false,
+        skipTaskbar: true,
+        focusable: false, // Prevents stealing OS focus
+        webPreferences: {
+            preload: path.join(__dirname, '..', 'overlay', 'overlay-preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+    });
+
+    // CRITICAL: Allow clicks to pass through transparent areas to OS underneath
+    overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+
+    overlayWindow.loadFile(path.join(__dirname, '..', 'overlay', 'overlay.html'));
+
+    overlayWindow.on('closed', () => { overlayWindow = null; });
+
+    return overlayWindow;
+}
+
+function getOverlayWindow() { return overlayWindow; }
+
 module.exports = {
     createOrbWindow,
     createMemoryWindow,
     createSettingsWindow,
     createBrowserWindow,
+    createOverlayWindow,
     getOrbWindow,
     getMainWindow,
     getMemoryWindow,
     getBrowserWindow,
+    getOverlayWindow,
 };
