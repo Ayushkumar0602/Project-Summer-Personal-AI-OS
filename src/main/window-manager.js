@@ -24,11 +24,11 @@ class WindowManager {
 
     // ── Create a HUD Panel widget ────────────────────────────────────────────
 
-    createHudPanel({ type, data, title, width, height }) {
+    createHudPanel({ id, type, data, title, width, height }) {
         const overlay = this._getOverlay();
         if (!overlay || overlay.isDestroyed()) return null;
 
-        const widgetId = `hud-${++this._counter}-${Date.now()}`;
+        const widgetId = id || `hud-${++this._counter}-${Date.now()}`;
         
         // Dedup: for agent-gathering and agent-started, close any existing panel
         // of the same type to avoid flooding the screen with duplicates
@@ -114,6 +114,8 @@ class WindowManager {
     updateAgentProgress(sessionId, data) {
         const overlay = this._getOverlay();
         if (!overlay || overlay.isDestroyed()) return false;
+        
+        if (!this.activeWidgets.has(sessionId)) return false;
 
         this._sendSafe('overlay-progress-update', {
             id: sessionId,

@@ -253,10 +253,11 @@ class DaemonClient {
                 if (msg.widget === 'wake_word' && msg.state?.detected) {
                     fwd('wake-word-detected', { score: msg.state.score || 0 });
                 } else if (msg.widget === 'agent_progress') {
-                    // Try to update existing progress panel first
+                    // agent-events-bridge wraps payload in msg.state.data
+                    const payload = msg.state?.data || msg.state || {};
                     const wm = this._getWindowManager();
-                    if (wm && !wm.updateAgentProgress(msg.state?.sessionId, msg.state)) {
-                        wm.createHudPanel({ type: 'agent_progress', data: msg.state });
+                    if (wm && !wm.updateAgentProgress(payload.sessionId, payload)) {
+                        wm.createHudPanel({ id: payload.sessionId, type: 'agent_progress', data: payload });
                     }
                 } else if (msg.widget === 'clear') {
                     const wm = this._getWindowManager();

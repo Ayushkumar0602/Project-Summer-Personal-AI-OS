@@ -379,6 +379,18 @@ function createWidgetDOM(widgetId, type, titleText, htmlContent) {
         if (window.overlayApi) window.overlayApi.closeWidget(widgetId);
     });
 
+    el.addEventListener('click', (e) => {
+        const abortBtn = e.target.closest('.abort-btn');
+        if (abortBtn) {
+            abortBtn.textContent = '⏳ Killing...';
+            abortBtn.style.opacity = '0.5';
+            abortBtn.style.pointerEvents = 'none';
+            if (window.overlayApi && window.overlayApi.cancelAgents) {
+                window.overlayApi.cancelAgents();
+            }
+        }
+    });
+
     return el;
 }
 
@@ -645,6 +657,11 @@ window.overlayApi?.onProgressUpdate((payload) => {
                 c.style.opacity = i === arr.length - 1 ? '1' : `${0.3 + (i / arr.length) * 0.4}`;
             });
         }
+    }
+
+    if (data.done || data.failed) {
+        const abortBtn = el.querySelector('.abort-btn');
+        if (abortBtn) abortBtn.style.display = 'none';
     }
 });
 

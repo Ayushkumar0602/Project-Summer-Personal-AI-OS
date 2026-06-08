@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld('overlayApi', {
     // Close specific widget by ID (initiated from UI)
     closeWidget: (widgetId) => ipcRenderer.send('overlay-close-widget', widgetId),
     
+    // Abort a running agent
+    cancelAgents: () => ipcRenderer.send('cancel-agents'),
+    
     // Toggle pointer events for the overlay
     setIgnoreMouseEvents: (ignore) => ipcRenderer.send('overlay-ignore-mouse', ignore),
 });

@@ -51,6 +51,8 @@ html, body {
     justify-content: center;
     gap: 6px;
     padding: 8px 0 4px;
+    position: relative;
+    z-index: 10;
     -webkit-app-region: no-drag;
 }
 
