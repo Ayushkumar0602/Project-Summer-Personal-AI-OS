@@ -713,7 +713,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 
 ---
 
-## 💬 Support & Community
+## 💬 Support & Community support 
 
 - **Documentation**: [Project Wiki](https://github.com/Ayushkumar0602/summer-personal-assistant-/wiki)
 - **Issues**: [GitHub Issues](https://github.com/Ayushkumar0602/summer-personal-assistant-/issues)
