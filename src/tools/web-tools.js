@@ -85,7 +85,8 @@ async function scrapeWebpage(url) {
  */
 async function getNews(topic = '') {
     console.log(`[Tools] Fetching news for topic: "${topic}"`);
-    try {
+    try { 
+        //demo news api 
         const apiKey = '9930d02fc7a64f25b14f150c0621bfd1';
         let url = 'https://newsapi.org/v2/top-headlines?language=en&apiKey=' + apiKey;
         if (topic) {
