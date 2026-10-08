@@ -165,6 +165,17 @@ async function main(taskManifest, sdk) {
             pollCount++;
             
             if (finalResult.status === 'completed') {
+                // Map new v2 schema steps into legacy outputs format
+                let outputs = [];
+                if (finalResult.steps) {
+                    for (const step of finalResult.steps) {
+                        if (step.type === 'model_output' && step.content) {
+                            outputs.push(...step.content);
+                        }
+                    }
+                }
+                finalResult.outputs = outputs;
+                
                 const outputCount = finalResult.outputs?.length || 0;
                 const imageCount = finalResult.outputs?.filter(o => o.type === 'image').length || 0;
                 const textCount = finalResult.outputs?.filter(o => o.type === 'text').length || 0;

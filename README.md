@@ -1,803 +1,590 @@
-# ☀️ Project Summer: Jarvis-Class Personal AI Assistant with Agentic Orchestration
+# Project Summer: Local-First Autonomous Personal AI Assistant
 
-[![Electron](https://img.shields.io/badge/Electron-41.5.0-blue.svg)](https://www.electronjs.org/)
-[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini%203.1%20Flash-orange.svg)](https://deepmind.google/technologies/gemini/)
-[![Memory](https://img.shields.io/badge/Memory-Ego--Aware%20Graph-green.svg)](#-advanced-memory-intelligence-tier-2)
-[![Agents](https://img.shields.io/badge/Agents-Multi--Domain%20Orchestration-red.svg)](#-agentic-orchestration-system)
-[![OS](https://img.shields.io/badge/OS-macOS%20Deep%20Integration-lightgrey.svg)](#-os--deep-app-control)
-[![Language Composition](https://img.shields.io/badge/Languages-JavaScript%2082.4%25%20|%20Swift%206.9%25%20|%20CSS%205.3%25%20|%20HTML%204.3%25%20|%20Python%201.1%25-blueviolet.svg)](#-project-structure)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933.svg?logo=node.js)](https://nodejs.org/)
+[![Electron](https://img.shields.io/badge/Electron-41.5.0-47848F.svg?logo=electron)](https://www.electronjs.org/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-Live%20API-4285F4.svg?logo=google)](https://ai.google.dev/)
+[![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-Local%20Inference-005CED.svg)](https://onnxruntime.ai/)
+[![Transformers.js](https://img.shields.io/badge/Transformers.js-Local%20Embeddings-FFD21E.svg)](https://huggingface.co/docs/transformers.js)
+[![Supabase](https://img.shields.io/badge/Supabase-pgvector-3ECF8E.svg?logo=supabase)](https://supabase.com/)
+[![Playwright](https://img.shields.io/badge/Playwright-Chromium-2EAD33.svg?logo=playwright)](https://playwright.dev/)
+[![Three.js](https://img.shields.io/badge/Three.js-WebGL%20Visualizer-000000.svg?logo=threedotjs)](https://threejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Summer** is a sophisticated, state-of-the-art AI assistant built on Electron, designed to bridge the gap between human intent and machine execution. Inspired by the "Jarvis" aesthetic, Summer now features **advanced memory extensions with audio processing, procedural behavior tracking, and temporal timeline visualization** for enhanced contextual awareness and learning.
+**Project Summer** is an open-source, local-first personal AI assistant engineered for deep operating system automation, conversational fluidity, and persistent learning. Built on Node.js and Electron, Summer pairs low-latency bidirectional voice streaming via Google Gemini Live with a decoupled, headless background daemon architecture.
 
-**Latest Updates (June 2026)**: 
-✨ **Cortex Engine, Unified HUD Overlay, & Advanced Google Workspace Integrations**
-- 🧠 **Autonomous Cortex Engine**: Self-evolution framework featuring automatic gap detection from session logs, sandboxed AST validation, dynamic Tier 1 skill forging, staging lifecycle management, and Git harvesting for PR automation.
-- 📺 **Unified Transparent Overlay**: Replaced individual panel windows with a single, full-screen transparent web canvas, featuring a priority-based, content-aware 3-zone tiling layout engine and click-through pointer watchdog logic.
-- 👥 **Multiple Google Accounts**: Direct listing, OAuth registration, and context-aware execution across multiple Gmail and Workspace accounts, backed by Supabase cloud state synchronization.
-- 📄 **Drive Presentation & Rendering**: Dynamic HUD presentation of Drive media files, mini-browser rendering of PDFs and presentations, and silent background text-extraction.
-- 🕵️ **Core Agents (Tier 2 Plugins)**: Integrated Fact Checker (web cross-referencing and PDF compilation via Playwright), News Monitor (sentiment and image scraping), and Trend Analyzer (keyword momentum and recommendation dashboards).
-- ✕ **Agent Cancellation**: Seamless execution termination via direct HUD abort interaction, killing background child processes cleanly.
-- 📱 **iOS Client MVVM Overhaul**: Swift architecture rewrite using modern MVVM, SwiftUI view components, voice orb integration, and visual memory graph.
+Summer operates as a two-tier intelligence platform: a front-line conversational session handles real-time dialogue and intent dispatching, while heavy asynchronous tasks (deep web research, presentation authoring, fact checking) execute in isolated worker threads with state checkpointing. When idle, an autonomous subconscious engine audits session logs for capability gaps, writes new context skills, validates them through static AST sandboxing, and automatically proposes pull requests to its own codebase.
 
 ---
 
 ## 📋 Table of Contents
 
-1. [Vision & Innovation](#-vision--innovation)
-2. [Core Features](#-core-features)
-3. [Advanced Memory Intelligence](#-advanced-memory-intelligence-tier-2)
-4. [Agentic Orchestration System](#-agentic-orchestration-system)
-5. [Technical Architecture](#-technical-architecture)
-6. [Agent Architecture & Orchestration Diagrams](#-agent-architecture--orchestration-diagrams)
-7. [System Implementation Flow](#-system-implementation-flow)
-8. [Data Flow & Communication Patterns](#-data-flow--communication-patterns)
-9. [Capabilities & Integration](#-capabilities--integration)
-10. [June 2026 System Upgrades](#-june-2026-system-upgrades)
-11. [Project Structure](#-project-structure)
-12. [Installation & Setup](#-installation--setup)
-13. [Security & Privacy](#-security--privacy)
-14. [Roadmap](#-roadmap)
+1. [Technology Stack Matrix](#-technology-stack-matrix)
+2. [Master System Architecture](#-master-system-architecture)
+3. [Deep Documentation Library](#-deep-documentation-library)
+4. [Subsystem Deep Dives & Mechanics](#-subsystem-deep-dives--mechanics)
+   - [4.1 Headless Core Daemon & Wire Protocol](#41-headless-core-daemon--wire-protocol)
+   - [4.2 Voice Pipeline & Acoustic Streaming](#42-voice-pipeline--acoustic-streaming)
+   - [4.3 Two-Tier Agent Orchestration & Worker Threads](#43-two-tier-agent-orchestration--worker-threads)
+   - [4.4 Autonomous Self-Evolution Engine (Cortex)](#44-autonomous-self-evolution-engine-cortex)
+   - [4.5 Cognitive Memory & Ego-Aware Knowledge Graph](#45-cognitive-memory--ego-aware-knowledge-graph)
+   - [4.6 Operating System & Deep In-App Control](#46-operating-system--deep-in-app-control)
+   - [4.7 CDP Browser Automation](#47-cdp-browser-automation)
+   - [4.8 Holographic HUD & Pointer Watchdog Engine](#48-holographic-hud--pointer-watchdog-engine)
+5. [Verified Domain Agent Plugins](#-verified-domain-agent-plugins)
+6. [Repository Structure](#-repository-structure)
+7. [Prerequisites & System Requirements](#-prerequisites--system-requirements)
+8. [Installation & Setup](#-installation--setup)
+9. [Running Summer](#-running-summer)
+10. [Configuration Reference (.env)](#-configuration-reference-env)
+11. [Security, Sandboxing & Data Privacy](#-security-sandboxing--data-privacy)
+12. [License](#-license)
 
 ---
 
-## 🚀 Vision & Innovation
+## 🛠️ Technology Stack Matrix
 
-Summer transcends traditional chatbot limitations by introducing a **Dynamic Agent Orchestration Framework** that enables:
+Every dependency and technology in Project Summer is mapped to its concrete architectural role below:
 
-- **Multi-Domain Expertise**: Different specialized agents for coding, research, business, creative work, and more
-- **Contextual Agent Selection**: Automatic agent activation based on user intent and domain
-- **Agent Collaboration**: Agents can work together, delegate tasks, and share context
-- **Persistent Learning**: Agents learn from interactions and improve over time
-- **Fallback & Escalation**: Graceful degradation and escalation between agents and domains
-
----
-
-## ⭐ Core Features
-
-### 1. **Multi-Domain Agentic System**
-   - Code-specific agents (Software Engineer, DevOps, Security)
-   - Research agents (Academic, Data Analysis, Fact Verification)
-   - Business agents (Strategy, Analytics, Sales)
-   - Creative agents (Writer, Designer, Storyteller)
-   - Personal agents (Life Coach, Task Manager, Health Advisor)
-   - **NEW**: Persistent background agent status tracking and milestone notifications
-
-### 2. **Intelligent Agent Router**
-   - Natural language intent detection
-   - Domain classification with confidence scoring
-   - Agent selection algorithm with fallback strategies
-   - Context preservation across agent transitions
-
-### 3. **Advanced Memory Intelligence**
-   - Ego-Aware Knowledge Graph with 360° user understanding
-   - Agent-specific memory partitions
-   - Cross-agent learning and context sharing
-   - Semantic knowledge extraction and graph optimization
-   - Audio processing extensions for voice-based memory capture
-   - Procedural behavior tracking for pattern recognition
-   - Temporal timeline visualization for historical context
-   - **NEW**: Semantic vector search using pgvector and embeddings pipeline
-
-### 4. **Holographic Jarvis Experience**
-   - Glassmorphic UI with Three.js visualizations
-   - Audio-reactive core with real-time WebGL rendering
-   - Wake-word activation and hands-free interaction
-   - Proactive imagery and environmental awareness
-   - **NEW**: Media and file presentation system with dynamic HUD widgets (`custom_html` support)
-   - **NEW**: Voice persona selection and enhanced emotional responsiveness
-
-### 5. **Deep OS Integration**
-   - System control and diagnostics
-   - File management and media control
-   - Communication automation
-   - Productivity tools and app integration
-
-### 6. **Visual Browser & Automation**
-   - Autonomous web navigation
-   - Form filling and data extraction
-   - Human-in-the-loop oversight
-   - Multi-tab workflow support
+| Technology / Library | Version / Scope | Architectural Role & Implementation Details |
+| :--- | :--- | :--- |
+| **Node.js** | `>=18.0.0` | Core runtime for daemon, worker threads, and CLI tools. CommonJS + ESM interoperability. |
+| **Electron** | `^41.5.0` | Desktop shell managing transparent HUD windows, WebContents, IPC, and native macOS window bounds. |
+| **Google Gemini Live API** | `@google/genai` `^2.10.0` | Bidirectional WebSocket audio streaming (`gemini-3.1-flash-live-preview`). Zero-latency speech-to-speech. |
+| **Gemini Interactions API** | `deep-research-preview-04-2026` | Multi-step recursive research and reasoning engine used by `plugins/research_analyst/`. |
+| **ONNX Runtime Node** | `onnxruntime-node` `^1.26.0` | Local CPU inference for the OpenWakeWord 3-stage keyword detection pipeline. |
+| **Transformers.js** | `@xenova/transformers` `^2.17.2` | Runs `Xenova/all-MiniLM-L6-v2` locally via ONNX, producing 384-dimensional normalized vector embeddings. |
+| **Supabase & pgvector** | `@supabase/supabase-js` `^2.106.0` | PostgreSQL cloud sync with `vector(384)` embeddings and cosine distance (`<=>`) RPC matching. |
+| **Playwright** | `playwright` `^1.59.1` | Headless Chromium automation for PDF report compilation, fact checking, and page snapshotting. |
+| **Chrome DevTools Protocol (CDP)** | Electron `debugger` | Direct inspection of Chrome's Accessibility Tree (`Accessibility.getFullAXTree`) for stable web automation. |
+| **Node.js Worker Threads** | `node:worker_threads` | Process isolation for Tier 2 domain agents (`agent-socket.js`, `agent-worker.js`). |
+| **Node.js VM Module** | `node:vm` | Static Abstract Syntax Tree (AST) compilation and validation for autonomous skill files (`sandbox-validator.js`). |
+| **Three.js** | `three` `^0.184.0` | WebGL GPU-accelerated holographic voice orb rendering with dynamic morphing shaders. |
+| **Web Audio API** | Native Browser API | `AnalyserNode` FFT real-time frequency spectrum sampling for voice audio reactivity. |
+| **PptxGenJS** | `pptxgenjs` `^4.0.1` | Programmatic creation of modern PowerPoint `.pptx` presentations in `plugins/ppt_editor/`. |
+| **macOS Accessibility API** | AppleScript / System Events | OS UI control: clicking native buttons, reading UI hierarchies, sending keystrokes across macOS applications. |
+| **Swift & SwiftUI** | Swift 5.9+ / iOS 17+ | Native mobile client (`clients/ios/SummerApp/`) built with MVVM, Combine, and WebSockets. |
+| **WebSocket** | `ws` `^8.20.0` | Transport layer between daemon and clients, implementing the custom Summer Wire Protocol. |
+| **PDF Parse** | `pdf-parse` `^1.1.1` | In-memory text extraction from PDFs for knowledge graph ingestion and Google Drive previewing. |
 
 ---
 
-## 🧠 Advanced Memory Intelligence (Tier 2)
+## 🏗️ Master System Architecture
 
-Unlike traditional chatbots, Summer features a persistent, **Ego-Aware Knowledge Graph** that serves as her long-term brain.
-
-### Memory Architecture
+Project Summer decouples the central intelligence engine from the presentation clients. The **Summer Core Daemon** runs independently as a headless process, communicating with desktop and mobile clients over an authenticated WebSocket wire protocol.
 
 ```mermaid
 graph TD
-    A["User Knowledge Graph"] --> B["User Self Node<br/>Ego-Aware Center"]
-    A --> C["Episodic Memory<br/>Time-Series"]
-    A --> D["Semantic Memory<br/>Knowledge Base"]
-    A --> E["Procedural Memory"]
-    A --> F["Contextual Relationships"]
-    
-    B --> B1["Identity"]
-    B --> B2["Skills & Expertise"]
-    B --> B3["Projects & Initiatives"]
-    B --> B4["Preferences & Values"]
-    
-    B1 --> B1a["Name, Age, Location"]
-    B1 --> B1b["Personality Traits"]
-    B1 --> B1c["Life Stage & Goals"]
-    
-    C --> C1["Conversations & Interactions"]
-    C --> C2["Events & Milestones"]
-    C --> C3["Decisions Made"]
-    C --> C4["Lessons Learned"]
-    
-    D --> D1["General Knowledge"]
-    D --> D2["Domain-Specific Knowledge"]
-    D --> D3["Factual Information"]
-    D --> D4["Conceptual Relationships"]
-    
-    E --> E1["How-To Guides"]
-    E --> E2["Workflow Patterns"]
-    E --> E3["Automation Scripts"]
-    E --> E4["Best Practices"]
-    
-    F --> F1["People & Organizations"]
-    F --> F2["Projects & Goals"]
-    F --> F3["Resources & Tools"]
-    F --> F4["Temporal Connections"]
+    subgraph Clients["PRESENTATION CLIENTS (The Body)"]
+        ElectronApp["Electron Desktop Overlay\n• Unified Transparent Canvas\n• 3-Zone Tiling Engine\n• Pointer Watchdog\n• WebGL Three.js Voice Orb"]
+        iOSApp["iOS Mobile App (SwiftUI)\n• SummerViewModel (MVVM)\n• VoiceOrbView\n• MemoryGraphView"]
+        CLIClient["Headless CLI / Web Tools"]
+    end
+
+    ElectronApp <-->|WebSocket ws://localhost:8765\nSummer Wire Protocol| Daemon
+    iOSApp      <-->|WebSocket wss://summer.local:8765\nSummer Wire Protocol| Daemon
+    CLIClient   <-->|WebSocket ws://localhost:8765| Daemon
+
+    subgraph Daemon["SUMMER CORE DAEMON (summer-daemon.js - The Brain)"]
+        WsServer["WebSocket Transport Server\nsrc/core/transport/ws-server.js"]
+        ClientReg["Client Registry & Session Ownership\nsrc/core/transport/client-registry.js"]
+        EventBus["In-Process Event Bus\nsrc/core/event-bus.js"]
+        BrainBridge["Brain Bridge\nsrc/core/brain-bridge.js"]
+
+        WsServer <--> ClientReg
+        ClientReg <--> EventBus
+        EventBus <--> BrainBridge
+
+        subgraph Tier1["TIER 1: FRONT-LINE CONVERSATIONAL BRAIN"]
+            GeminiLive["Gemini Live WebSocket Client\nsrc/main/gemini/live-session.js"]
+            PCMStream["16kHz / 24kHz PCM Full-Duplex Stream"]
+            VAD["Voice Activity Detection & Barge-in"]
+            ContextBuilder["Context Injector (Pinned Facts, Diary, Rules)"]
+            ToolDispatcher["Tool Router & Gateway\nsrc/tools/tool-router.js"]
+        end
+
+        subgraph Tier2["TIER 2: UPPER LAYER ORCHESTRATION"]
+            Orchestrator["Orchestrator\nsrc/orchestration/orchestrator.js"]
+            AttrResolver["Attribute Resolver (Gathering State)"]
+            AgentSocket["Agent Socket Pool\nsrc/orchestration/agent-socket.js"]
+            EnvPolicy["Environment Policy Whitelist"]
+            SDKBridge["AgentSDK IPC Bridge & Checkpoint Proxy"]
+        end
+
+        subgraph Workers["WORKER THREAD ISOLATION (plugins/)"]
+            WorkerPPT["PPT Editor Agent\npptxgenjs + Layout Engine"]
+            WorkerResearch["Deep Research Analyst\nInteractions API + Playwright"]
+            WorkerFact["Fact Checker Agent\nWeb Scraping + Verdict Matrix"]
+            WorkerNews["News Monitor Agent\nRSS + Sentiment Analysis"]
+            WorkerTrend["Trend Analyzer Agent\nKeyword Momentum + HTML Charts"]
+        end
+
+        subgraph Cortex["AUTONOMOUS CORTEX ENGINE (IDLE SUBCONSCIOUS)"]
+            CortexEngine["Cortex State Machine\nsrc/cortex/cortex-engine.js"]
+            GapDetector["Gap Detector (Mines Diary & Logs)"]
+            SkillForge["Skill Forge (Tier 1 Code Generator)"]
+            ASTSandbox["Sandbox Validator (node:vm AST Security)"]
+            Staging["Staging Registry (Lifecycle Tracker)"]
+            GitHarvester["Git Harvester (Automated GitHub PRs)"]
+            SelfReflector["Self-Reflector (Meta-Analysis Journal)"]
+        end
+
+        subgraph Knowledge["KNOWLEDGE & PERSISTENCE LAYER"]
+            GraphStore["Ego-Aware Knowledge Graph (DAG)\nuser_self Anchor Node"]
+            LocalEmbeddings["Transformers.js (all-MiniLM-L6-v2)\n384-d Local Vectors"]
+            SupabaseVector["Supabase pgvector (Cloud Cosine Search)"]
+            SessionDiary["Autobiographical Session Diary"]
+            ProceduralMem["Procedural Habit & Rule Memory"]
+        end
+
+        BrainBridge <--> GeminiLive
+        BrainBridge <--> Orchestrator
+        EventBus <--> CortexEngine
+
+        GeminiLive <--> ToolDispatcher
+        ToolDispatcher -->|delegate_domain_agent| Orchestrator
+
+        Orchestrator --> AttrResolver
+        AttrResolver --> AgentSocket
+        AgentSocket --> EnvPolicy
+        EnvPolicy --> Workers
+        Workers <--> SDKBridge
+
+        GeminiLive <--> Knowledge
+        CortexEngine <--> Knowledge
+    end
 ```
-
-### Key Memory Features
-
-- **Ego-Awareness**: A specialized `user_self` node structure that separates your personal identity, skills, and projects from general world knowledge.
-- **Importance-Based Context**: Every memory node has an importance score (0.0–1.0). High-priority facts (★5/5) are "pinned" directly to Summer's system instruction, while peripheral data is stored in the graph.
-- **Semantic Chunking**: Documents (PDF, Text) and web pages are processed using intelligent context boundaries rather than arbitrary character limits, ensuring high-fidelity knowledge extraction.
-- **Visual Memory Recall**: Gemini Vision analyzes your uploaded photos, storing them with descriptive tags. Summer can proactively "show" you your own photos when the conversation turns personal.
-- **Session Diary**: At the end of every session, Summer generates a "diary entry" to maintain emotional and task continuity across days and weeks.
-- **Graph Optimization**: Built-in AI routines to auto-connect disparate memory "islands" and resolve factual contradictions.
-- **Agent-Specific Partitions**: Each agent maintains its own memory partition while accessing shared contextual knowledge.
-- **Audio Processing Extensions**: Capture and process voice-based interactions for enhanced memory contextualization.
-- **Procedural Behavior Tracking**: Monitor and learn from procedural patterns in user interactions.
-- **Temporal Timeline Visualization**: Visual representation of memory evolution and temporal relationships.
-- **Semantic Vector Search**: Advanced knowledge retrieval powered by pgvector and embeddings pipeline.
 
 ---
 
-## 🤖 Agentic Orchestration System
+## 📚 Deep Documentation Library
 
-### **The Ultimate Plan: Multi-Agent Orchestration Framework**
+Project Summer includes exhaustive architectural deep-dives for every major subsystem, located in [`docs/`](./docs/):
 
-Summer's agentic capabilities represent a paradigm shift from single-model assistance to a **dynamic, self-organizing agent collective**. This system enables Summer to behave as different specialized experts, seamlessly delegating, collaborating, and learning across domains.
+| Subsystem / Topic | Dedicated Architecture Document | Key Topics Covered |
+| :--- | :--- | :--- |
+| **System Audit & Claims** | [README Claims Technical Audit](./docs/README_CLAIMS_TECHNICAL_AUDIT.md) | Line-by-line verification of all advertised claims, source code references, and invariants. |
+| **Autonomous Evolution** | [Autonomous Evolution & Self-Improvement](./docs/AUTONOMOUS_EVOLUTION_AND_SELF_IMPROVEMENT.md) | Cortex Engine, Gap Detector, Skill Forge, AST Sandboxing, Staging Registry & Git PR automation. |
+| **Multi-Agent Orchestration** | [Multi-Agent Orchestration & Workers](./docs/MULTI_AGENT_ORCHESTRATION_AND_WORKERS.md) | Two-Tier architecture, Socket & Plug model, worker threads, AgentSDK & Checkpointing. |
+| **Advanced Memory Engine** | [Advanced Memory & Knowledge Graphs](./docs/ADVANCED_MEMORY_AND_KNOWLEDGE_GRAPH.md) | Ego-aware `user_self` graph, Xenova 384-d embeddings, pgvector cosine search, procedural memory. |
+| **OS & Desktop Control** | [OS Integration & System Control](./docs/OS_INTEGRATION_AND_SYSTEM_CONTROL.md) | Native macOS tools, Vision & Accessibility hands, Zero-trust permissions, Audit logging. |
+| **Browser Automation** | [Browser Automation & Tool Calling](./docs/BROWSER_AUTOMATION_AND_TOOL_CALLING.md) | CDP Accessibility Tree extraction, mini-browser session, OpenAPI tool gateway. |
+| **Audio & Voice Pipeline** | [Voice Pipeline & Audio Streaming](./docs/VOICE_PIPELINE_AND_AUDIO_STREAMING.md) | 3-stage ONNX wake word engine, Gemini Live PCM streaming, VAD, barge-in interruption. |
+| **Headless Daemon & Protocol** | [Headless Daemon & Transport Protocol](./docs/HEADLESS_DAEMON_AND_TRANSPORT_PROTOCOL.md) | Standalone Node.js daemon, WebSocket wire protocol specification, multi-client registry. |
+| **Plugin Developer Guide** | [Domain Agent Plugin Developer Guide](./docs/DOMAIN_AGENT_PLUGIN_DEVELOPER_GUIDE.md) | Manifest schema (`skill.json`), SDK lifecycle, checkpointing, step-by-step tutorial. |
+| **Holographic HUD Canvas** | [Holographic HUD & UI Architecture](./docs/HOLOGRAPHIC_HUD_AND_UI_ARCHITECTURE.md) | Unified transparent canvas, 3-zone tiling engine, 500ms pointer watchdog click-through. |
+| **Security & Privacy Governance**| [Security, Privacy & Permissions](./docs/SECURITY_PRIVACY_AND_PERMISSIONS.md) | Zero-trust matrix, interactive authorization, worker credential isolation, local-first privacy. |
 
-### Orchestration Architecture Overview
+---
+
+## ⚙️ Subsystem Deep Dives & Mechanics
+
+### 4.1 Headless Core Daemon & Wire Protocol
+* **Entry Point:** [`summer-daemon.js`](./summer-daemon.js)
+* **Transport:** [`src/core/transport/ws-server.js`](./src/core/transport/ws-server.js) & [`src/core/transport/protocol.js`](./src/core/transport/protocol.js)
+
+The daemon runs independently of Electron, exposing a WebSocket server on port `8765` (configurable). It manages client handshakes, keepalives, session ownership, and dispatches IPC events across clients.
 
 ```mermaid
-graph TD
-    User["👤 User Request"] --> Intent["🎯 Intent Recognition<br/>& Domain Detection"]
-    
-    Intent --> Router["🔀 Agent Router<br/>Multi-Criteria Scoring"]
-    
-    Router --> Agents["🤖 Agent Pool"]
-    
-    Agents --> CodeAgent["💻 Code Agent<br/>Software Engineering"]
-    Agents --> ResearchAgent["🔬 Research Agent<br/>Academic & Data"]
-    Agents --> BusinessAgent["📊 Business Agent<br/>Strategy & Ops"]
-    Agents --> CreativeAgent["✨ Creative Agent<br/>Content & Design"]
-    Agents --> PersonalAgent["🎯 Personal Agent<br/>Lifestyle & Wellness"]
-    
-    CodeAgent --> Exec["⚙️ Agent Execution<br/>Context Manager"]
-    ResearchAgent --> Exec
-    BusinessAgent --> Exec
-    CreativeAgent --> Exec
-    PersonalAgent --> Exec
-    
-    Exec --> Tools["🛠️ Tool Executor<br/>& Memory Manager"]
-    
-    Tools --> Response["📤 Response Generator<br/>& Fallback Handler"]
-    
-    Response --> Output["✅ User Response"]
-    
-    Tools -.-> Memory["🧠 Memory Engine<br/>Knowledge Graph"]
-    Memory -.-> Exec
+sequenceDiagram
+    participant Client as Client (Desktop / iOS)
+    participant WsServer as WsTransportServer
+    participant Registry as ClientRegistry
+    participant Brain as BrainBridge (LiveSession)
+
+    Client->>WsServer: client_hello { clientId, deviceName, token }
+    WsServer->>Registry: registerClient(socket, meta)
+    Registry-->>WsServer: registered
+    WsServer-->>Client: daemon_hello { serverVersion, authenticated: true }
+
+    Client->>WsServer: start_session { mode: 'audio' }
+    WsServer->>Registry: claimSessionOwnership(clientId)
+    WsServer->>Brain: initLiveSession(clientId)
+    Brain-->>WsServer: session_ready
+    WsServer-->>Client: session_started { sessionId, sampleRate: 24000 }
+
+    loop Audio Streaming
+        Client->>WsServer: send_audio { data: base64PCM_16k }
+        WsServer->>Brain: pushAudioChunk(pcmBuffer)
+        Brain-->>WsServer: audio_chunk { pcmBuffer_24k }
+        WsServer-->>Client: audio_response { data: base64PCM_24k }
+    end
 ```
 
-### Specialized Agent Hierarchy
+---
+
+### 4.2 Voice Pipeline & Acoustic Streaming
+* **Implementation:** [`src/wake-word/wake-word-engine.js`](./src/wake-word/wake-word-engine.js) & [`src/main/gemini/live-session.js`](./src/main/gemini/live-session.js)
+
+#### 3-Stage ONNX OpenWakeWord Detection
+Audio is processed locally in chunks of **1280 PCM samples (80ms at 16kHz)** via `onnxruntime-node`:
 
 ```mermaid
 graph LR
-    MA["🤖 Multi-Agent System"]
-    
-    MA --> CA["💻 Code Agent"]
-    MA --> RA["🔬 Research Agent"]
-    MA --> BA["📊 Business Agent"]
-    MA --> CRA["✨ Creative Agent"]
-    MA --> PA["🎯 Personal Agent"]
-    
-    CA --> CA1["Code Analyzer"]
-    CA --> CA2["Debugger"]
-    CA --> CA3["Architect"]
-    CA --> CA4["Security Auditor"]
-    CA --> CA5["DevOps"]
-    
-    RA --> RA1["Academic Researcher"]
-    RA --> RA2["Data Analyst"]
-    RA --> RA3["Fact Checker"]
-    RA --> RA4["Trend Analyst"]
-    RA --> RA5["Synthesizer"]
-    
-    BA --> BA1["Strategic Planner"]
-    BA --> BA2["Analytics Expert"]
-    BA --> BA3["Sales Strategist"]
-    BA --> BA4["Financial Analyst"]
-    BA --> BA5["Market Researcher"]
-    
-    CRA --> CRA1["Writer"]
-    CRA --> CRA2["Designer"]
-    CRA --> CRA3["Storyteller"]
-    CRA --> CRA4["Editor"]
-    CRA --> CRA5["Producer"]
-    
-    PA --> PA1["Life Coach"]
-    PA --> PA2["Task Manager"]
-    PA --> PA3["Health Advisor"]
-    PA --> PA4["Schedule Optimizer"]
-    PA --> PA5["Habit Tracker"]
+    PCM[1280 Raw PCM Samples\n80ms @ 16kHz Mono] --> Stage1[Stage 1: melspectrogram.onnx\nOutput: [1, 1, 5, 32] Mel Bins]
+    Stage1 --> Buffer1[Rolling Buffer\n76 Stacked Mel Rows]
+    Buffer1 --> Stage2[Stage 2: embedding_model.onnx\nOutput: [1, 1, 1, 96] Embedding]
+    Stage2 --> Buffer2[Rolling Buffer\n16 Stacked Embeddings]
+    Buffer2 --> Stage3[Stage 3: hey_jarvis_v0.1.onnx\nOutput: [1, 1] Confidence Score]
+    Stage3 --> Threshold{Confidence >= 0.50?}
+    Threshold -->|Yes| Wake[Wake Trigger + Cooldown]
+    Threshold -->|No| Discard[Continue Listening]
 ```
+
+* **Full-Duplex Streaming:** Upstream sends `audio/pcm;rate=16000` (16-bit mono). Downstream receives `audio/pcm;rate=24000` synthesized speech.
+* **Barge-In Interruption:** When the microphone detects incoming user voice energy while Summer's speakers are playing audio, Gemini emits an `interrupted: true` control packet. The daemon dispatches an `agent_interrupted` frame, immediately flushing the client's audio playback queue within 50ms.
 
 ---
 
-## 🏗️ Technical Architecture
+### 4.3 Two-Tier Agent Orchestration & Worker Threads
+* **Implementation:** [`src/orchestration/orchestrator.js`](./src/orchestration/orchestrator.js), [`src/orchestration/agent-socket.js`](./src/orchestration/agent-socket.js), [`packages/agent-sdk/`](./packages/agent-sdk)
 
-### Main System Architecture
-
-```mermaid
-graph TB
-    subgraph MainProcess["🔴 MAIN PROCESS"]
-        IPC["IPC Bridge & Router"]
-        
-        subgraph Engines["Core Engines"]
-            Intent["Intent Engine"]
-            Router["Agent Router"]
-            Tools["Tool Executor"]
-            Memory["Memory Engine"]
-            Skills["Skills Loader"]
-            Events["Event Manager"]
-        end
-        
-        subgraph Agents["Agent Pool"]
-            CodePool["Code Agent Pool"]
-            ResearchPool["Research Agent Pool"]
-            BusinessPool["Business Agent Pool"]
-        end
-        
-        IPC --> Engines
-        Engines --> Agents
-    end
-    
-    subgraph RendererProcess["🟢 RENDERER PROCESS"]
-        UI["User Interface<br/>React/Three.js"]
-    end
-    
-    subgraph Storage["💾 STORAGE & SERVICES"]
-        KG["Knowledge Graph<br/>Database"]
-        External["External APIs<br/>& Services"]
-    end
-    
-    MainProcess <--> RendererProcess
-    MainProcess --> KG
-    MainProcess --> External
-```
-
-### Agent Lifecycle State Machine
-
-```mermaid
-stateDiagram-v2
-    [*] --> IDLE
-    
-    IDLE --> INITIALIZING: Activation Signal
-    INITIALIZING --> ANALYZING: Setup Complete
-    
-    ANALYZING --> PLANNING: Analysis Done
-    PLANNING --> EXECUTING: Plan Ready
-    EXECUTING --> REFLECTING: Action Complete
-    
-    REFLECTING --> ANALYZING: Retry
-    REFLECTING --> FINALIZING: Success/Fail Decision
-    
-    FINALIZING --> IDLE: Complete/Timeout
-    
-    note right of REFLECTING
-        Evaluate output
-        Check criteria
-        Determine next step
-    end
-```
-
----
-
-## 📊 Agent Architecture & Orchestration Diagrams
-
-### Agent Communication & Data Flow
-
-```mermaid
-graph LR
-    User["👤 User"] --> MAO["🎯 Multi-Agent<br/>Orchestrator"]
-    
-    MAO --> Intent["1️⃣ Intent Analysis<br/>NLP Pipeline"]
-    Intent --> Router["2️⃣ Agent Selection<br/>Multi-Criteria"]
-    Router --> Context["3️⃣ Context Prep<br/>Memory Injection"]
-    Context --> Init["4️⃣ Agent Init<br/>Instantiation"]
-    
-    Init --> Agent["🤖 Active Agent"]
-    
-    Agent --> Think["💭 Think"]
-    Agent --> Plan["📋 Plan"]
-    Agent --> Act["⚡ Act"]
-    
-    Think --> Plan
-    Plan --> Act
-    Act --> Reflect["🔄 Reflect"]
-    Reflect --> Agent
-    
-    Reflect --> Response["📤 Response<br/>Generation"]
-    Response --> User
-    
-    Act -.-> Memory["🧠 Memory Update<br/>& Learning"]
-    Memory -.-> MAO
-```
-
-### Multi-Agent Collaboration Pattern
+The system divides labor into two distinct operational tiers:
+* **Tier 1 (Chief of Staff):** Evaluates user intent in real time, routes requests, and asks clarification questions.
+* **Tier 2 (Worker Threads):** Heavy domain tasks execute in separate Node.js `worker_threads` with sanitized environments (`plugin-env-policy.js`).
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant MAO as Multi-Agent<br/>Orchestrator
-    participant CA as Creative<br/>Agent
-    participant CoA as Code<br/>Agent
-    participant Memory as Knowledge<br/>Graph
+    participant Tier1 as Tier 1: Gemini Live
+    participant Orchestrator as Tier 2: Orchestrator
+    participant Resolver as Attribute Resolver
+    participant Worker as Worker Thread (AgentSocket)
+    participant HUD as Holographic HUD
+
+    User->>Tier1: "Generate a 10-slide deck on Quantum Computing"
+    Tier1->>Orchestrator: delegate_domain_agent { agent_id: 'ppt_editor_v1', topic: 'Quantum Computing' }
+    Orchestrator->>Resolver: resolveAttributes(manifest, params)
     
-    User->>MAO: "Write & debug Python project"
-    MAO->>MAO: Intent Analysis
-    MAO->>MAO: Select: CA + CoA
-    
-    MAO->>CA: Generate project outline
-    CA->>CA: Generate code structure
-    CA->>Memory: Store initial patterns
-    CA-->>MAO: Outline complete
-    
-    MAO->>CoA: Review & enhance code
-    CoA->>CoA: Validate structure
-    CoA->>CoA: Setup debugging
-    CoA->>Memory: Store code patterns
-    CoA-->>MAO: Code ready
-    
-    MAO->>CA: Refine documentation
-    CA->>CA: Polish docs
-    CA->>Memory: Update writing style
-    CA-->>MAO: Done
-    
-    MAO-->>User: Complete solution
-    Memory->>Memory: Graph optimization
+    alt Missing Mandatory Fields
+        Resolver-->>Orchestrator: { ready: false, missing: ['slide_count', 'target_audience'] }
+        Orchestrator-->>Tier1: clarification_needed
+        Tier1-->>User: "Who is the audience and how many slides would you like?"
+        User->>Tier1: "For college students, make it 10 slides."
+        Tier1->>Orchestrator: delegate_domain_agent with gathered attributes
+    end
+
+    Resolver-->>Orchestrator: { ready: true, filled: {...} }
+    Orchestrator->>Worker: spawn Worker(agent-worker.js, taskManifest)
+    Orchestrator->>HUD: agent-started { sessionId, agent_id }
+
+    loop Progress & Checkpointing
+        Worker->>Worker: sdk.saveCheckpoint('slides_planned', outline)
+        Worker->>Orchestrator: postMessage { type: 'progress', percent: 60, message: 'Formatting slides' }
+        Orchestrator->>HUD: agent-progress { percent: 60 }
+    end
+
+    Worker->>Orchestrator: postMessage { type: 'complete', result: { path: 'deck.pptx', html: '...' } }
+    Orchestrator->>HUD: show-hud-widget { custom_html: result.html }
+    Orchestrator-->>Tier1: agent-milestone (Injected into next turn context)
+    Tier1-->>User: "Sir, your Quantum Computing presentation is ready on your Desktop."
 ```
 
 ---
 
-## 🔄 System Implementation Flow
+### 4.4 Autonomous Self-Evolution Engine (Cortex)
+* **Implementation:** [`src/cortex/cortex-engine.js`](./src/cortex/cortex-engine.js), [`src/cortex/skill-forge.js`](./src/cortex/skill-forge.js), [`src/cortex/sandbox-validator.js`](./src/cortex/sandbox-validator.js)
 
-### Complete Request-to-Response Pipeline
+When all clients disconnect (`registry.count() === 0`), the **Cortex Engine** wakes up after a 60-second cooldown and executes background optimization cycles:
+
+```mermaid
+stateDiagram-v2
+    [*] --> DORMANT: Clients Connected
+    DORMANT --> COOLDOWN: All Clients Disconnect (0 Active)
+    COOLDOWN --> AWAKE: 60s Idle Cooldown Expires
+    COOLDOWN --> DORMANT: Client Reconnects
+
+    state AWAKE {
+        [*] --> MemoryConsolidation: Cycle Start
+        MemoryConsolidation --> GapDetection: Deduplicate & Bridge Graph
+        GapDetection --> SkillForging: Mine Diary & Classify Gaps
+        SkillForging --> ASTValidation: Generate Tier 1 Skill Context
+        ASTValidation --> StagingPromotion: Static node:vm Sandboxing
+        StagingPromotion --> GitHarvesting: Hot-Reload & Track Reliability
+        GitHarvesting --> SelfReflection: Open GitHub PR (if 3+ Successes)
+        SelfReflection --> [*]: Cycle Complete
+    }
+
+    AWAKE --> DORMANT: Client Connects (Immediate Interrupt)
+    AWAKE --> PAUSED: Token Budget Exhausted (100k/day)
+    AWAKE --> DORMANT: Max Cycles Reached (12 Cycles)
+```
+
+#### Static AST Sandboxing Policy (`src/cortex/sandbox-validator.js`)
+To guarantee system security, code synthesized by the Skill Forge must pass rigorous static analysis before it is written to disk:
+* **Size Limit:** Source must not exceed 4096 bytes; context string must not exceed 3000 characters.
+* **Banned Syntax:** Rejects `require`, `import`, `eval`, `new Function`, `process`, `child_process`, `fs`, `net`, `http`, `https`, `global`, `globalThis`, `__dirname`, `__filename`, `os.`, `function`, `=> {`, `class`, and timers (`setTimeout`, `setInterval`).
+* **AST Validation:** Compiles the string via Node.js `node:vm` (`new vm.Script(code)`). Skills must be strictly data-only instruction objects exporting `name`, `toolNames`, and `context`.
+
+---
+
+### 4.5 Cognitive Memory & Ego-Aware Knowledge Graph
+* **Implementation:** [`src/knowledge/graph-store.js`](./src/knowledge/graph-store.js), [`src/knowledge/embeddings.js`](./src/knowledge/embeddings.js), [`src/knowledge/graph-search.js`](./src/knowledge/graph-search.js)
 
 ```mermaid
 graph TD
-    A["👤 USER REQUEST"] -->|Text/Voice/Files| B["1️⃣ REQUEST RECEPTION<br/>Preprocessing & Validation"]
-    B --> C["2️⃣ INTENT & DOMAIN<br/>NLP Detection"]
-    C --> D["3️⃣ AGENT ROUTER<br/>Multi-Criteria Decision"]
-    D --> E["4️⃣ MEMORY & CONTEXT<br/>Knowledge Retrieval"]
-    E --> F["5️⃣ SYSTEM PROMPT<br/>Construction"]
-    F --> G["6️⃣ AGENT INSTANTIATION<br/>Setup & Initialization"]
-    G --> H["7️⃣ AGENT EXECUTION<br/>Think-Plan-Act-Reflect Loop"]
-    H -->|Success| I["8️⃣ RESPONSE GENERATION<br/>Format & Prepare"]
-    H -->|Failure| J["8️⃣ ERROR HANDLING<br/>Escalation & Retry"]
-    J --> I
-    I --> K["9️⃣ MEMORY UPDATE<br/>Learn & Optimize"]
-    K --> L["✅ USER RECEIVES<br/>RESPONSE"]
-    
-    style A fill:#e1f5e1
-    style L fill:#e1f5e1
-    style H fill:#fff3cd
-    style J fill:#f8d7da
+    UserSelf["Central Root Anchor\nuser_self Node\n(Identity, Preferences, Core Skills)"]
+
+    subgraph "Tripartite Memory Classification"
+        Episodic["Episodic Memory\n• Time-Series Session Diary\n• Daily Summaries & Milestones\n• Geolocation & Temporal Tags"]
+        Semantic["Semantic Memory\n• Entities & Relationships\n• Ingested PDFs & Documents\n• 384-d Vector Embeddings"]
+        Procedural["Procedural Memory\n• Behavioral Rules & Coding Styles\n• User Anti-Patterns & Preferences\n• Confidence Scoring (0.50 → 0.99)"]
+    end
+
+    UserSelf --> Episodic
+    UserSelf --> Semantic
+    UserSelf --> Procedural
+
+    subgraph "Dual-Path Retrieval Engine (graph-search.js)"
+        Query["Search Query"] --> OnlineCheck{Supabase Connected?}
+        OnlineCheck -->|Yes: Online| LocalVector[Transformers.js\nall-MiniLM-L6-v2 Embeddings]
+        LocalVector --> PgVector[Supabase pgvector\nCosine Distance operator <=>]
+        PgVector --> ResultNodes[Top Semantic Nodes]
+
+        OnlineCheck -->|No: Offline| LocalScorer[Deterministic Local Scorer]
+        LocalScorer --> Scored[Exact Match +100\nToken Overlap +15\nLevenshtein Fuzzy Distance\nAccess Decay Penalty]
+        Scored --> ResultNodes
+    end
 ```
 
-### Agent Execution Loop - Think-Plan-Act-Reflect
-
-```mermaid
-graph LR
-    Start["🚀 Task Start"] --> Think["💭 THINK<br/>Generate Reasoning<br/>Analyze Problem<br/>Break Down Tasks"]
-    
-    Think --> Plan["📋 PLAN<br/>Evaluate Tools<br/>Check Constraints<br/>Select Action"]
-    
-    Plan --> Act["⚡ ACT<br/>Execute Tools<br/>Update Memory<br/>Handle Errors"]
-    
-    Act --> Reflect["🔄 REFLECT<br/>Evaluate Output<br/>Check Success<br/>Determine Next"]
-    
-    Reflect -->|Task Complete| End["✅ Complete"]
-    Reflect -->|Need Iteration| Think
-    Reflect -->|Max Iterations| Escalate["⬆️ Escalate"]
-    Reflect -->|Timeout| Escalate
-    
-    Escalate --> End
-    
-    style Think fill:#e3f2fd
-    style Plan fill:#f3e5f5
-    style Act fill:#fff3e0
-    style Reflect fill:#e8f5e9
-```
+* **Context Pinning:** Nodes with `importance >= 0.8` or `pinned === true` are injected directly into Gemini's setup prompt (`graph-context.js`). All other nodes are retrieved on-demand via the `query_memory` tool call to conserve context tokens.
 
 ---
 
-## 📡 Data Flow & Communication Patterns
+### 4.6 Operating System & Deep In-App Control
+* **Implementation:** [`src/tools/os-tools.js`](./src/tools/os-tools.js) & [`src/tools/app-control-tools.js`](./src/tools/app-control-tools.js)
 
-### IPC Message Flow
+Summer interacts with the host operating system through a zero-trust execution pipeline:
+* **Input Sanitization:** Strips shell metacharacters (`/[^a-zA-Z0-9 .\-_\/]/g`) to eliminate command injection vulnerabilities.
+* **Tiered Permission Matrix:**
+  * *Safe Actions:* Read-only system queries, volume adjustment, brightness, and app focus execute immediately.
+  * *Dangerous Actions:* Destructive operations (`os_quit_app`, `os_system_sleep`, `os_lock_screen`, `os_empty_trash`, terminal scripts) require interactive user authorization via the WebSocket protocol (`[Deny]`, `[Allow Once]`, `[Always Allow]`). Permanent grants are stored in [`permissions-store.js`](./src/settings/permissions-store.js).
+* **Immutable Audit Trail:** All executions are logged to append-only daily JSONL files (`~/.config/summer/audit-logs/audit-YYYY-MM-DD.jsonl`).
+* **Eyes & Hands:** Captures active windows via `screencapture -l` + Gemini Vision ("eyes") and automates native controls via macOS Accessibility API AppleScript ("hands").
 
-```mermaid
-graph TB
-    subgraph Renderer["🟢 RENDERER PROCESS"]
-        UI["User Interface"]
-        InputHandler["Input Handler"]
-    end
-    
-    subgraph Main["🔴 MAIN PROCESS"]
-        IPC["IPC Router"]
-        Intent["Intent Engine"]
-        AgentRouter["Agent Router"]
-        AgentExec["Agent Executor"]
-        Tools["Tool Executor"]
-        Memory["Memory Engine"]
-    end
-    
-    UI -->|"agent:request"| InputHandler
-    InputHandler -->|"process_user_input"| IPC
-    IPC -->|Route| Intent
-    Intent -->|"intent_analysis"| IPC
-    IPC -->|Route| AgentRouter
-    AgentRouter -->|"agent_assign"| AgentExec
-    AgentExec -->|"tool:execute"| Tools
-    Tools -->|"tool_result"| Memory
-    Memory -->|"memory_update"| AgentExec
-    AgentExec -->|"response_ready"| IPC
-    IPC -->|"agent:response"| InputHandler
-    InputHandler -->|Display| UI
-    
-    IPC -->|"agent:status"| UI
+---
+
+### 4.7 CDP Browser Automation
+* **Implementation:** [`src/main/browser/browser-automation.js`](./src/main/browser/browser-automation.js)
+
+Traditional DOM injection approaches (e.g., injecting `data-ai-id` attributes) fail on modern Single Page Applications (SPAs) because React/Vue/Next.js virtual DOM updates wipe injected attributes between tool calls.
+
+Summer overcomes this by attaching Chrome DevTools Protocol (`wc.debugger`) to inspect Chrome's internal **Accessibility Tree**:
+```javascript
+// Attaches CDP debugger and retrieves full semantic accessibility tree
+const { nodes } = await wc.debugger.sendCommand('Accessibility.getFullAXTree');
+const snapshot = flattenAxTree(nodes);
+```
+* **Immune to Re-renders:** Identifies interactive elements by semantic role (`button`, `link`, `textbox`) and bounding coordinates rather than fragile DOM div classes.
+* **Actionable Pipeline:** Exposes `browser_navigate`, `browser_read`, `browser_click`, `browser_hover`, `browser_type`, and `browser_submit` with coordinate-based mouse and keyboard simulation.
+* **Fallback Scraper:** Includes a deterministic DOM parser fallback in [`dom-fallback-read.js`](./src/main/browser/dom-fallback-read.js) if debugger attachment is restricted.
+
+---
+
+### 4.8 Holographic HUD & Pointer Watchdog Engine
+* **Implementation:** [`src/overlay/overlay-renderer.js`](./src/overlay/overlay-renderer.js) & [`src/main/windows.js`](./src/main/windows.js)
+
+Summer replaces multiple floating desktop windows with a **Unified Full-Screen Transparent Electron Canvas**:
+
+```
+┌────────────────────────┬──────────────────────────────────────────┬────────────────────────┐
+│       LEFT ZONE        │               CENTER ZONE                │       RIGHT ZONE       │
+│   (System & Vitals)    │           (Primary Focus Work)           │    (Ambient Telemetry) │
+│                        │                                          │                        │
+│ • Active Agent Statuses│ • Deep Research Markdown Reports         │ • Holographic Voice Orb│
+│ • Memory Graph Previews│ • PPT Generation Progress & Artifacts   │ • Web Audio Visualizer │
+│ • System Diagnostics   │ • Rich Interactive HTML Dashboards      │ • Transient Alerts     │
+│ • Wi-Fi / Battery      │ • Mini-Browser Webpage Inspection        │ • Media Playback Cards │
+└────────────────────────┴──────────────────────────────────────────┴────────────────────────┘
 ```
 
-### Agent-to-Agent Collaboration Protocol
-
-```mermaid
-sequenceDiagram
-    participant CA as Code Agent
-    participant Orchestrator as MAO<br/>Orchestrator
-    participant RA as Research Agent
-    participant Memory as Memory<br/>System
-    
-    CA->>Orchestrator: delegate_task<br/>Find best practices
-    Orchestrator->>RA: task_acknowledged
-    RA->>RA: Process research
-    RA->>Memory: Store findings
-    RA->>Orchestrator: task_result<br/>Complete with sources
-    Orchestrator->>CA: result_delivery
-    CA->>CA: Integrate findings
-    CA->>Memory: Update code patterns
-    Note over CA,Memory: Cross-agent learning enabled
-```
+#### Real-Time Pointer Watchdog (Click-Through Logic)
+Full-screen transparent windows typically intercept all mouse events, blocking the user from clicking apps underneath. Summer implements an active **500ms Pointer Watchdog**:
+1. The window initializes with `overlayWindow.setIgnoreMouseEvents(true, { forward: true })`, passing clicks directly through to macOS desktop applications.
+2. In the renderer, an event loop continuously samples cursor coordinates against the bounding boxes (`getBoundingClientRect()`) of active Summer widgets.
+3. When the mouse enters an active Summer widget, the window toggles mouse events back on (`setIgnoreMouseEvents(false)`), allowing scrolling, button clicking, and text selection.
+4. When the mouse leaves the widget, mouse events are disabled again instantly, restoring native OS click-through.
 
 ---
 
-## 🛠️ Capabilities & Integration
+## 🧩 Verified Domain Agent Plugins
 
-### 🖥️ OS & Deep App Control
+The repository ships with five verified domain agent plugins located in [`plugins/`](./plugins/):
 
-Summer has "fingers" on your machine. She can:
-
-- **System Control**: Manage volume, brightness, DND mode, dark/light mode, and sleep/lock.
-- **Diagnostics**: Read CPU, RAM, disk, and battery status; identify resource-heavy processes.
-- **File Management**: Open files, search via Finder, and empty the Trash.
-- **Communication**: Send messages via WhatsApp and manage system notifications.
-- **Media**: Control Spotify/Music playback and volume.
-- **Productivity**: Full control over Clipboard, Screenshots, and Timers.
-
-### 🌐 Visual Browser (Interactive UI)
-
-When background research isn't enough, Summer can open a **visible mini-browser** on your screen:
-
-- **Autonomous Navigation**: She can navigate, read page content (Accessibility-aware), click buttons, and type into forms.
-- **Human-in-the-loop**: You can watch her work or take over if needed.
-- **Tab Management**: Support for multiple tabs and complex workflows like Google Login.
-
-### 📅 Google Workspace Integration
-
-Deep, authenticated access to your Google ecosystem:
-
-- **Calendar**: Fetch your daily schedule and inject it into your morning briefing.
-- **Drive/Mail/Maps**: Tools to interact with your files, emails, and location-based data.
-
-### 🤖 Multi-Agent Tools Capability Map
-
-```mermaid
-graph LR
-    subgraph Tools["🛠️ TOOL ECOSYSTEM"]
-        Git["Git Integration"]
-        Code["Code Analysis"]
-        Debug["Debugger"]
-        Web["Web Scraper"]
-        API["API Clients"]
-        CRM["CRM Integration"]
-        Finance["Financial Tools"]
-        Calendar["Calendar API"]
-        Health["Health Data"]
-    end
-    
-    subgraph Agents["🤖 AGENTS"]
-        CA["Code Agent"]
-        RA["Research Agent"]
-        BA["Business Agent"]
-        CRA["Creative Agent"]
-        PA["Personal Agent"]
-    end
-    
-    Git --> CA
-    Code --> CA
-    Debug --> CA
-    
-    Web --> RA
-    API --> RA
-    
-    CRM --> BA
-    Finance --> BA
-    
-    Calendar --> PA
-    Health --> PA
-    
-    style CA fill:#b3e5fc
-    style RA fill:#c8e6c9
-    style BA fill:#ffe0b2
-    style CRA fill:#f0e6ff
-    style PA fill:#ffccbc
+| Agent ID | Display Name | Core Implementation | Primary Output Artifact |
+| :--- | :--- | :--- | :--- |
+| **`ppt_editor_v1`** | PPT Editor | Dynamic layout engine + PptxGenJS | Compiled `.pptx` presentation deck |
+| **`research_analyst_v2`** | Deep Research Analyst | Gemini Interactions API (`deep-research-preview-04-2026`) + Playwright | Comprehensive Markdown, PDF report & Google Drive upload |
+| **`fact_checker_v1`** | Fact Checker | Playwright web scraping + Multi-source cross-reference | Truth-O-Meter verdict matrix & source citations |
+| **`news_monitor_v1`** | News Monitor | Google News RSS + Sentiment analysis + OpenGraph extraction | Interactive glassmorphic news sentiment cards |
+| **`trend_analyzer_v1`** | Trend Analyzer | Keyword momentum analysis + HTML visualization | Interactive HTML trend momentum dashboards |
 
 ---
 
-## 🌟 June 2026 System Upgrades
-
-### 1. Unified Transparent Overlay & Tiling Layout Engine
-Replaced individual panel window instances with a single, high-performance, full-screen transparent Electron canvas:
-* **Unified Canvas**: Controlled via [overlay.html](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/overlay/overlay.html), powered by [overlay-renderer.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/overlay/overlay-renderer.js) and [overlay-preload.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/overlay/overlay-preload.js).
-* **Smart Pointer Capture & Watchdog**: Solves pointer blocking. The window ignores mouse events (`setIgnoreMouseEvents(true, { forward: true })`) to pass clicks through to the OS. Mouse capture is enabled dynamically when hovering over widgets. A 500ms watchdog timer monitors cursor positions, automatically restoring click-through if a layout change or widget closure leaves the mouse over empty space.
-* **3-Zone Tiling Layout Engine**: Dynamic, content-aware widget arrangement. The active/focused widget (such as [mermaid](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/overlay/overlay-renderer.js#L231-L257) diagrams, emails, custom html) is centered with custom width and height. Secondary widgets automatically tile in left and right columns (max 8 visible, excess sent off-screen).
-* **Modular Multi-Window Orchestration**: Managed by [window-manager.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/main/window-manager.js) and [windows.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/main/windows.js).
-  * *Floating Orb Window*: The core voice responder (shifts to the left when the browser opens, recenters when closed).
-  * *On-Demand Mini-Browser Window*: Built-in browser taking 50% of screen width for web tools and authentication.
-  * *Settings/Permissions Window*: Local configurations and OAuth setup.
-
-### 2. Autonomous Cortex Engine (Self-Evolution Loop)
-An automated background capability optimizer that wakes up when all clients disconnect (idle mode):
-* **Core Loop Orchestration**: Regulated by [cortex-engine.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/cortex-engine.js). Runs sequential cycles governed by strict daily token limits (100k tokens/day) and automatic client connection gates.
-* **Evolution Subsystems**:
-  * **Memory Consolidator** ([memory-consolidator.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/memory-consolidator.js)): Prunes knowledge graphs and merges related nodes.
-  * **Gap Detector** ([gap-detector.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/gap-detector.js)): Mines session diaries and user-correction anti-patterns for failure items, writing `CapabilityGap` nodes to the graph.
-  * **Skill Forge** ([skill-forge.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/skill-forge.js)): Generates context-only JavaScript skills (Tier 1) containing expert guidance.
-  * **Sandbox Validator (Security Gate)** ([sandbox-validator.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/sandbox-validator.js)): Enforces a strict security policy on generated code via Node.js `vm` AST validation. Blocks `require`, `import`, `eval`, Node globals (`process`, `global`), networking/IO, and functions, ensuring context is pure data.
-  * **Staging Registry** ([staging-registry.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/staging-registry.js)): Hot-reloads and registers skills. Auto-promotes skills after 3 successful executions; auto-demotes and deletes them after 2 failures.
-  * **Git Harvester** ([git-harvester.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/git-harvester.js)): Automatically packages promoted skills and opens GitHub Pull Requests to merge them.
-  * **Self-Reflector** ([self-reflector.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/cortex/self-reflector.js)): Generates daily journals detailing capabilities evolution.
-
-### 3. Multiple Google Accounts & Drive Presentation
-Extends Google Workspace capabilities with multi-account auth and media streaming:
-* **Multi-Account Storage**: Managed in [google-auth.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/auth/google-auth.js). Migrated from legacy single-token files to `google-accounts.json`, supporting concurrent accounts and primary selection.
-* **Workspace Tools Context**: Registered in [google-tools.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/tools/google-tools.js) and executed by [drive-service.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/services/drive-service.js) and [mail-service.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/services/mail-service.js). Supports querying, listing, and archiving across all accounts at once.
-* **Drive Media Streaming & Processing**:
-  * Playback of media files on the HUD (images rendered in overlay, videos and audio opened in the browser window).
-  * Integrates silent PDF text-extraction using `pdf-parse` to feed document contents into Gemini's context for live Q&A.
-* **Supabase Cloud Syncing**: Synchronizes credentials and settings to Supabase table `app_settings` for seamless multi-device access.
-
-### 4. New Core Agents (Tier 2 Plugins)
-Introduces specialized background worker agents loaded dynamically via [orchestrator.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/orchestration/orchestrator.js):
-* **Fact Checker** ([fact_checker/index.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/plugins/fact_checker/index.js)): Evaluates claims by scanning search indexes, outputs color-coded "Truth-O-Meter" verdicts, renders a report via Playwright chromium, compiles it to PDF, and uploads it to Google Drive.
-* **News Monitor** ([news_monitor/index.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/plugins/news_monitor/index.js)): Gathers news items, performs sentiment analysis, scrapes lead images from og:image tags, and generates custom glassmorphic dashboards.
-* **Trend Analyzer** ([trend_analyzer/index.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/plugins/trend_analyzer/index.js)): Analyzes keyword popularity, graphs trend momentum, and structures recommendation dashboards.
-
-### 5. Agent Cancellation Workflow
-Provides users the ability to abort active background agents instantly:
-* **Protocol & IPC Routing**: Employs `cancel_agents` message type in [protocol.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/core/transport/protocol.js) routed through [daemon-client.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/main/daemon-client.js) and [session-ipc.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/main/ipc/session-ipc.js).
-* **Process Termination**: Handled in [ws-server.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/core/transport/ws-server.js) and [orchestrator.js](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/src/orchestration/orchestrator.js). Kills spawned child processes immediately, updates status, and closes the progress panel.
-
-### 6. iOS Client MVVM Overhaul
-Complete refactoring of the Swift mobile application located in [clients/ios/SummerApp/](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/clients/ios/SummerApp/):
-* **Architecture Shift**: Transitioned to SwiftUI and clean MVVM using [SummerViewModel.swift](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/clients/ios/SummerApp/SummerApp/ViewModels/SummerViewModel.swift) and [MemoryViewModel.swift](file:///Users/ayushjaiswal/Desktop/project-summer%20copy%202/clients/ios/SummerApp/SummerApp/ViewModels/MemoryViewModel.swift).
-* **Interface Improvements**: Includes `ChatView.swift` for interactive messaging, `VoiceOrbView.swift` representing voice activity, and `MemoryGraphView.swift` which reads memory nodes and visualizes connections directly on iOS.
-
----
-
-## 📂 Project Structure
+## 📂 Repository Structure
 
 ```
 summer-personal-assistant/
 ├── clients/
-│   └── ios/SummerApp/            # SwiftUI MVVM iOS Client
-├── plugins/                      # Tier 2 Plugin Agents
-│   ├── fact_checker/             # Playwright/Gemini fact-verifier
-│   ├── news_monitor/             # Sentiment-aware news dashboard
-│   └── trend_analyzer/           # Strategic industry trend monitor
-├── scripts/                      # Testing & Supabase migration scripts
+│   └── ios/SummerApp/              # Native SwiftUI MVVM iOS client application
+├── docs/                           # Dedicated technical architecture documentation library
+├── packages/
+│   └── agent-sdk/                  # Domain Agent SDK (IPC, progress, checkpoints)
+├── plugins/                        # Tier 2 Domain Agent Worker Plugins
+│   ├── fact_checker/               # Fact-checking verification agent
+│   ├── news_monitor/               # Sentiment-aware news monitoring agent
+│   ├── ppt_editor/                 # PowerPoint generation agent
+│   ├── research_analyst/           # Gemini Deep Research analyst agent
+│   └── trend_analyzer/             # Industry trend momentum agent
+├── scripts/                        # Utility testing, pairing, and migration scripts
 ├── src/
-│   ├── auth/
-│   │   └── google-auth.js        # Multi-account OAuth registry & storage
-│   ├── browser/
-│   │   └── browser.html          # Mini-browser layout template
-│   ├── core/
-│   │   ├── event-bus.js          # Core event management
-│   │   ├── platform/             # MacOS adapter interface
-│   │   └── transport/
-│   │       ├── protocol.js       # WebSocket packet formats
-│   │       └── ws-server.js      # WebSocket transport server ( nervous system )
-│   ├── cortex/                   # Subconscious Self-Evolution Loop
-│   │   ├── cortex-engine.js      # Runs evolution cycles during idle state
-│   │   ├── gap-detector.js       # Mines session logs for capability gaps
-│   │   ├── skill-forge.js        # Automatically creates Tier 1 skills
-│   │   ├── sandbox-validator.js  # AST validation safety gate
-│   │   ├── staging-registry.js   # Skill promotion & demotion lifecycle
-│   │   ├── git-harvester.js      # Automated Git PR creator
-│   │   └── self-reflector.js     # Daily self-reflection journal generator
-│   ├── hud-panel/
-│   │   └── panel-renderer.js     # Progress & media presentation views
-│   ├── knowledge/
-│   │   ├── graph-store.js        # Local graph DB & serialization
-│   │   ├── memory-api-key.js     # API key management and token budgeting
-│   │   └── session-diary.js      # End-of-session logs and summaries
-│   ├── main/
-│   │   ├── daemon-client.js      # Electron main → daemon WebSocket client
-│   │   ├── window-manager.js     # Overlay widget layout controller
-│   │   ├── windows.js            # Electron BrowserWindow factory methods
-│   │   └── ipc/
-│   │       ├── google-ipc.js     # Google account IPC bridging
-│   │       └── session-ipc.js    # Voice session IPC bridging
-│   ├── orb/
-│   │   ├── orb-renderer.js       # Audio-reactive WebGL voice visualization
-│   │   └── orb.html              # Floating voice responder frame
-│   ├── orchestration/
-│   │   ├── attribute-resolver.js # Task manifest field resolver
-│   │   └── orchestrator.js       # Tier 2 domain agent scheduler
-│   ├── overlay/                  # Unified HUD overlay Canvas
-│   │   ├── overlay-preload.js    # Preload bridging definitions
-│   │   ├── overlay-renderer.js   # Priority layout & pointer watchdog
-│   │   └── overlay.html          # Transparent click-through web canvas
-│   ├── services/
-│   │   ├── drive-service.js      # Drive downloading, metadata & delete
-│   │   ├── google-service.js     # Google tasks and calendar manager
-│   │   └── mail-service.js       # Multi-account email retrieval
-│   ├── settings/
-│   │   ├── settings-renderer.js  # Local permissions settings panel
-│   │   └── permissions-store.js  # Pre-approved permission registries
-│   ├── skills/
-│   │   ├── skill-loader.js       # Dynamic runtime loader
-│   │   └── cortex-*-skill.js     # Auto-forged skill files
-│   ├── tools/
-│   │   ├── google-tools.js       # Workspace tool declarations & handlers
-│   │   ├── os-tools.ts           # macOS automation tools
-│   │   └── tool-router.js        # Unified tool dispatcher
-│   ├── wake-word/
-│   │   └── wake-word-engine.js   # Local VAD audio trigger
-│   ├── index.js                  # Main Electron entry
-│   ├── index.html                # App layout shell
-│   ├── index.css                 # Base stylesheet
-│   └── preload.js                # Main IPC preload bridge
-├── summer-daemon.js              # Headless Core Daemon server entry
-├── package.json
-└── README.md
+│   ├── auth/                       # Multi-account Google OAuth storage & lifecycle
+│   ├── browser/                    # Mini-browser HTML shell and session state
+│   ├── core/                       # Core daemon transport, event bus, platform adapters
+│   │   ├── platform/               # OS platform adapters (adapter-macos.js, adapter-base.js)
+│   │   ├── transport/              # WebSocket transport server (ws-server.js) & protocol.js
+│   │   └── event-bus.js            # Internal decoupled EventEmitter bus
+│   ├── cortex/                     # Subconscious autonomous self-evolution engine
+│   │   ├── cortex-engine.js        # State machine and cycle runner
+│   │   ├── gap-detector.js         # Mines diary and procedural memory for gaps
+│   │   ├── skill-forge.js          # Synthesizes Tier 1 context skills
+│   │   ├── sandbox-validator.js    # Static AST node:vm security gate
+│   │   ├── staging-registry.js     # Skill promotion/demotion lifecycle
+│   │   ├── git-harvester.js        # Automated GitHub branch & PR creator
+│   │   └── self-reflector.js       # Daily evolution journal generator
+│   ├── knowledge/                  # Knowledge Graph & Memory Engine
+│   │   ├── embeddings.js           # Local Xenova/all-MiniLM-L6-v2 vector pipeline
+│   │   ├── graph-store.js          # DAG knowledge base serialization
+│   │   ├── graph-search.js         # pgvector + local fuzzy Levenshtein search
+│   │   ├── graph-context.js        # System instruction context builder
+│   │   ├── procedural-memory.js    # Behavioral habit & rule extraction
+│   │   └── session-diary.js        # Autobiographical session summarizer
+│   ├── main/                       # Electron main process controllers
+│   │   ├── browser/                # CDP Accessibility browser automation
+│   │   ├── gemini/                 # Gemini Live WebSocket session manager
+│   │   └── windows.js              # Window creation and pointer watchdog
+│   ├── orb/                        # Audio-reactive WebGL voice visualizer
+│   ├── orchestration/              # Tier 2 worker orchestration
+│   │   ├── orchestrator.js         # Upper layer task manager
+│   │   ├── agent-socket.js         # Worker thread runner & timeout supervisor
+│   │   ├── attribute-resolver.js   # Parameter resolution & gathering state
+│   │   └── plugin-env-policy.js    # Environment variable whitelisting
+│   ├── overlay/                    # Unified transparent HUD overlay canvas
+│   ├── settings/                   # Permissions store & settings UI
+│   ├── skills/                     # Skill loader & auto-forged cortex skills
+│   ├── tools/                      # Tool declarations, OS handlers, and router
+│   ├── wake-word/                  # OpenWakeWord 3-stage ONNX audio engine
+│   └── index.js                    # Electron desktop application entry point
+├── summer-daemon.js                # Headless Core Daemon server entry point
+├── supabase_schema.sql             # PostgreSQL pgvector memory schema
+├── package.json                    # Project manifests and scripts
+└── README.md                       # Master documentation
 ```
 
 ---
 
-## 🔧 Installation & Setup
+## 💻 Prerequisites & System Requirements
 
-### Prerequisites
+* **Node.js:** v18.0.0 or higher
+* **Operating System:**
+  * **macOS 12+ (Monterey or later):** Required for native desktop features (Electron HUD overlay, AppleScript, Accessibility API, native screencapture).
+  * **Linux / Docker / Windows:** Fully supported for running the headless daemon (`summer-daemon.js`).
+* **API Keys:**
+  * **Google Gemini API Key:** Required for Gemini Live audio streaming and conversational intelligence.
+  * **Supabase Account (Optional):** Required for cloud `pgvector` synchronization. Local vector extraction works offline without Supabase.
+  * **GitHub Personal Access Token (Optional):** Required for Cortex Git Harvester automated PR creation.
 
-- **Node.js** v18+ and **npm** v9+
-- **Electron** v41.5.0+
-- **Google Gemini API Key** (for AI capabilities)
-- **macOS** (for native integrations)
+---
 
-### Quick Start
+## 🚀 Installation & Setup
 
+### 1. Clone the Repository & Install Dependencies
 ```bash
-# Clone the repository
 git clone https://github.com/Ayushkumar0602/summer-personal-assistant-.git
-cd summer-personal-assistant
+cd summer-personal-assistant-
 
-# Install dependencies
+# Install Node.js dependencies
 npm install
 
-# Build the project
-npm run build
-
-# Start development server
-npm run dev
-
-# Package for production
-npm run package
+# Install Playwright browser binaries for research and fact-checking agents
+npx playwright install chromium
 ```
 
-### Configuration
-
-Create a `.env` file in the root directory:
-
+### 2. Configure Environment Variables
+Copy and configure your `.env` file in the root directory:
+```bash
+cp .env.example .env  # or edit .env directly
 ```
-GEMINI_API_KEY=your_api_key_here
-LOG_LEVEL=info
-MEMORY_DB_PATH=./data/memory
-AUDIO_PROCESSING_ENABLED=true
-PROCEDURAL_TRACKING_ENABLED=true
-TIMELINE_VISUALIZATION_ENABLED=true
+Ensure your `GEMINI_API_KEY` is set. See the [Configuration Reference](#-configuration-reference-env) below for optional integrations.
+
+### 3. Initialize Cloud Memory (Optional)
+If using Supabase for cloud vector memory:
+1. Create a Supabase project and enable the `vector` extension.
+2. Execute the queries in [`supabase_schema.sql`](./supabase_schema.sql) in your Supabase SQL Editor.
+3. Add `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` to your `.env`.
+
+---
+
+## 🏃 Running Summer
+
+### Running the Desktop Application (Electron + HUD)
+```bash
+npm start
+```
+Starts the full desktop environment: boots the background daemon, displays the holographic voice orb, and initializes the transparent overlay canvas.
+
+### Running the Headless Daemon Standalone
+To run Summer as a 24/7 background service on a home server or without the Electron GUI:
+```bash
+# Production daemon (Port 8765)
+npm run daemon
+
+# Development mode (disables auth token check and mic wake-word)
+npm run daemon:dev
+
+# Verbose debug logging
+npm run daemon:verbose
 ```
 
----
-
-## 🔐 Security & Privacy
-
-- **End-to-End Encryption**: All sensitive data is encrypted at rest and in transit.
-- **Local-First**: Most processing happens locally; minimal data sent to APIs.
-- **User Consent**: Explicit opt-in for data collection and processing.
-- **Audit Logs**: Comprehensive logging of all agent actions for transparency.
-- **Sandboxing**: Agents execute in isolated contexts with permission restrictions.
+### Pairing Mobile Clients
+To pair an iOS client running the SwiftUI app:
+```bash
+npm run ios:pair
+```
+Generates a terminal QR code encoding the local WebSocket daemon address and authentication token.
 
 ---
 
-## 🗺️ Roadmap
+## 🔑 Configuration Reference (`.env`)
 
-### Phase 1: Foundation (Current)
-- ✅ Multi-agent orchestration system
-- ✅ Advanced memory with audio extensions
-- ✅ Procedural behavior tracking
-- ✅ Temporal timeline visualization
-- ⏳ Core agent implementations
-
-### Phase 2: Enhancement
-- [ ] Cross-platform support (Windows, Linux)
-- [ ] Advanced voice interaction
-- [ ] Improved visual browser automation
-- [ ] Real-time collaboration features
-- [ ] Mobile companion app
-
-### Phase 3: Intelligence
-- [ ] Federated learning across devices
-- [ ] Advanced predictive capabilities
-- [ ] Proactive assistance system
-- [ ] Emotional intelligence layer
-- [ ] Long-term goal tracking
-
-### Phase 4: Ecosystem
-- [ ] Third-party agent marketplace
-- [ ] Custom skill development framework
-- [ ] Community contributions system
-- [ ] Enterprise deployment options
-- [ ] Multi-user organizations support
+| Variable | Required | Description |
+| :--- | :---: | :--- |
+| `GEMINI_API_KEY` | **Yes** | Primary Google Gemini API key for Gemini Live streaming and reasoning. |
+| `GEMINI_LIVE_MODEL` | No | Target Live model (default: `models/gemini-3.1-flash-live-preview`). |
+| `GEMINI_VOICE_NAME` | No | Synthesized voice profile (e.g. `Callirrhoe`, `Puck`, `Aoede`). |
+| `REMOTE_DAEMON_TOKEN` | No | Shared secret token required for WebSocket client authentication. |
+| `SUPABASE_URL` | No | Supabase project URL for cloud vector synchronization. |
+| `SUPABASE_SERVICE_KEY` | No | Supabase service role key for `pgvector` read/write operations. |
+| `GITHUB_TOKEN` | No | GitHub PAT (`repo` scope) for Cortex Git Harvester automated PRs. |
+| `GITHUB_REPO_OWNER` | No | GitHub repository owner (e.g. `Ayushkumar0602`). |
+| `GITHUB_REPO_NAME` | No | GitHub repository name (e.g. `summer-personal-assistant-`). |
+| `GOOGLE_CLIENT_ID` | No | OAuth Client ID for multi-account Google Workspace integration. |
+| `GOOGLE_CLIENT_SECRET` | No | OAuth Client Secret for Google Workspace integration. |
+| `CORTEX_ENABLED` | No | Set to `false` to disable the autonomous idle evolution loop. |
 
 ---
 
-## 📝 License
+## 🔒 Security, Sandboxing & Data Privacy
 
-This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
+Project Summer implements strict security boundaries for local agent execution:
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute, report issues, and submit pull requests.
-
----
-
-## 💬 Support & Community
-
-- **Documentation**: [Project Wiki](https://github.com/Ayushkumar0602/summer-personal-assistant-/wiki)
-- **Issues**: [GitHub Issues](https://github.com/Ayushkumar0602/summer-personal-assistant-/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Ayushkumar0602/summer-personal-assistant-/discussions)
-- **Contact**: Reach out via GitHub or email
+1. **Static AST Sandboxing for Self-Generated Code:** Code created by the Skill Forge is parsed by Node.js `node:vm` (`new vm.Script(code)`). The parser scans for banned tokens and prohibits `require`, `import`, `eval`, `process`, `child_process`, `fs`, `net`, and function declarations. Context skills are strictly data-only instruction objects.
+2. **Worker Environment Scrubbing:** Domain plugins execute in separate worker threads where `process.env` is sanitized by `plugin-env-policy.js`. Only explicitly whitelisted environment keys are forwarded to workers.
+3. **Interactive User Confirmations:** Dangerous operating system tools (`os_quit_app`, `os_system_sleep`, `os_lock_screen`, `os_empty_trash`, terminal scripts) require explicit interactive user authorization via the WebSocket protocol (`[Deny]`, `[Allow Once]`, `[Always Allow]`).
+4. **Append-Only JSONL Audit Logs:** Every system command, parameter payload, execution timestamp, and user approval is recorded to daily audit logs in `~/.config/summer/audit-logs/audit-YYYY-MM-DD.jsonl`.
+5. **Local-First Privacy:** Wake-word detection (OpenWakeWord ONNX) and memory vector embeddings (`all-MiniLM-L6-v2`) run entirely on the local CPU without transmitting continuous microphone audio or personal notes to external embedding APIs.
 
 ---
 
-**Made with ❤️ by Ayushkumar0602**
+## 📜 License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for complete details.
