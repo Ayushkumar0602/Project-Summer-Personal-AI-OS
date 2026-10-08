@@ -220,14 +220,14 @@ Audio is processed locally in chunks of **1280 PCM samples (80ms at 16kHz)** via
 
 ```mermaid
 graph LR
-    PCM[1280 Raw PCM Samples\n80ms @ 16kHz Mono] --> Stage1[Stage 1: melspectrogram.onnx\nOutput: [1, 1, 5, 32] Mel Bins]
-    Stage1 --> Buffer1[Rolling Buffer\n76 Stacked Mel Rows]
-    Buffer1 --> Stage2[Stage 2: embedding_model.onnx\nOutput: [1, 1, 1, 96] Embedding]
-    Stage2 --> Buffer2[Rolling Buffer\n16 Stacked Embeddings]
-    Buffer2 --> Stage3[Stage 3: hey_jarvis_v0.1.onnx\nOutput: [1, 1] Confidence Score]
-    Stage3 --> Threshold{Confidence >= 0.50?}
-    Threshold -->|Yes| Wake[Wake Trigger + Cooldown]
-    Threshold -->|No| Discard[Continue Listening]
+    PCM["1280 Raw PCM Samples<br/>80ms @ 16kHz Mono"] --> Stage1["Stage 1: melspectrogram.onnx<br/>Output: 1x1x5x32 Mel Bins"]
+    Stage1 --> Buffer1["Rolling Buffer<br/>76 Stacked Mel Rows"]
+    Buffer1 --> Stage2["Stage 2: embedding_model.onnx<br/>Output: 1x1x1x96 Embedding"]
+    Stage2 --> Buffer2["Rolling Buffer<br/>16 Stacked Embeddings"]
+    Buffer2 --> Stage3["Stage 3: hey_jarvis_v0.1.onnx<br/>Output: 1x1 Confidence Score"]
+    Stage3 --> Threshold{"Confidence >= 0.50?"}
+    Threshold -->|Yes| Wake["Wake Trigger + Cooldown"]
+    Threshold -->|No| Discard["Continue Listening"]
 ```
 
 * **Full-Duplex Streaming:** Upstream sends `audio/pcm;rate=16000` (16-bit mono). Downstream receives `audio/pcm;rate=24000` synthesized speech.
@@ -298,7 +298,7 @@ stateDiagram-v2
         MemoryConsolidation --> GapDetection: Deduplicate & Bridge Graph
         GapDetection --> SkillForging: Mine Diary & Classify Gaps
         SkillForging --> ASTValidation: Generate Tier 1 Skill Context
-        ASTValidation --> StagingPromotion: Static node:vm Sandboxing
+        ASTValidation --> StagingPromotion: Static VM Sandboxing
         StagingPromotion --> GitHarvesting: Hot-Reload & Track Reliability
         GitHarvesting --> SelfReflection: Open GitHub PR (if 3+ Successes)
         SelfReflection --> [*]: Cycle Complete

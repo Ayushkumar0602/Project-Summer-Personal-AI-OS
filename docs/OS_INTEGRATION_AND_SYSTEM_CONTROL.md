@@ -15,7 +15,7 @@ Summer implements **Deep Operating System & Application Integration** tailored f
 
 ```mermaid
 graph TD
-    User([Voice Command: "Mute sound, open VS Code and switch to dark mode"]) --> LiveSession[Gemini Live Tool Dispatcher]
+    User(["Voice Command: 'Mute sound, open VS Code and switch to dark mode'"]) --> LiveSession[Gemini Live Tool Dispatcher]
     
     LiveSession --> Router[Tool Router\nsrc/tools/tool-router.js]
     

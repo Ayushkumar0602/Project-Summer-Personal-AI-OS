@@ -37,12 +37,12 @@ graph TD
     
     InitialBrain -->|Intent Maps to Agent| UpperLayer[Tier 2: Upper Layer Orchestrator]
     
-    UpperLayer -->|1. Read Manifest| SkillDoc[(Agent Skill Document)]
+    UpperLayer -->|1. Read Manifest| SkillDoc[("Agent Skill Document")]
     UpperLayer -->|2. Identify Missing Data| InitialBrain
     InitialBrain -->|Clarification Questions| User
     
-    UpperLayer -->|3. All Data Gathered| Socket[Agent Socket (Isolated Thread)]
-    Socket -->|Plug In & Start| Agent[Domain Agent: PPT Maker]
+    UpperLayer -->|3. All Data Gathered| Socket["Agent Socket (Isolated Thread)"]
+    Socket -->|Plug In & Start| Agent["Domain Agent: PPT Maker"]
     
     Agent -->|4. Periodic Heartbeat| UpperLayer
     UpperLayer -->|Update HUD Toast| User
