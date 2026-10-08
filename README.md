@@ -545,12 +545,12 @@ npm run daemon:dev
 npm run daemon:verbose
 ```
 
-### Pairing Mobile Clients
-To pair an iOS client running the SwiftUI app:
+### Testing Daemon Connections
+To test the WebSocket client connection against a running daemon:
 ```bash
-npm run ios:pair
+npm run test:daemon
 ```
-Generates a terminal QR code encoding the local WebSocket daemon address and authentication token.
+Validates the client-daemon handshake, session creation, and event streaming.
 
 ---
 
@@ -588,3 +588,23 @@ Project Summer implements strict security boundaries for local agent execution:
 ## 📜 License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for complete details.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute, report issues, and submit pull requests.
+
+---
+
+## 💬 Support & Community
+
+- **Documentation**: [Project Wiki](https://github.com/Ayushkumar0602/summer-personal-assistant-/wiki)
+- **Issues**: [GitHub Issues](https://github.com/Ayushkumar0602/summer-personal-assistant-/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Ayushkumar0602/summer-personal-assistant-/discussions)
+- **Contact**: Reach out via GitHub or email
+
+---
+
+**Made with ❤️ by Ayushkumar0602**
+
