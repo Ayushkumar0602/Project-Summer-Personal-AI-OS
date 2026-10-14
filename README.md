@@ -163,6 +163,7 @@ Project Summer includes exhaustive architectural deep-dives for every major subs
 | Subsystem / Topic | Dedicated Architecture Document | Key Topics Covered |
 | :--- | :--- | :--- |
 | **System Audit & Claims** | [README Claims Technical Audit](./docs/README_CLAIMS_TECHNICAL_AUDIT.md) | Line-by-line verification of all advertised claims, source code references, and invariants. |
+| **System Benchmarks & Latency** | [System Benchmark & Performance Audit](./docs/SYSTEM_BENCHMARK_AND_PERFORMANCE_AUDIT.md) | Empirical latency profiles, ONNX RTF, Memory throughput, Cortex AST security gates & findings. |
 | **Autonomous Evolution** | [Autonomous Evolution & Self-Improvement](./docs/AUTONOMOUS_EVOLUTION_AND_SELF_IMPROVEMENT.md) | Cortex Engine, Gap Detector, Skill Forge, AST Sandboxing, Staging Registry & Git PR automation. |
 | **Multi-Agent Orchestration** | [Multi-Agent Orchestration & Workers](./docs/MULTI_AGENT_ORCHESTRATION_AND_WORKERS.md) | Two-Tier architecture, Socket & Plug model, worker threads, AgentSDK & Checkpointing. |
 | **Advanced Memory Engine** | [Advanced Memory & Knowledge Graphs](./docs/ADVANCED_MEMORY_AND_KNOWLEDGE_GRAPH.md) | Ego-aware `user_self` graph, Xenova 384-d embeddings, pgvector cosine search, procedural memory. |
